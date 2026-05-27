@@ -81,6 +81,7 @@ export function RandomTrainer() {
 
   if (state === 'stopped' && current) {
     const def = getPllDefinition(current.pllId);
+    const star = starredFor(current.pllId);
     return (
       <div className="rounded-lg border border-amber-400 dark:border-amber-500 bg-amber-50 dark:bg-amber-950/30 p-6 flex flex-col items-center gap-4 select-none">
         <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -95,6 +96,20 @@ export function RandomTrainer() {
               {elapsed.toFixed(3)}
             </div>
           </div>
+        </div>
+        <div className="max-w-2xl w-full text-center font-mono text-sm break-words text-zinc-700 dark:text-zinc-300">
+          {star ? (
+            <p>
+              <span className="inline-block min-w-[2.5em] mr-2 px-1.5 py-0.5 text-[10px] rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 align-middle">
+                {star.auf}
+              </span>
+              {star.algorithm}
+            </p>
+          ) : (
+            <p className="italic text-zinc-500">
+              No star algorithm saved for this PLL
+            </p>
+          )}
         </div>
         <div className="flex gap-3">
           <button
