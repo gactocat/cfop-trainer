@@ -42,8 +42,12 @@ export function F2L3DPlayer({
     const host = hostRef.current;
     const player = document.createElement('twisty-player');
     player.setAttribute('puzzle', '3x3x3');
-    // The case lives at the end of the setup, before the algorithm runs.
-    player.setAttribute('experimental-setup-alg', setupAlg);
+    // Prefix `z2` so the cube is displayed with yellow on U / white on D —
+    // the standard CFOP orientation that matches the PLL 2D diagrams and
+    // speedcubedb's reference views. The case-setup and algorithm moves run
+    // in this rotated frame (R then refers to the orange face) which is
+    // consistent with the speedcubedb algorithm strings we ship.
+    player.setAttribute('experimental-setup-alg', `z2 ${setupAlg}`);
     player.setAttribute('experimental-setup-anchor', 'end');
     player.setAttribute('alg', algorithm);
     player.setAttribute('experimental-stickering', 'F2L');
