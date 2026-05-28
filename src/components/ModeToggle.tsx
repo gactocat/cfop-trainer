@@ -5,20 +5,22 @@ import type { PllGridMode } from './PllGrid';
 
 interface ModeToggleProps {
   current: PllGridMode;
+  basePath: '/pll' | '/f2l';
+  allLabel: string;
 }
 
-const TABS: ReadonlyArray<{ mode: PllGridMode; label: string; href: string }> = [
-  { mode: 'all', label: 'All PLLs', href: '/' },
-  { mode: 'random', label: 'Random', href: '/?mode=random' },
-];
+export function ModeToggle({ current, basePath, allLabel }: ModeToggleProps) {
+  const tabs: ReadonlyArray<{ mode: PllGridMode; label: string; href: string }> = [
+    { mode: 'all', label: allLabel, href: basePath },
+    { mode: 'random', label: 'Random', href: `${basePath}?mode=random` },
+  ];
 
-export function ModeToggle({ current }: ModeToggleProps) {
   return (
     <nav
       aria-label="Mode"
       className="inline-flex rounded-md bg-zinc-100 dark:bg-zinc-800 p-0.5 gap-0.5"
     >
-      {TABS.map((tab) => {
+      {tabs.map((tab) => {
         const active = tab.mode === current;
         return (
           <Link

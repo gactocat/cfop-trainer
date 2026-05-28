@@ -51,7 +51,7 @@ export function PllDetail({ pllId }: PllDetailProps) {
     return (
       <div className="space-y-4">
         <p>PLL not found: {pllId}</p>
-        <Link href="/" className="text-emerald-600 hover:underline text-sm">
+        <Link href="/pll" className="text-emerald-600 hover:underline text-sm">
           ← Back to all PLLs
         </Link>
       </div>
@@ -62,7 +62,7 @@ export function PllDetail({ pllId }: PllDetailProps) {
     <div className="space-y-6">
       <div>
         <Link
-          href="/"
+          href="/pll"
           className="inline-flex items-center text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
         >
           ← All PLLs

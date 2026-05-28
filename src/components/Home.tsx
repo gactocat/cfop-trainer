@@ -11,7 +11,7 @@ export function Home() {
 
   return (
     <div className="space-y-6">
-      <ModeToggle current={mode} />
+      <ModeToggle current={mode} basePath="/pll" allLabel="All PLLs" />
       {mode === 'random' && <RandomTrainer />}
       <PllGrid mode={mode} />
     </div>

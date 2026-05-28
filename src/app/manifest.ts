@@ -2,11 +2,11 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'PLL Manager',
-    short_name: 'PLL',
+    name: 'CFOP Trainer',
+    short_name: 'CFOP',
     description:
-      'Manage CFOP PLL algorithms, record solve times, and train recognition with random PLLs.',
-    start_url: '/',
+      'Manage CFOP F2L and PLL algorithms, record solve times, and train recognition with random cases.',
+    start_url: '/pll',
     display: 'standalone',
     orientation: 'portrait',
     background_color: '#0a0a0a',

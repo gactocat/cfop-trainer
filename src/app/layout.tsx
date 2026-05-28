@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import Link from 'next/link';
 import { Geist, Geist_Mono } from 'next/font/google';
+import { PracticeTabs } from '@/components/PracticeTabs';
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
 import './globals.css';
 
@@ -15,13 +16,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'PLL Manager',
+  title: 'CFOP Trainer',
   description:
-    'Manage CFOP PLL algorithms, record solve times, and train recognition with random PLLs.',
-  applicationName: 'PLL Manager',
+    'Manage CFOP F2L and PLL algorithms, record solve times, and train recognition with random cases.',
+  applicationName: 'CFOP Trainer',
   appleWebApp: {
     capable: true,
-    title: 'PLL Manager',
+    title: 'CFOP Trainer',
     statusBarStyle: 'black-translucent',
   },
   icons: {
@@ -56,11 +57,9 @@ export default function RootLayout({
         <header className="border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur sticky top-0 z-10">
           <div className="mx-auto max-w-6xl px-4 py-3 flex items-center gap-4">
             <Link href="/" className="font-semibold text-lg tracking-tight">
-              PLL Manager
+              CFOP Trainer
             </Link>
-            <span className="text-xs text-zinc-500">
-              CFOP / Permutation of the Last Layer
-            </span>
+            <PracticeTabs />
           </div>
         </header>
         <main className="mx-auto w-full max-w-6xl px-4 py-6 flex-1">
