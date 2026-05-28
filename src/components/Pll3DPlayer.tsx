@@ -6,7 +6,7 @@ import type { Auf } from '@/types/pll';
 interface Pll3DPlayerProps {
   algorithm: string;
   auf?: Auf;
-  size?: number;
+  className?: string;
 }
 
 const AUF_TO_SETUP: Record<Auf, string> = {
@@ -16,7 +16,7 @@ const AUF_TO_SETUP: Record<Auf, string> = {
   "U'": "U'",
 };
 
-export function Pll3DPlayer({ algorithm, auf = 'U0', size = 220 }: Pll3DPlayerProps) {
+export function Pll3DPlayer({ algorithm, auf = 'U0', className }: Pll3DPlayerProps) {
   const [ready, setReady] = useState(false);
   const hostRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<HTMLElement | null>(null);
@@ -45,6 +45,17 @@ export function Pll3DPlayer({ algorithm, auf = 'U0', size = 220 }: Pll3DPlayerPr
     player.style.height = '100%';
     host.appendChild(player);
     playerRef.current = player;
+
+    // Mirror the page's prefers-color-scheme so the player's built-in dark
+    // styling (translucent buttons, darker scrubber) blends with the
+    // zinc-900 card surrounding it.
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const applyScheme = (matches: boolean) => {
+      player.setAttribute('color-scheme', matches ? 'dark' : 'light');
+    };
+    applyScheme(mq.matches);
+    mq.addEventListener('change', (e) => applyScheme(e.matches));
+
     return () => {
       player.remove();
       playerRef.current = null;
@@ -54,8 +65,7 @@ export function Pll3DPlayer({ algorithm, auf = 'U0', size = 220 }: Pll3DPlayerPr
   return (
     <div
       ref={hostRef}
-      style={{ width: size, height: size }}
-      className={ready ? '' : 'rounded-md bg-zinc-100 dark:bg-zinc-900 animate-pulse'}
+      className={`${className ?? ''} ${ready ? '' : 'rounded-md bg-zinc-100 dark:bg-zinc-900 animate-pulse'}`.trim()}
       aria-label={ready ? '3D cube playback' : 'Loading 3D cube'}
     />
   );

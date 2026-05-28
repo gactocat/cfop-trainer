@@ -111,19 +111,23 @@ export function PllDetail({ pllId }: PllDetailProps) {
               3D
             </button>
           </div>
-          <div className="rounded-lg p-2 bg-zinc-100 dark:bg-zinc-900">
-            {view === '3d' && star ? (
-              <Pll3DPlayer
-                algorithm={star.algorithm}
-                auf={star.auf}
-                size={220}
-              />
-            ) : (
+          {(view === '2d' || !star) && (
+            <div className="rounded-lg p-2 bg-zinc-100 dark:bg-zinc-900">
               <PllImage pllId={pllId} auf={displayAuf} size={220} />
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {view === '3d' && star && (
+        <div className="rounded-lg p-2 bg-zinc-100 dark:bg-zinc-900">
+          <Pll3DPlayer
+            algorithm={star.algorithm}
+            auf={star.auf}
+            className="w-full max-w-2xl mx-auto aspect-square"
+          />
+        </div>
+      )}
 
       <section className="space-y-3">
         <header className="flex items-center justify-between">
