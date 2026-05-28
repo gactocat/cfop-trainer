@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { F2L_STICKERING_MASK } from '@/lib/f2l-stickering-mask';
 
 interface F2L3DPlayerProps {
   algorithm: string;
@@ -50,7 +51,12 @@ export function F2L3DPlayer({
     player.setAttribute('experimental-setup-alg', `z2 ${setupAlg}`);
     player.setAttribute('experimental-setup-anchor', 'end');
     player.setAttribute('alg', algorithm);
-    player.setAttribute('experimental-stickering', 'F2L');
+    // cubing.js's built-in "F2L" stickering greys the puzzle's U-layer (white
+    // side), but we apply `z2` in setup-alg so the puzzle's D-layer ends up on
+    // top visually. Pass a custom mask that greys the D-layer instead so the
+    // CFOP-style "yellow LL = grey" view comes out correct.
+    (player as unknown as { experimentalStickeringMaskOrbits: unknown })
+      .experimentalStickeringMaskOrbits = F2L_STICKERING_MASK;
     player.setAttribute('background', 'none');
     player.setAttribute('control-panel', interactive ? 'bottom-row' : 'none');
     player.setAttribute('back-view', 'none');
