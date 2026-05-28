@@ -7,7 +7,10 @@ import { useAlgorithms } from '@/hooks/useAlgorithms';
 import { type PllId } from '@/types/pll';
 import { AlgorithmForm } from './AlgorithmForm';
 import { AlgorithmRow } from './AlgorithmRow';
+import { Pll3DPlayer } from './Pll3DPlayer';
 import { PllImage } from './PllImage';
+
+type CubeView = '2d' | '3d';
 
 interface PllDetailProps {
   pllId: PllId;
@@ -16,6 +19,7 @@ interface PllDetailProps {
 export function PllDetail({ pllId }: PllDetailProps) {
   const def = getPllDefinition(pllId);
   const [adding, setAdding] = useState(false);
+  const [view, setView] = useState<CubeView>('2d');
   const {
     ready,
     all,
@@ -72,9 +76,51 @@ export function PllDetail({ pllId }: PllDetailProps) {
             {records.length} algorithm{records.length === 1 ? '' : 's'} saved
           </p>
         </div>
-        <div className="flex justify-center md:justify-end">
+        <div className="flex flex-col items-center md:items-end gap-2">
+          <div
+            role="tablist"
+            aria-label="Cube preview"
+            className="inline-flex rounded-md border border-zinc-200 dark:border-zinc-800 text-xs overflow-hidden"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === '2d'}
+              onClick={() => setView('2d')}
+              className={`px-3 py-1 font-medium ${
+                view === '2d'
+                  ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                  : 'bg-transparent text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+              }`}
+            >
+              2D
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === '3d'}
+              disabled={!star}
+              onClick={() => setView('3d')}
+              className={`px-3 py-1 font-medium ${
+                view === '3d'
+                  ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                  : 'bg-transparent text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+              } disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent`}
+              title={star ? undefined : 'Star an algorithm to preview in 3D'}
+            >
+              3D
+            </button>
+          </div>
           <div className="rounded-lg p-2 bg-zinc-100 dark:bg-zinc-900">
-            <PllImage pllId={pllId} auf={displayAuf} size={220} />
+            {view === '3d' && star ? (
+              <Pll3DPlayer
+                algorithm={star.algorithm}
+                auf={star.auf}
+                size={220}
+              />
+            ) : (
+              <PllImage pllId={pllId} auf={displayAuf} size={220} />
+            )}
           </div>
         </div>
       </div>
