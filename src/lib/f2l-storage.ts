@@ -1,6 +1,18 @@
+import { ALL_F2LS } from '@/data/f2l-definitions';
 import type { F2LAlgorithmRecord, F2LId } from '@/types/f2l';
 
 const STORAGE_KEY = 'pll-app:f2l-algorithms:v1';
+
+function nowIso(): string {
+  return new Date().toISOString();
+}
+
+function newId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
 
 let cached: F2LAlgorithmRecord[] | null = null;
 const listeners = new Set<() => void>();
@@ -104,5 +116,26 @@ export function mutate(
   if (next === prev) return;
   cached = next;
   writeToStorage(next);
+  listeners.forEach((l) => l());
+}
+
+// On first visit (storage key never written), seed every F2L case with its
+// primary algorithm marked as starred. An explicit `[]` is treated as an
+// intentional clear and left alone.
+export function seedDefaultsIfMissing(): void {
+  if (typeof window === 'undefined') return;
+  if (window.localStorage.getItem(STORAGE_KEY) !== null) return;
+  const now = nowIso();
+  const seeded: F2LAlgorithmRecord[] = ALL_F2LS.map((def) => ({
+    id: newId(),
+    f2lId: def.id,
+    algorithm: def.primaryAlg,
+    times: [],
+    isStarred: true,
+    createdAt: now,
+    updatedAt: now,
+  }));
+  cached = seeded;
+  writeToStorage(seeded);
   listeners.forEach((l) => l());
 }

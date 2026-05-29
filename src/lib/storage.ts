@@ -1,6 +1,19 @@
-import type { AlgorithmRecord, PllId } from '@/types/pll';
+import { PRESET_ALGORITHMS } from '@/data/preset-algorithms';
+import { PLL_IDS, type AlgorithmRecord, type PllId } from '@/types/pll';
+import { splitAuf } from '@/lib/auf-from-algorithm';
 
 const STORAGE_KEY = 'pll-app:algorithms:v1';
+
+function nowIso(): string {
+  return new Date().toISOString();
+}
+
+function newId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
 
 let cached: AlgorithmRecord[] | null = null;
 const listeners = new Set<() => void>();
@@ -104,5 +117,33 @@ export function mutate(
   if (next === prev) return;
   cached = next;
   writeToStorage(next);
+  listeners.forEach((l) => l());
+}
+
+// On first visit (storage key never written), seed every PLL with the first
+// preset algorithm, splitting any leading "(U)" / "(U2)" / "(U')" into the AUF
+// field. An explicit `[]` is treated as an intentional clear and left alone.
+export function seedDefaultsIfMissing(): void {
+  if (typeof window === 'undefined') return;
+  if (window.localStorage.getItem(STORAGE_KEY) !== null) return;
+  const now = nowIso();
+  const seeded: AlgorithmRecord[] = [];
+  for (const pllId of PLL_IDS) {
+    const presets = PRESET_ALGORITHMS[pllId];
+    if (!presets || presets.length === 0) continue;
+    const { auf, rest } = splitAuf(presets[0]);
+    seeded.push({
+      id: newId(),
+      pllId,
+      auf,
+      algorithm: rest,
+      times: [],
+      isStarred: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+  cached = seeded;
+  writeToStorage(seeded);
   listeners.forEach((l) => l());
 }

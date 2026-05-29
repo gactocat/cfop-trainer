@@ -1,10 +1,11 @@
 'use client';
 
-import { useCallback, useMemo, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import {
   getServerSnapshot,
   getSnapshot,
   mutate,
+  seedDefaultsIfMissing,
   subscribe,
 } from '@/lib/f2l-storage';
 import type {
@@ -43,6 +44,10 @@ export interface UseF2LAlgorithmsResult {
 export function useF2LAlgorithms(): UseF2LAlgorithmsResult {
   const records = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const ready = typeof window !== 'undefined';
+
+  useEffect(() => {
+    seedDefaultsIfMissing();
+  }, []);
 
   const forF2L = useCallback(
     (f2lId: F2LId) => records.filter((r) => r.f2lId === f2lId),

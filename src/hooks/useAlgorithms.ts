@@ -1,10 +1,11 @@
 'use client';
 
-import { useCallback, useMemo, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import {
   getServerSnapshot,
   getSnapshot,
   mutate,
+  seedDefaultsIfMissing,
   subscribe,
 } from '@/lib/storage';
 import type {
@@ -44,6 +45,10 @@ export interface UseAlgorithmsResult {
 export function useAlgorithms(): UseAlgorithmsResult {
   const records = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const ready = typeof window !== 'undefined';
+
+  useEffect(() => {
+    seedDefaultsIfMissing();
+  }, []);
 
   const forPll = useCallback(
     (pllId: PllId, auf?: Auf) =>
