@@ -49,7 +49,12 @@ export function F2L3DPlayer({
     // in this rotated frame (R then refers to the orange face) which is
     // consistent with the speedcubedb algorithm strings we ship.
     player.setAttribute('experimental-setup-alg', `z2 ${setupAlg}`);
-    player.setAttribute('experimental-setup-anchor', 'end');
+    // `'start'` anchors the setup-alg to the START of the timeline, so the
+    // resting (initial) position is exactly `z2 · setupAlg` — the case as
+    // shown on speedcubedb. (`'end'` would instead show `setupAlg · alg⁻¹`,
+    // i.e. the case with the solution rewound on top of it, which is wrong.)
+    // Pressing play then runs `algorithm` forward to solve the case.
+    player.setAttribute('experimental-setup-anchor', 'start');
     player.setAttribute('alg', algorithm);
     // cubing.js's built-in "F2L" stickering greys the puzzle's U-layer (white
     // side), but we apply `z2` in setup-alg so the puzzle's D-layer ends up on
