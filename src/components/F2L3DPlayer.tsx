@@ -43,23 +43,23 @@ export function F2L3DPlayer({
     const host = hostRef.current;
     const player = document.createElement('twisty-player');
     player.setAttribute('puzzle', '3x3x3');
-    // Prefix `z2` so the cube is displayed with yellow on U / white on D —
-    // the standard CFOP orientation that matches the PLL 2D diagrams and
-    // speedcubedb's reference views. The case-setup and algorithm moves run
-    // in this rotated frame (R then refers to the orange face) which is
-    // consistent with the speedcubedb algorithm strings we ship.
-    player.setAttribute('experimental-setup-alg', `z2 ${setupAlg}`);
+    // Prefix `x2` so the cube is displayed with yellow on U / white on D and
+    // blue on F / red on R — the CFOP orientation we want. (`x2` only recolours
+    // the solved cube before `setupAlg` builds the case, so the case geometry
+    // is unchanged; it just swaps the front/right faces from green/orange to
+    // blue/red versus the previous `z2`.)
+    player.setAttribute('experimental-setup-alg', `x2 ${setupAlg}`);
     // `'start'` anchors the setup-alg to the START of the timeline, so the
-    // resting (initial) position is exactly `z2 · setupAlg` — the case as
+    // resting (initial) position is exactly `x2 · setupAlg` — the case as
     // shown on speedcubedb. (`'end'` would instead show `setupAlg · alg⁻¹`,
     // i.e. the case with the solution rewound on top of it, which is wrong.)
     // Pressing play then runs `algorithm` forward to solve the case.
     player.setAttribute('experimental-setup-anchor', 'start');
     player.setAttribute('alg', algorithm);
     // cubing.js's built-in "F2L" stickering greys the puzzle's U-layer (white
-    // side), but we apply `z2` in setup-alg so the puzzle's D-layer ends up on
-    // top visually. Pass a custom mask that greys the D-layer instead so the
-    // CFOP-style "yellow LL = grey" view comes out correct.
+    // side), but we apply `x2` in setup-alg so the puzzle's D-layer (yellow)
+    // ends up on top visually. Pass a custom mask that greys the D-layer
+    // instead so the CFOP-style "yellow LL = grey" view comes out correct.
     (player as unknown as { experimentalStickeringMaskOrbits: unknown })
       .experimentalStickeringMaskOrbits = F2L_STICKERING_MASK;
     player.setAttribute('background', 'none');

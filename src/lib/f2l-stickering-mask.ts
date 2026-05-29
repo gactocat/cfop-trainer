@@ -2,10 +2,10 @@
 //
 // cubing.js ships an "F2L" stickering, but it greys out the puzzle's U-layer
 // pieces (= the white-side pieces in cubing.js's default 3x3x3 color scheme).
-// F2L3DPlayer prepends `z2` to setup-alg so the cube is shown in CFOP
-// orientation (yellow on top, white on bottom). Because z2 flips the cube,
-// the puzzle's U-layer ends up at the visual bottom — i.e. cubing.js's
-// built-in F2L stickering greys the wrong side.
+// F2L3DPlayer prepends `x2` to setup-alg so the cube is shown in CFOP
+// orientation (yellow on top, white on bottom, blue front, red right).
+// Because x2 flips the cube, the puzzle's U-layer ends up at the visual
+// bottom — i.e. cubing.js's built-in F2L stickering greys the wrong side.
 //
 // This mask instead ignores the puzzle's D-layer pieces (yellow side), which
 // after the z2 rotation are the ones the viewer perceives as the LL.
