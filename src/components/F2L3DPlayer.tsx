@@ -26,9 +26,30 @@ export function F2L3DPlayer({
   interactive = true,
 }: F2L3DPlayerProps) {
   const [ready, setReady] = useState(false);
+  const [inView, setInView] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const hostRef = useRef<HTMLDivElement | null>(null);
 
+  // Each twisty-player holds a WebGL context, and browsers keep only ~16 alive
+  // at once. The 41-case grid would blow past that limit and the overflow
+  // cards render blank. So only mount a player while its card is on (or near)
+  // screen, and unmount when it scrolls away to free the context back up.
   useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) setInView(entry.isIntersecting);
+      },
+      { rootMargin: '200px' },
+    );
+    observer.observe(host);
+    return () => observer.disconnect();
+  }, []);
+
+  // Load the cubing.js chunk lazily, only once a player is first needed.
+  useEffect(() => {
+    if (!inView || ready) return;
     let cancelled = false;
     loadTwisty().then(() => {
       if (!cancelled) setReady(true);
@@ -36,10 +57,10 @@ export function F2L3DPlayer({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [inView, ready]);
 
   useEffect(() => {
-    if (!ready || !hostRef.current) return;
+    if (!ready || !inView || !hostRef.current) return;
     const host = hostRef.current;
     const player = document.createElement('twisty-player');
     player.setAttribute('puzzle', '3x3x3');
@@ -68,6 +89,7 @@ export function F2L3DPlayer({
     player.style.width = '100%';
     player.style.height = '100%';
     host.appendChild(player);
+    setMounted(true);
 
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const applyScheme = (matches: boolean) => {
@@ -80,14 +102,15 @@ export function F2L3DPlayer({
     return () => {
       mq.removeEventListener('change', onSchemeChange);
       player.remove();
+      setMounted(false);
     };
-  }, [ready, algorithm, setupAlg, interactive]);
+  }, [ready, inView, algorithm, setupAlg, interactive]);
 
   return (
     <div
       ref={hostRef}
-      className={`${className ?? ''} ${ready ? '' : 'rounded-md bg-zinc-100 dark:bg-zinc-900 animate-pulse'}`.trim()}
-      aria-label={ready ? '3D F2L case' : 'Loading 3D F2L case'}
+      className={`${className ?? ''} ${mounted ? '' : 'rounded-md bg-zinc-100 dark:bg-zinc-900 animate-pulse'}`.trim()}
+      aria-label={mounted ? '3D F2L case' : 'Loading 3D F2L case'}
     />
   );
 }
