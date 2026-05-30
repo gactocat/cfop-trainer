@@ -1,5 +1,9 @@
 import { ALL_F2LS } from '@/data/f2l-definitions';
+import { splitF2LAuf } from '@/lib/f2l-auf';
 import type { F2LAlgorithmRecord, F2LId } from '@/types/f2l';
+import type { Auf } from '@/types/pll';
+
+const VALID_AUFS: Auf[] = ['U0', 'U', 'U2', "U'"];
 
 const STORAGE_KEY = 'pll-app:f2l-algorithms:v1';
 
@@ -21,10 +25,23 @@ function normalizeRecord(raw: unknown): F2LAlgorithmRecord | null {
   if (typeof raw !== 'object' || raw === null) return null;
   const r = raw as Partial<F2LAlgorithmRecord>;
   if (!r.id || !r.f2lId || !r.algorithm) return null;
+  // Records written before AUF existed have no `auf` and keep the leading U
+  // turn in the body. Migrate them by splitting that turn off on read.
+  let auf: Auf;
+  let algorithm: string;
+  if (r.auf && VALID_AUFS.includes(r.auf)) {
+    auf = r.auf;
+    algorithm = r.algorithm;
+  } else {
+    const split = splitF2LAuf(r.algorithm);
+    auf = split.auf;
+    algorithm = split.rest;
+  }
   return {
     id: r.id,
     f2lId: r.f2lId,
-    algorithm: r.algorithm,
+    auf,
+    algorithm,
     times: Array.isArray(r.times) ? r.times : [],
     isStarred: typeof r.isStarred === 'boolean' ? r.isStarred : false,
     createdAt: r.createdAt ?? new Date(0).toISOString(),
@@ -126,15 +143,19 @@ export function seedDefaultsIfMissing(): void {
   if (typeof window === 'undefined') return;
   if (window.localStorage.getItem(STORAGE_KEY) !== null) return;
   const now = nowIso();
-  const seeded: F2LAlgorithmRecord[] = ALL_F2LS.map((def) => ({
-    id: newId(),
-    f2lId: def.id,
-    algorithm: def.primaryAlg,
-    times: [],
-    isStarred: true,
-    createdAt: now,
-    updatedAt: now,
-  }));
+  const seeded: F2LAlgorithmRecord[] = ALL_F2LS.map((def) => {
+    const { auf, rest } = splitF2LAuf(def.primaryAlg);
+    return {
+      id: newId(),
+      f2lId: def.id,
+      auf,
+      algorithm: rest,
+      times: [],
+      isStarred: true,
+      createdAt: now,
+      updatedAt: now,
+    };
+  });
   cached = seeded;
   writeToStorage(seeded);
   listeners.forEach((l) => l());

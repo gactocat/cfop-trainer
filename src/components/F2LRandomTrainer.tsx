@@ -90,6 +90,7 @@ export function F2LRandomTrainer() {
             <F2L3DPlayer
               algorithm={alg}
               setupAlg={setupAlg}
+              auf={star?.auf ?? 'U0'}
               interactive={false}
               className="w-full h-full"
             />
@@ -105,7 +106,12 @@ export function F2LRandomTrainer() {
         </div>
         <div className="max-w-2xl w-full text-center font-mono text-sm break-words text-zinc-700 dark:text-zinc-300">
           {star ? (
-            <p>{star.algorithm}</p>
+            <p>
+              <span className="inline-block min-w-[2.5em] mr-2 px-1.5 py-0.5 text-[10px] rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 align-middle">
+                {star.auf}
+              </span>
+              {star.algorithm}
+            </p>
           ) : def ? (
             <p className="text-zinc-500">{def.primaryAlg}</p>
           ) : (

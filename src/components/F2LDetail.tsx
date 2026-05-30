@@ -79,6 +79,7 @@ export function F2LDetail({ f2lId }: F2LDetailProps) {
         <F2L3DPlayer
           algorithm={displayAlg}
           setupAlg={def.setupAlg}
+          auf={star?.auf ?? 'U0'}
           className="w-full max-w-2xl mx-auto aspect-square"
         />
       </div>
@@ -101,8 +102,8 @@ export function F2LDetail({ f2lId }: F2LDetailProps) {
           <div className="rounded-lg border border-emerald-300 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 p-3">
             <F2LAlgorithmForm
               f2lId={f2lId}
-              onSubmit={(algorithm) => {
-                add({ f2lId, algorithm });
+              onSubmit={(algorithm, auf) => {
+                add({ f2lId, algorithm, auf });
                 setAdding(false);
               }}
               onCancel={() => setAdding(false)}

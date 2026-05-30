@@ -2,42 +2,57 @@
 
 import { useState, type FormEvent } from 'react';
 import { F2L_PRESET_ALGORITHMS } from '@/data/f2l-preset-algorithms';
+import { splitF2LAuf } from '@/lib/f2l-auf';
 import type { F2LId } from '@/types/f2l';
+import { AUFS, type Auf } from '@/types/pll';
 
 interface F2LAlgorithmFormProps {
   f2lId?: F2LId;
   initialValue?: string;
+  initialAuf?: Auf;
   submitLabel?: string;
   placeholder?: string;
-  onSubmit: (algorithm: string) => void;
+  onSubmit: (algorithm: string, auf: Auf) => void;
   onCancel?: () => void;
 }
+
+const AUF_LABEL: Record<Auf, string> = {
+  U0: 'U0',
+  U: 'U',
+  U2: 'U2',
+  "U'": "U'",
+};
 
 export function F2LAlgorithmForm({
   f2lId,
   initialValue = '',
+  initialAuf = 'U0',
   submitLabel = 'Save',
   placeholder = "e.g. R U R' U' R U' R'",
   onSubmit,
   onCancel,
 }: F2LAlgorithmFormProps) {
   const [value, setValue] = useState(initialValue);
+  const [auf, setAuf] = useState<Auf>(initialAuf);
   const presets = f2lId ? F2L_PRESET_ALGORITHMS[f2lId] : undefined;
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     const trimmed = value.trim();
     if (!trimmed) return;
-    onSubmit(trimmed);
+    onSubmit(trimmed, auf);
     if (!initialValue) {
       setValue('');
+      setAuf('U0');
     }
   };
 
   const handlePresetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const v = e.target.value;
     if (v) {
-      setValue(v);
+      const { auf: parsedAuf, rest } = splitF2LAuf(v);
+      setValue(rest);
+      setAuf(parsedAuf);
     }
     e.target.value = '';
   };
@@ -69,6 +84,35 @@ export function F2LAlgorithmForm({
       )}
 
       <div className="flex flex-col sm:flex-row gap-2 items-stretch">
+        <fieldset className="shrink-0">
+          <legend className="sr-only">Starting orientation</legend>
+          <div
+            role="radiogroup"
+            aria-label="Starting orientation (AUF)"
+            className="inline-flex rounded-md bg-zinc-100 dark:bg-zinc-800 p-0.5 gap-0.5 h-full"
+          >
+            {AUFS.map((a) => {
+              const active = a === auf;
+              return (
+                <button
+                  key={a}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => setAuf(a)}
+                  className={`px-2 text-xs font-mono rounded transition-colors ${
+                    active
+                      ? 'bg-emerald-600 text-white'
+                      : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
+                  }`}
+                >
+                  {AUF_LABEL[a]}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+
         <input
           type="text"
           value={value}

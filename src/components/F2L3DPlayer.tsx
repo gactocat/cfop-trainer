@@ -1,11 +1,16 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { aufToMove } from '@/lib/f2l-auf';
 import { F2L_STICKERING_MASK } from '@/lib/f2l-stickering-mask';
+import type { Auf } from '@/types/pll';
 
 interface F2L3DPlayerProps {
   algorithm: string;
   setupAlg: string;
+  // U-face adjustment applied to the displayed case so the (AUF-stripped)
+  // algorithm body solves it directly. Defaults to no adjustment.
+  auf?: Auf;
   className?: string;
   // When false, hides playback controls — used by the grid cards so the
   // case reads as a static image. Detail pages pass true.
@@ -22,6 +27,7 @@ function loadTwisty(): Promise<unknown> {
 export function F2L3DPlayer({
   algorithm,
   setupAlg,
+  auf = 'U0',
   className,
   interactive = true,
 }: F2L3DPlayerProps) {
@@ -69,12 +75,18 @@ export function F2L3DPlayer({
     // the solved cube before `setupAlg` builds the case, so the case geometry
     // is unchanged; it just swaps the front/right faces from green/orange to
     // blue/red versus the previous `z2`.)
-    player.setAttribute('experimental-setup-alg', `x2 ${setupAlg}`);
+    // The trailing AUF turn rotates the U layer so the displayed case matches
+    // the starting orientation the (AUF-stripped) algorithm body expects.
+    const aufMove = aufToMove(auf);
+    player.setAttribute(
+      'experimental-setup-alg',
+      `x2 ${setupAlg}${aufMove ? ` ${aufMove}` : ''}`,
+    );
     // `'start'` anchors the setup-alg to the START of the timeline, so the
-    // resting (initial) position is exactly `x2 · setupAlg` — the case as
-    // shown on speedcubedb. (`'end'` would instead show `setupAlg · alg⁻¹`,
-    // i.e. the case with the solution rewound on top of it, which is wrong.)
-    // Pressing play then runs `algorithm` forward to solve the case.
+    // resting (initial) position is exactly `x2 · setupAlg · auf` — the case
+    // as shown on speedcubedb, adjusted by the AUF. (`'end'` would instead
+    // show `setupAlg · alg⁻¹`, the case with the solution rewound on top of
+    // it, which is wrong.) Pressing play runs the body forward to solve it.
     player.setAttribute('experimental-setup-anchor', 'start');
     player.setAttribute('alg', algorithm);
     // cubing.js's built-in "F2L" stickering greys the puzzle's U-layer (white
@@ -104,7 +116,7 @@ export function F2L3DPlayer({
       player.remove();
       setMounted(false);
     };
-  }, [ready, inView, algorithm, setupAlg, interactive]);
+  }, [ready, inView, algorithm, setupAlg, auf, interactive]);
 
   return (
     <div

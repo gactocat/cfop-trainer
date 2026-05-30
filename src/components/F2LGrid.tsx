@@ -178,6 +178,7 @@ export function F2LGrid({ mode }: F2LGridProps) {
                         <F2L3DPlayer
                           algorithm={algForDisplay}
                           setupAlg={f2l.setupAlg}
+                          auf={star?.auf ?? 'U0'}
                           interactive={false}
                           className="w-full h-full"
                         />

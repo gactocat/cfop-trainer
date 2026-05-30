@@ -5,10 +5,11 @@ import { F2LAlgorithmForm } from './F2LAlgorithmForm';
 import { TimeHistoryPanel } from './TimeHistoryPanel';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import type { F2LAlgorithmRecord } from '@/types/f2l';
+import type { Auf } from '@/types/pll';
 
 interface F2LAlgorithmRowProps {
   record: F2LAlgorithmRecord;
-  onUpdate: (id: string, patch: { algorithm?: string }) => void;
+  onUpdate: (id: string, patch: { algorithm?: string; auf?: Auf }) => void;
   onSetStar: (id: string) => void;
   onRemove: (id: string) => void;
   onAddTime: (id: string, seconds: number) => void;
@@ -61,15 +62,21 @@ export function F2LAlgorithmRow({
               <F2LAlgorithmForm
                 f2lId={record.f2lId}
                 initialValue={record.algorithm}
+                initialAuf={record.auf}
                 submitLabel="Update"
-                onSubmit={(algorithm) => {
-                  onUpdate(record.id, { algorithm });
+                onSubmit={(algorithm, auf) => {
+                  onUpdate(record.id, { algorithm, auf });
                   setEditing(false);
                 }}
                 onCancel={() => setEditing(false)}
               />
             ) : (
-              <p className="font-mono text-sm break-words">{record.algorithm}</p>
+              <p className="font-mono text-sm break-words">
+                <span className="inline-block min-w-[2.5em] mr-2 px-1.5 py-0.5 text-[10px] rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 align-middle">
+                  {record.auf}
+                </span>
+                {record.algorithm}
+              </p>
             )}
 
             <div className="mt-2 flex items-center gap-4 text-xs">

@@ -1,4 +1,4 @@
-import type { TimeRecord } from './pll';
+import type { Auf, TimeRecord } from './pll';
 
 // All 41 F2L cases, numbered as they appear on speedcubedb.com/a/3x3/F2L.
 // The Front-Right slot is the canonical position; orientation rotations
@@ -36,6 +36,9 @@ export interface F2LDefinition {
 export interface F2LAlgorithmRecord {
   id: string;
   f2lId: F2LId;
+  // U-face adjustment done before the algorithm body. The body (`algorithm`)
+  // is stored without its leading U turn — that turn lives here.
+  auf: Auf;
   algorithm: string;
   times: TimeRecord[];
   isStarred: boolean;

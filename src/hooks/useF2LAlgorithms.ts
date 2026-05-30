@@ -12,7 +12,7 @@ import type {
   F2LAlgorithmRecord,
   F2LId,
 } from '@/types/f2l';
-import type { TimeRecord } from '@/types/pll';
+import type { Auf, TimeRecord } from '@/types/pll';
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -30,10 +30,10 @@ export interface UseF2LAlgorithmsResult {
   all: F2LAlgorithmRecord[];
   forF2L: (f2lId: F2LId) => F2LAlgorithmRecord[];
   starredFor: (f2lId: F2LId) => F2LAlgorithmRecord | null;
-  add: (input: { f2lId: F2LId; algorithm: string }) => F2LAlgorithmRecord;
+  add: (input: { f2lId: F2LId; algorithm: string; auf?: Auf }) => F2LAlgorithmRecord;
   update: (
     id: string,
-    patch: Partial<Pick<F2LAlgorithmRecord, 'algorithm'>>,
+    patch: Partial<Pick<F2LAlgorithmRecord, 'algorithm' | 'auf'>>,
   ) => void;
   setStar: (id: string) => void;
   remove: (id: string) => void;
@@ -64,6 +64,7 @@ export function useF2LAlgorithms(): UseF2LAlgorithmsResult {
     const created: F2LAlgorithmRecord = {
       id: newId(),
       f2lId: input.f2lId,
+      auf: input.auf ?? 'U0',
       algorithm: input.algorithm.trim(),
       times: [],
       isStarred: false,
