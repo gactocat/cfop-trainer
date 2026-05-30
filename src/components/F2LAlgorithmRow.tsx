@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { F2LAlgorithmForm } from './F2LAlgorithmForm';
 import { TimeHistoryPanel } from './TimeHistoryPanel';
+import { useF2LAufDisplay } from '@/hooks/useF2LAufDisplay';
+import { prefixAuf } from '@/lib/f2l-auf';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import type { F2LAlgorithmRecord } from '@/types/f2l';
 import type { Auf } from '@/types/pll';
@@ -26,6 +28,7 @@ export function F2LAlgorithmRow({
 }: F2LAlgorithmRowProps) {
   const [editing, setEditing] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const { mode: aufMode } = useF2LAufDisplay();
 
   const best = bestSeconds(record.times);
   const ao5 = averageOfN(record.times, 5);
@@ -72,10 +75,16 @@ export function F2LAlgorithmRow({
               />
             ) : (
               <p className="font-mono text-sm break-words">
-                <span className="inline-block min-w-[2.5em] mr-2 px-1.5 py-0.5 text-[10px] rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 align-middle">
-                  {record.auf}
-                </span>
-                {record.algorithm}
+                {aufMode === 'cube' ? (
+                  <>
+                    <span className="inline-block min-w-[2.5em] mr-2 px-1.5 py-0.5 text-[10px] rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 align-middle">
+                      {record.auf}
+                    </span>
+                    {record.algorithm}
+                  </>
+                ) : (
+                  prefixAuf(record.auf, record.algorithm)
+                )}
               </p>
             )}
 

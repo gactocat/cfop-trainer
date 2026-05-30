@@ -19,3 +19,10 @@ export function splitF2LAuf(algorithm: string): { auf: Auf; rest: string } {
 export function aufToMove(auf: Auf): string {
   return auf === 'U0' ? '' : auf;
 }
+
+// The algorithm body with the AUF turn prepended, e.g. ('U', "R U' R'") ->
+// "U R U' R'". `U0` yields the body unchanged.
+export function prefixAuf(auf: Auf, body: string): string {
+  const move = aufToMove(auf);
+  return move ? `${move} ${body}` : body;
+}

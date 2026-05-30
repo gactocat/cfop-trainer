@@ -8,8 +8,10 @@ import {
   F2L_CATEGORY_ORDER,
 } from '@/data/f2l-definitions';
 import { useF2LAlgorithms } from '@/hooks/useF2LAlgorithms';
+import { useF2LAufDisplay } from '@/hooks/useF2LAufDisplay';
 import { useF2LRandomSelection } from '@/hooks/useF2LRandomSelection';
 import { useF2LRandomSolves } from '@/hooks/useF2LRandomSolves';
+import { prefixAuf } from '@/lib/f2l-auf';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import { F2L3DPlayer } from './F2L3DPlayer';
 import { F2L_IDS, type F2LId } from '@/types/f2l';
@@ -50,6 +52,7 @@ export function F2LGrid({ mode }: F2LGridProps) {
     ao5For: randomAo5For,
   } = useF2LRandomSolves();
   const selection = useF2LRandomSelection();
+  const { mode: aufMode } = useF2LAufDisplay();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   // Selection UI only renders after mount so SSR/hydration markup matches
@@ -194,7 +197,9 @@ export function F2LGrid({ mode }: F2LGridProps) {
                           >
                             ★
                           </span>
-                          {star.algorithm}
+                          {aufMode === 'prefix'
+                            ? prefixAuf(star.auf, star.algorithm)
+                            : star.algorithm}
                         </span>
                       ) : (
                         <span className="text-zinc-500">{f2l.primaryAlg}</span>

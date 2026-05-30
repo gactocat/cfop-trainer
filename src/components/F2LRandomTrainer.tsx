@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getF2LDefinition } from '@/data/f2l-definitions';
 import { useF2LAlgorithms } from '@/hooks/useF2LAlgorithms';
+import { useF2LAufDisplay } from '@/hooks/useF2LAufDisplay';
 import { useF2LRandomSelection } from '@/hooks/useF2LRandomSelection';
 import { useF2LRandomSolves } from '@/hooks/useF2LRandomSolves';
+import { prefixAuf } from '@/lib/f2l-auf';
 import { useSpacebar } from '@/hooks/useSpacebar';
 import { F2L_IDS, type F2LId } from '@/types/f2l';
 import { F2L3DPlayer } from './F2L3DPlayer';
@@ -15,6 +17,7 @@ export function F2LRandomTrainer() {
   const { add } = useF2LRandomSolves();
   const { starredFor } = useF2LAlgorithms();
   const { selected } = useF2LRandomSelection();
+  const { mode: aufMode } = useF2LAufDisplay();
   const [state, setState] = useState<TrainerState>('idle');
   const [current, setCurrent] = useState<F2LId | null>(null);
   const [elapsed, setElapsed] = useState(0);
@@ -106,12 +109,16 @@ export function F2LRandomTrainer() {
         </div>
         <div className="max-w-2xl w-full text-center font-mono text-sm break-words text-zinc-700 dark:text-zinc-300">
           {star ? (
-            <p>
-              <span className="inline-block min-w-[2.5em] mr-2 px-1.5 py-0.5 text-[10px] rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 align-middle">
-                {star.auf}
-              </span>
-              {star.algorithm}
-            </p>
+            aufMode === 'cube' ? (
+              <p>
+                <span className="inline-block min-w-[2.5em] mr-2 px-1.5 py-0.5 text-[10px] rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 align-middle">
+                  {star.auf}
+                </span>
+                {star.algorithm}
+              </p>
+            ) : (
+              <p>{prefixAuf(star.auf, star.algorithm)}</p>
+            )
           ) : def ? (
             <p className="text-zinc-500">{def.primaryAlg}</p>
           ) : (

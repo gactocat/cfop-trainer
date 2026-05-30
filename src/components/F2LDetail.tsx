@@ -6,6 +6,7 @@ import { getF2LDefinition } from '@/data/f2l-definitions';
 import { useF2LAlgorithms } from '@/hooks/useF2LAlgorithms';
 import type { F2LId } from '@/types/f2l';
 import { F2LAlgorithmForm } from './F2LAlgorithmForm';
+import { F2LAufModeToggle } from './F2LAufModeToggle';
 import { F2LAlgorithmRow } from './F2LAlgorithmRow';
 import { F2L3DPlayer } from './F2L3DPlayer';
 
@@ -73,6 +74,10 @@ export function F2LDetail({ f2lId }: F2LDetailProps) {
             {records.length} algorithm{records.length === 1 ? '' : 's'} saved
           </p>
         </div>
+      </div>
+
+      <div className="flex justify-end">
+        <F2LAufModeToggle />
       </div>
 
       <div className="rounded-lg p-2 bg-zinc-100 dark:bg-zinc-900">

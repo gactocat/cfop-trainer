@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { aufToMove } from '@/lib/f2l-auf';
+import { useF2LAufDisplay } from '@/hooks/useF2LAufDisplay';
+import { aufToMove, prefixAuf } from '@/lib/f2l-auf';
 import { F2L_STICKERING_MASK } from '@/lib/f2l-stickering-mask';
 import type { Auf } from '@/types/pll';
 
@@ -34,6 +35,7 @@ export function F2L3DPlayer({
   const [ready, setReady] = useState(false);
   const [inView, setInView] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const { mode: aufMode } = useF2LAufDisplay();
   const hostRef = useRef<HTMLDivElement | null>(null);
 
   // Each twisty-player holds a WebGL context, and browsers keep only ~16 alive
@@ -75,20 +77,21 @@ export function F2L3DPlayer({
     // the solved cube before `setupAlg` builds the case, so the case geometry
     // is unchanged; it just swaps the front/right faces from green/orange to
     // blue/red versus the previous `z2`.)
-    // The trailing AUF turn rotates the U layer so the displayed case matches
-    // the starting orientation the (AUF-stripped) algorithm body expects.
+    // Two ways to present the AUF, picked by the global setting:
+    //   'cube'   — bake the AUF into the displayed case (trailing U turn on
+    //              the setup) and play just the algorithm body.
+    //   'prefix' — leave the case raw and play `AUF + body`, so the AUF reads
+    //              as the leading turn of the algorithm instead.
     const aufMove = aufToMove(auf);
-    player.setAttribute(
-      'experimental-setup-alg',
-      `x2 ${setupAlg}${aufMove ? ` ${aufMove}` : ''}`,
-    );
+    const setupWithAuf =
+      aufMode === 'cube' && aufMove ? `x2 ${setupAlg} ${aufMove}` : `x2 ${setupAlg}`;
+    const playAlg = aufMode === 'prefix' ? prefixAuf(auf, algorithm) : algorithm;
+    player.setAttribute('experimental-setup-alg', setupWithAuf);
     // `'start'` anchors the setup-alg to the START of the timeline, so the
-    // resting (initial) position is exactly `x2 · setupAlg · auf` — the case
-    // as shown on speedcubedb, adjusted by the AUF. (`'end'` would instead
-    // show `setupAlg · alg⁻¹`, the case with the solution rewound on top of
-    // it, which is wrong.) Pressing play runs the body forward to solve it.
+    // resting (initial) position is the case (adjusted by the AUF in 'cube'
+    // mode). Pressing play runs the algorithm forward to solve it.
     player.setAttribute('experimental-setup-anchor', 'start');
-    player.setAttribute('alg', algorithm);
+    player.setAttribute('alg', playAlg);
     // cubing.js's built-in "F2L" stickering greys the puzzle's U-layer (white
     // side), but we apply `x2` in setup-alg so the puzzle's D-layer (yellow)
     // ends up on top visually. Pass a custom mask that greys the D-layer
@@ -116,7 +119,7 @@ export function F2L3DPlayer({
       player.remove();
       setMounted(false);
     };
-  }, [ready, inView, algorithm, setupAlg, auf, interactive]);
+  }, [ready, inView, algorithm, setupAlg, auf, aufMode, interactive]);
 
   return (
     <div
