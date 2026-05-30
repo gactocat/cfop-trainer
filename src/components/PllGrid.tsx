@@ -1,12 +1,14 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ALL_PLLS } from '@/data/pll-definitions';
 import { useAlgorithms } from '@/hooks/useAlgorithms';
+import { usePllRandomSelection } from '@/hooks/usePllRandomSelection';
 import { useRandomSolves } from '@/hooks/useRandomSolves';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import { PllImage } from './PllImage';
-import type { PllCategory, PllId } from '@/types/pll';
+import { PLL_IDS, type PllCategory, type PllId } from '@/types/pll';
 
 const CATEGORY_LABELS: Record<PllCategory, string> = {
   epll: 'Permutations of Edges Only',
@@ -45,6 +47,12 @@ function formatLastDate(iso: string | undefined): string {
 export function PllGrid({ mode }: PllGridProps) {
   const { ready: algReady, starredFor, all: allAlgorithms } = useAlgorithms();
   const { ready: randomReady, all: allRandomSolves, solvesFor, bestFor: randomBestFor, ao5For: randomAo5For } = useRandomSolves();
+  const selection = usePllRandomSelection();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  // Selection UI only renders after mount so SSR/hydration markup matches
+  // (the store returns "all selected" only on the client).
+  const showSelect = mode === 'random' && mounted;
 
   const grouped = CATEGORY_ORDER.map((cat) => ({
     category: cat,
@@ -106,6 +114,28 @@ export function PllGrid({ mode }: PllGridProps) {
     <div className="space-y-8">
       <div>{heading}</div>
 
+      {showSelect && (
+        <div className="flex items-center gap-3 text-sm">
+          <span className="text-zinc-500">
+            {selection.count}/{PLL_IDS.length} selected for random
+          </span>
+          <button
+            type="button"
+            onClick={selection.selectAll}
+            className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          >
+            Select all
+          </button>
+          <button
+            type="button"
+            onClick={selection.clear}
+            className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       {grouped.map(({ category, items }) => (
         <section key={category}>
           <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-3">
@@ -120,10 +150,24 @@ export function PllGrid({ mode }: PllGridProps) {
                 <li key={pll.id}>
                   <Link
                     href={`/pll/${pll.id}`}
-                    className="group flex flex-col h-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors"
+                    className={`group flex flex-col h-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors ${
+                      showSelect && !selection.isSelected(pll.id) ? 'opacity-40' : ''
+                    }`}
                   >
                     <div className="flex items-start justify-between gap-2 mb-2">
-                      <span className="font-medium text-sm">{pll.name}</span>
+                      <span className="flex items-center gap-2 min-w-0">
+                        {showSelect && (
+                          <input
+                            type="checkbox"
+                            checked={selection.isSelected(pll.id)}
+                            onChange={() => selection.toggle(pll.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="h-4 w-4 shrink-0 accent-emerald-600 cursor-pointer"
+                            aria-label={`Include ${pll.name} in random selection`}
+                          />
+                        )}
+                        <span className="font-medium text-sm">{pll.name}</span>
+                      </span>
                       <span
                         className={`text-xs font-mono px-1.5 py-0.5 rounded ${timeBadgeClasses(best)}`}
                       >

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getPllDefinition } from '@/data/pll-definitions';
 import { useAlgorithms } from '@/hooks/useAlgorithms';
+import { usePllRandomSelection } from '@/hooks/usePllRandomSelection';
 import { useRandomSolves } from '@/hooks/useRandomSolves';
 import { useSpacebar } from '@/hooks/useSpacebar';
 import { PLL_IDS, type Auf, type PllId } from '@/types/pll';
@@ -18,20 +19,30 @@ interface Pick {
 export function RandomTrainer() {
   const { add } = useRandomSolves();
   const { starredFor } = useAlgorithms();
+  const { selected } = usePllRandomSelection();
   const [state, setState] = useState<TrainerState>('idle');
   const [current, setCurrent] = useState<Pick | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const [mounted, setMounted] = useState(false);
   const startRef = useRef(0);
   const rafRef = useRef<number | null>(null);
+
+  useEffect(() => setMounted(true), []);
 
   // AUF for the picked PLL comes from its starred algorithm in All PLLs mode,
   // so the random case is presented in the orientation the user actually
   // practices. Falls back to U0 if no algorithm is starred for that PLL.
+  // Only the cases ticked in the grid below are eligible (full set as a
+  // fallback when nothing is selected — start is disabled in that case).
   const pickRandom = useCallback((): Pick => {
-    const pllId = PLL_IDS[Math.floor(Math.random() * PLL_IDS.length)];
+    const pool = PLL_IDS.filter((id) => selected.has(id));
+    const list = pool.length > 0 ? pool : PLL_IDS;
+    const pllId = list[Math.floor(Math.random() * list.length)];
     const auf = starredFor(pllId)?.auf ?? 'U0';
     return { pllId, auf };
-  }, [starredFor]);
+  }, [starredFor, selected]);
+
+  const noneSelected = mounted && selected.size === 0;
 
   useEffect(() => {
     if (state !== 'running') return;
@@ -74,9 +85,10 @@ export function RandomTrainer() {
   // state stays inert so a stray press doesn't lose the captured time
   // before the user picks Record / Discard.
   const onSpace = useCallback(() => {
-    if (state === 'idle') start();
-    else if (state === 'running') stop();
-  }, [state, start, stop]);
+    if (state === 'idle') {
+      if (!noneSelected) start();
+    } else if (state === 'running') stop();
+  }, [state, start, stop, noneSelected]);
   useSpacebar(onSpace);
 
   if (state === 'stopped' && current) {
@@ -155,6 +167,19 @@ export function RandomTrainer() {
     );
   }
 
+  if (noneSelected) {
+    return (
+      <div className="w-full min-h-[200px] rounded-lg flex flex-col items-center justify-center gap-2 select-none bg-zinc-200 dark:bg-zinc-800 text-zinc-500">
+        <div className="text-sm font-medium uppercase tracking-wider">
+          No cases selected
+        </div>
+        <div className="text-xs">
+          Tick at least one PLL below to start the trainer
+        </div>
+      </div>
+    );
+  }
+
   return (
     <button
       type="button"
@@ -170,6 +195,7 @@ export function RandomTrainer() {
       </div>
       <div className="text-xs opacity-75">
         A random PLL appears — name hidden until you stop
+        {mounted && ` · ${selected.size}/${PLL_IDS.length} selected`}
       </div>
     </button>
   );

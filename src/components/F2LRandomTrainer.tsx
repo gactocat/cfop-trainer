@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getF2LDefinition } from '@/data/f2l-definitions';
 import { useF2LAlgorithms } from '@/hooks/useF2LAlgorithms';
+import { useF2LRandomSelection } from '@/hooks/useF2LRandomSelection';
 import { useF2LRandomSolves } from '@/hooks/useF2LRandomSolves';
 import { useSpacebar } from '@/hooks/useSpacebar';
 import { F2L_IDS, type F2LId } from '@/types/f2l';
@@ -13,15 +14,25 @@ type TrainerState = 'idle' | 'running' | 'stopped';
 export function F2LRandomTrainer() {
   const { add } = useF2LRandomSolves();
   const { starredFor } = useF2LAlgorithms();
+  const { selected } = useF2LRandomSelection();
   const [state, setState] = useState<TrainerState>('idle');
   const [current, setCurrent] = useState<F2LId | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const [mounted, setMounted] = useState(false);
   const startRef = useRef(0);
   const rafRef = useRef<number | null>(null);
 
+  useEffect(() => setMounted(true), []);
+
+  // Draw only from the cases the user ticked in the grid below. Falls back to
+  // the full set if nothing is selected (shouldn't happen — start is disabled).
   const pickRandom = useCallback((): F2LId => {
-    return F2L_IDS[Math.floor(Math.random() * F2L_IDS.length)];
-  }, []);
+    const pool = F2L_IDS.filter((id) => selected.has(id));
+    const list = pool.length > 0 ? pool : F2L_IDS;
+    return list[Math.floor(Math.random() * list.length)];
+  }, [selected]);
+
+  const noneSelected = mounted && selected.size === 0;
 
   useEffect(() => {
     if (state !== 'running') return;
@@ -61,9 +72,10 @@ export function F2LRandomTrainer() {
   };
 
   const onSpace = useCallback(() => {
-    if (state === 'idle') start();
-    else if (state === 'running') stop();
-  }, [state, start, stop]);
+    if (state === 'idle') {
+      if (!noneSelected) start();
+    } else if (state === 'running') stop();
+  }, [state, start, stop, noneSelected]);
   useSpacebar(onSpace);
 
   if (state === 'stopped' && current) {
@@ -153,6 +165,19 @@ export function F2LRandomTrainer() {
     );
   }
 
+  if (noneSelected) {
+    return (
+      <div className="w-full min-h-[200px] rounded-lg flex flex-col items-center justify-center gap-2 select-none bg-zinc-200 dark:bg-zinc-800 text-zinc-500">
+        <div className="text-sm font-medium uppercase tracking-wider">
+          No cases selected
+        </div>
+        <div className="text-xs">
+          Tick at least one F2L case below to start the trainer
+        </div>
+      </div>
+    );
+  }
+
   return (
     <button
       type="button"
@@ -168,6 +193,7 @@ export function F2LRandomTrainer() {
       </div>
       <div className="text-xs opacity-75">
         A random F2L case appears — number hidden until you stop
+        {mounted && ` · ${selected.size}/${F2L_IDS.length} selected`}
       </div>
     </button>
   );
