@@ -41,15 +41,22 @@ export function PllGrid() {
   const { ready: algReady, starredFor, all: allAlgorithms } = useAlgorithms();
   const selection = usePllRandomSelection();
   const [mounted, setMounted] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
   useEffect(() => setMounted(true), []);
-  // Selection UI only renders after mount so SSR/hydration markup matches
-  // (the store returns "all selected" only on the client).
-  const showSelect = mounted;
+  // Checkboxes only render in selection mode (and after mount so SSR/hydration
+  // markup matches — the store returns "all selected" only on the client).
+  const showSelect = mounted && selectionMode;
+  // Normal mode hides deselected cases; selection mode (and pre-mount) shows
+  // every case.
+  const visibleFor = (items: typeof ALL_PLLS) =>
+    mounted && !selectionMode ? items.filter((p) => selection.isSelected(p.id)) : items;
 
   const grouped = CATEGORY_ORDER.map((cat) => ({
     category: cat,
     items: ALL_PLLS.filter((p) => p.category === cat),
   }));
+
+  const totalVisible = mounted && !selectionMode ? selection.count : ALL_PLLS.length;
 
   // Card stats come from the starred algorithm's recorded times.
   const statsFor = (pllId: PllId) => {
@@ -81,35 +88,68 @@ export function PllGrid() {
     <div className="space-y-8">
       <div>{heading}</div>
 
-      {showSelect && (
-        <div className="flex items-center gap-3 text-sm">
-          <span className="text-zinc-500">
-            {selection.count}/{PLL_IDS.length} selected for random
-          </span>
-          <button
-            type="button"
-            onClick={selection.selectAll}
-            className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
-          >
-            Select all
-          </button>
-          <button
-            type="button"
-            onClick={selection.clear}
-            className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
-          >
-            Clear
-          </button>
+      {mounted && (
+        <div className="flex items-center gap-3 text-sm flex-wrap">
+          {selectionMode ? (
+            <>
+              <span className="text-zinc-500">
+                {selection.count}/{PLL_IDS.length} selected for random
+              </span>
+              <button
+                type="button"
+                onClick={selection.selectAll}
+                className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              >
+                Select all
+              </button>
+              <button
+                type="button"
+                onClick={selection.clear}
+                className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectionMode(false)}
+                className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 text-xs font-medium"
+              >
+                Done
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => setSelectionMode(true)}
+                className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              >
+                Select cases
+              </button>
+              <span className="text-zinc-500 text-xs">
+                {selection.count}/{PLL_IDS.length} shown
+              </span>
+            </>
+          )}
         </div>
       )}
 
-      {grouped.map(({ category, items }) => (
+      {mounted && !selectionMode && totalVisible === 0 && (
+        <p className="text-sm text-zinc-500 py-6 text-center">
+          No cases selected. Tap “Select cases” to choose which PLLs to show.
+        </p>
+      )}
+
+      {grouped.map(({ category, items }) => {
+        const visible = visibleFor(items);
+        if (visible.length === 0) return null;
+        return (
         <section key={category}>
           <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-3">
             {CATEGORY_LABELS[category]}
           </h2>
           <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {items.map((pll) => {
+            {visible.map((pll) => {
               const star = algReady ? starredFor(pll.id) : null;
               const { best, ao5, last, count } = statsFor(pll.id);
               const displayAuf = star?.auf ?? 'U0';
@@ -180,7 +220,8 @@ export function PllGrid() {
             })}
           </ul>
         </section>
-      ))}
+        );
+      })}
     </div>
   );
 }
