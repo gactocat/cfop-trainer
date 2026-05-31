@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { FullScreenModal } from './FullScreenModal';
 import { PllGrid } from './PllGrid';
 import { RandomTrainer } from './RandomTrainer';
+import { ShuffleIcon } from './ShuffleIcon';
 
 export function Home() {
   const [training, setTraining] = useState(false);
@@ -14,9 +15,10 @@ export function Home() {
         <button
           type="button"
           onClick={() => setTraining(true)}
-          className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-4 py-2 font-medium"
+          className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-4 py-2 font-medium"
         >
-          ▶ Random Training
+          <ShuffleIcon />
+          Random Training
         </button>
       </div>
 
