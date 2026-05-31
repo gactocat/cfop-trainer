@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { PracticeTabs } from '@/components/PracticeTabs';
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
+import { SettingsButton } from '@/components/SettingsButton';
 import './globals.css';
 
 const geistSans = Geist({
@@ -60,6 +61,7 @@ export default function RootLayout({
               CFOP Trainer
             </Link>
             <PracticeTabs />
+            <SettingsButton />
           </div>
         </header>
         <main className="mx-auto w-full max-w-6xl px-4 py-6 flex-1">
