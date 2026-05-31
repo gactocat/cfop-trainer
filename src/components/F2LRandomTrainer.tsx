@@ -87,9 +87,9 @@ export function F2LRandomTrainer() {
     const alg = star?.algorithm ?? def?.primaryAlg ?? '';
     const setupAlg = def?.setupAlg ?? '';
     return (
-      <div className="rounded-lg border border-amber-400 dark:border-amber-500 bg-amber-50 dark:bg-amber-950/30 p-6 flex flex-col items-center gap-4 select-none">
+      <div className="w-full flex-1 rounded-lg border border-amber-400 dark:border-amber-500 bg-amber-50 dark:bg-amber-950/30 p-6 flex flex-col items-center justify-center gap-6 select-none">
         <div className="flex flex-col sm:flex-row items-center gap-6">
-          <div className="rounded-md p-2 bg-zinc-100 dark:bg-zinc-900 w-[200px] h-[200px]">
+          <div className="rounded-md p-2 bg-zinc-100 dark:bg-zinc-900 w-[200px] h-[200px] sm:w-[260px] sm:h-[260px]">
             <F2L3DPlayer
               algorithm={alg}
               setupAlg={setupAlg}
@@ -154,19 +154,20 @@ export function F2LRandomTrainer() {
       <button
         type="button"
         onPointerDown={stop}
-        className="w-full min-h-[280px] rounded-lg flex flex-col items-center justify-center gap-4 transition-colors select-none touch-none bg-rose-500 hover:bg-rose-600 text-white"
+        className="w-full flex-1 min-h-[280px] rounded-lg flex flex-col items-center justify-center gap-4 sm:gap-8 transition-colors select-none touch-none bg-rose-500 hover:bg-rose-600 text-white"
         aria-label="Tap to stop the timer"
       >
-        <div className="rounded-md p-2 bg-white/15 w-[180px] h-[180px]">
+        <div className="rounded-md p-2 bg-white/15 w-[180px] h-[180px] sm:w-[260px] sm:h-[260px]">
           <F2L3DPlayer
             algorithm={alg}
             setupAlg={setupAlg}
+            auf={star?.auf ?? 'U0'}
             interactive={false}
             className="w-full h-full"
           />
         </div>
         <div
-          className="font-mono text-5xl sm:text-6xl font-bold tabular-nums leading-none"
+          className="font-mono text-6xl sm:text-8xl font-bold tabular-nums leading-none"
           aria-live="polite"
         >
           {elapsed.toFixed(3)}
@@ -180,12 +181,12 @@ export function F2LRandomTrainer() {
 
   if (noneSelected) {
     return (
-      <div className="w-full min-h-[200px] rounded-lg flex flex-col items-center justify-center gap-2 select-none bg-zinc-200 dark:bg-zinc-800 text-zinc-500">
+      <div className="w-full flex-1 min-h-[200px] rounded-lg flex flex-col items-center justify-center gap-2 select-none bg-zinc-200 dark:bg-zinc-800 text-zinc-500">
         <div className="text-sm font-medium uppercase tracking-wider">
           No cases selected
         </div>
         <div className="text-xs">
-          Tick at least one F2L case below to start the trainer
+          Tick at least one F2L case on the list to start the trainer
         </div>
       </div>
     );
@@ -195,10 +196,10 @@ export function F2LRandomTrainer() {
     <button
       type="button"
       onPointerDown={start}
-      className="w-full min-h-[200px] rounded-lg flex flex-col items-center justify-center gap-3 transition-colors select-none touch-none bg-emerald-500 hover:bg-emerald-600 text-white"
+      className="w-full flex-1 min-h-[200px] rounded-lg flex flex-col items-center justify-center gap-3 transition-colors select-none touch-none bg-emerald-500 hover:bg-emerald-600 text-white"
       aria-label="Tap to start the random F2L trainer"
     >
-      <div className="font-mono text-5xl sm:text-6xl font-bold tabular-nums leading-none">
+      <div className="font-mono text-6xl sm:text-8xl font-bold tabular-nums leading-none">
         0.000
       </div>
       <div className="text-sm font-medium opacity-90 uppercase tracking-wider">

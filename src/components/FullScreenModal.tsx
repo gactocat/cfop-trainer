@@ -31,7 +31,7 @@ export function FullScreenModal({ open, onClose, title, children }: FullScreenMo
       aria-label={title}
       className="fixed inset-0 z-50 flex flex-col bg-zinc-50 dark:bg-zinc-950"
     >
-      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+      <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
         <h2 className="text-base font-semibold">{title}</h2>
         <button
           type="button"
@@ -42,9 +42,7 @@ export function FullScreenModal({ open, onClose, title, children }: FullScreenMo
           ✕
         </button>
       </div>
-      <div className="flex-1 overflow-auto">
-        <div className="mx-auto w-full max-w-3xl px-4 py-6">{children}</div>
-      </div>
+      <div className="flex-1 min-h-0 flex flex-col p-3 sm:p-4">{children}</div>
     </div>,
     document.body,
   );
