@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { getF2LDefinition } from '@/data/f2l-definitions';
 import { useF2LAlgorithms } from '@/hooks/useF2LAlgorithms';
+import { useF2LRandomSolves } from '@/hooks/useF2LRandomSolves';
+import { formatSeconds } from '@/lib/stats';
 import type { F2LId } from '@/types/f2l';
 import { F2LAlgorithmForm } from './F2LAlgorithmForm';
 import { F2LAlgorithmRow } from './F2LAlgorithmRow';
@@ -27,6 +29,11 @@ export function F2LDetail({ f2lId }: F2LDetailProps) {
     addTime,
     removeTime,
   } = useF2LAlgorithms();
+  const {
+    bestFor: randomBestFor,
+    ao5For: randomAo5For,
+    solvesFor: randomSolvesFor,
+  } = useF2LRandomSolves();
 
   const records = useMemo(
     () =>
@@ -72,6 +79,20 @@ export function F2LDetail({ f2lId }: F2LDetailProps) {
           <p className="text-sm text-zinc-500">
             {records.length} algorithm{records.length === 1 ? '' : 's'} saved
           </p>
+          {ready && randomSolvesFor(f2lId).length > 0 && (
+            <p className="text-xs text-zinc-500">
+              Random: best{' '}
+              <span className="font-mono text-zinc-700 dark:text-zinc-300">
+                {formatSeconds(randomBestFor(f2lId))}
+              </span>{' '}
+              · ao5{' '}
+              <span className="font-mono text-zinc-700 dark:text-zinc-300">
+                {formatSeconds(randomAo5For(f2lId))}
+              </span>{' '}
+              ({randomSolvesFor(f2lId).length} solve
+              {randomSolvesFor(f2lId).length === 1 ? '' : 's'})
+            </p>
+          )}
         </div>
       </div>
 

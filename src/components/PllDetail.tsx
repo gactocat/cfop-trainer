@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { getPllDefinition } from '@/data/pll-definitions';
 import { useAlgorithms } from '@/hooks/useAlgorithms';
+import { useRandomSolves } from '@/hooks/useRandomSolves';
+import { formatSeconds } from '@/lib/stats';
 import { type PllId } from '@/types/pll';
 import { AlgorithmForm } from './AlgorithmForm';
 import { AlgorithmRow } from './AlgorithmRow';
@@ -31,6 +33,11 @@ export function PllDetail({ pllId }: PllDetailProps) {
     addTime,
     removeTime,
   } = useAlgorithms();
+  const {
+    bestFor: randomBestFor,
+    ao5For: randomAo5For,
+    solvesFor: randomSolvesFor,
+  } = useRandomSolves();
 
   const records = useMemo(
     () =>
@@ -75,6 +82,20 @@ export function PllDetail({ pllId }: PllDetailProps) {
           <p className="text-sm text-zinc-500">
             {records.length} algorithm{records.length === 1 ? '' : 's'} saved
           </p>
+          {ready && randomSolvesFor(pllId).length > 0 && (
+            <p className="text-xs text-zinc-500">
+              Random: best{' '}
+              <span className="font-mono text-zinc-700 dark:text-zinc-300">
+                {formatSeconds(randomBestFor(pllId))}
+              </span>{' '}
+              · ao5{' '}
+              <span className="font-mono text-zinc-700 dark:text-zinc-300">
+                {formatSeconds(randomAo5For(pllId))}
+              </span>{' '}
+              ({randomSolvesFor(pllId).length} solve
+              {randomSolvesFor(pllId).length === 1 ? '' : 's'})
+            </p>
+          )}
         </div>
         <div className="flex flex-col items-center md:items-end gap-2">
           <div

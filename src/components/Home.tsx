@@ -1,19 +1,34 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
-import { ModeToggle } from './ModeToggle';
-import { PllGrid, type PllGridMode } from './PllGrid';
+import { useState } from 'react';
+import { FullScreenModal } from './FullScreenModal';
+import { PllGrid } from './PllGrid';
 import { RandomTrainer } from './RandomTrainer';
 
 export function Home() {
-  const searchParams = useSearchParams();
-  const mode: PllGridMode = searchParams.get('mode') === 'random' ? 'random' : 'all';
+  const [training, setTraining] = useState(false);
 
   return (
     <div className="space-y-6">
-      <ModeToggle current={mode} basePath="/pll" allLabel="All PLLs" />
-      {mode === 'random' && <RandomTrainer />}
-      <PllGrid mode={mode} />
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setTraining(true)}
+          className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-4 py-2 font-medium"
+        >
+          ▶ Random Training
+        </button>
+      </div>
+
+      <PllGrid />
+
+      <FullScreenModal
+        open={training}
+        onClose={() => setTraining(false)}
+        title="Random PLL Training"
+      >
+        <RandomTrainer />
+      </FullScreenModal>
     </div>
   );
 }

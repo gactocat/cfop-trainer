@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { ALL_PLLS } from '@/data/pll-definitions';
 import { useAlgorithms } from '@/hooks/useAlgorithms';
 import { usePllRandomSelection } from '@/hooks/usePllRandomSelection';
-import { useRandomSolves } from '@/hooks/useRandomSolves';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import { PllImage } from './PllImage';
 import { PLL_IDS, type PllCategory, type PllId } from '@/types/pll';
@@ -17,12 +16,6 @@ const CATEGORY_LABELS: Record<PllCategory, string> = {
 };
 
 const CATEGORY_ORDER: PllCategory[] = ['epll', 'cpll', 'ec-pll'];
-
-export type PllGridMode = 'all' | 'random';
-
-interface PllGridProps {
-  mode: PllGridMode;
-}
 
 function timeBadgeClasses(seconds: number | null): string {
   if (seconds === null) return 'bg-zinc-200 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400';
@@ -44,35 +37,22 @@ function formatLastDate(iso: string | undefined): string {
   }
 }
 
-export function PllGrid({ mode }: PllGridProps) {
+export function PllGrid() {
   const { ready: algReady, starredFor, all: allAlgorithms } = useAlgorithms();
-  const { ready: randomReady, all: allRandomSolves, solvesFor, bestFor: randomBestFor, ao5For: randomAo5For } = useRandomSolves();
   const selection = usePllRandomSelection();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   // Selection UI only renders after mount so SSR/hydration markup matches
   // (the store returns "all selected" only on the client).
-  const showSelect = mode === 'random' && mounted;
+  const showSelect = mounted;
 
   const grouped = CATEGORY_ORDER.map((cat) => ({
     category: cat,
     items: ALL_PLLS.filter((p) => p.category === cat),
   }));
 
-  // Stats for a card depend on the active mode. In All-PLLs mode they come
-  // from the starred algorithm's recorded times; in Random mode they come
-  // from the per-PLL random-solve store. Helper closes over the hooks.
+  // Card stats come from the starred algorithm's recorded times.
   const statsFor = (pllId: PllId) => {
-    if (mode === 'random') {
-      const solves = solvesFor(pllId);
-      const last = solves[0]?.recordedAt; // newest-first in store
-      return {
-        best: randomBestFor(pllId),
-        ao5: randomAo5For(pllId),
-        last,
-        count: solves.length,
-      };
-    }
     const star = algReady ? starredFor(pllId) : null;
     const times = star?.times ?? [];
     return {
@@ -83,32 +63,19 @@ export function PllGrid({ mode }: PllGridProps) {
     };
   };
 
-  const heading =
-    mode === 'random' ? (
-      <>
-        <h1 className="text-2xl font-semibold tracking-tight">Random Trainer</h1>
-        <p className="text-sm text-zinc-500 mt-1">
-          Tap (or press Space) to draw a random PLL with the AUF of its starred algorithm.
-          {randomReady && (
-            <span className="ml-2 text-xs">
-              · {allRandomSolves.length} random solve{allRandomSolves.length === 1 ? '' : 's'} recorded
-            </span>
-          )}
-        </p>
-      </>
-    ) : (
-      <>
-        <h1 className="text-2xl font-semibold tracking-tight">All PLLs</h1>
-        <p className="text-sm text-zinc-500 mt-1">
-          Pick a PLL to manage algorithms and times for each orientation (U0 / U / U2 / U&apos;).
-          {algReady && (
-            <span className="ml-2 text-xs">
-              · {allAlgorithms.length} algorithm{allAlgorithms.length === 1 ? '' : 's'} saved
-            </span>
-          )}
-        </p>
-      </>
-    );
+  const heading = (
+    <>
+      <h1 className="text-2xl font-semibold tracking-tight">All PLLs</h1>
+      <p className="text-sm text-zinc-500 mt-1">
+        Pick a PLL to manage algorithms and times for each orientation (U0 / U / U2 / U&apos;).
+        {algReady && (
+          <span className="ml-2 text-xs">
+            · {allAlgorithms.length} algorithm{allAlgorithms.length === 1 ? '' : 's'} saved
+          </span>
+        )}
+      </p>
+    </>
+  );
 
   return (
     <div className="space-y-8">

@@ -10,17 +10,10 @@ import {
 import { useF2LAlgorithms } from '@/hooks/useF2LAlgorithms';
 import { useF2LAufDisplay } from '@/hooks/useF2LAufDisplay';
 import { useF2LRandomSelection } from '@/hooks/useF2LRandomSelection';
-import { useF2LRandomSolves } from '@/hooks/useF2LRandomSolves';
 import { prefixAuf } from '@/lib/f2l-auf';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import { F2L3DPlayer } from './F2L3DPlayer';
 import { F2L_IDS, type F2LId } from '@/types/f2l';
-
-export type F2LGridMode = 'all' | 'random';
-
-interface F2LGridProps {
-  mode: F2LGridMode;
-}
 
 function timeBadgeClasses(seconds: number | null): string {
   if (seconds === null) return 'bg-zinc-200 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400';
@@ -42,22 +35,15 @@ function formatLastDate(iso: string | undefined): string {
   }
 }
 
-export function F2LGrid({ mode }: F2LGridProps) {
+export function F2LGrid() {
   const { ready: algReady, starredFor, all: allAlgorithms } = useF2LAlgorithms();
-  const {
-    ready: randomReady,
-    all: allRandomSolves,
-    solvesFor,
-    bestFor: randomBestFor,
-    ao5For: randomAo5For,
-  } = useF2LRandomSolves();
   const selection = useF2LRandomSelection();
   const { mode: aufMode } = useF2LAufDisplay();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   // Selection UI only renders after mount so SSR/hydration markup matches
   // (the store returns "all selected" only on the client).
-  const showSelect = mode === 'random' && mounted;
+  const showSelect = mounted;
 
   const grouped = F2L_CATEGORY_ORDER.map((cat) => ({
     category: cat,
@@ -65,16 +51,6 @@ export function F2LGrid({ mode }: F2LGridProps) {
   }));
 
   const statsFor = (f2lId: F2LId) => {
-    if (mode === 'random') {
-      const solves = solvesFor(f2lId);
-      const last = solves[0]?.recordedAt;
-      return {
-        best: randomBestFor(f2lId),
-        ao5: randomAo5For(f2lId),
-        last,
-        count: solves.length,
-      };
-    }
     const star = algReady ? starredFor(f2lId) : null;
     const times = star?.times ?? [];
     return {
@@ -85,32 +61,19 @@ export function F2LGrid({ mode }: F2LGridProps) {
     };
   };
 
-  const heading =
-    mode === 'random' ? (
-      <>
-        <h1 className="text-2xl font-semibold tracking-tight">Random F2L Trainer</h1>
-        <p className="text-sm text-zinc-500 mt-1">
-          Tap (or press Space) to draw a random F2L case in the Front-Right slot.
-          {randomReady && (
-            <span className="ml-2 text-xs">
-              · {allRandomSolves.length} random solve{allRandomSolves.length === 1 ? '' : 's'} recorded
-            </span>
-          )}
-        </p>
-      </>
-    ) : (
-      <>
-        <h1 className="text-2xl font-semibold tracking-tight">All F2Ls</h1>
-        <p className="text-sm text-zinc-500 mt-1">
-          The 41 standard F2L cases (Front-Right slot). Pick a case to manage algorithms and times.
-          {algReady && (
-            <span className="ml-2 text-xs">
-              · {allAlgorithms.length} algorithm{allAlgorithms.length === 1 ? '' : 's'} saved
-            </span>
-          )}
-        </p>
-      </>
-    );
+  const heading = (
+    <>
+      <h1 className="text-2xl font-semibold tracking-tight">All F2Ls</h1>
+      <p className="text-sm text-zinc-500 mt-1">
+        The 41 standard F2L cases (Front-Right slot). Pick a case to manage algorithms and times.
+        {algReady && (
+          <span className="ml-2 text-xs">
+            · {allAlgorithms.length} algorithm{allAlgorithms.length === 1 ? '' : 's'} saved
+          </span>
+        )}
+      </p>
+    </>
+  );
 
   return (
     <div className="space-y-8">
