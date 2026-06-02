@@ -1,8 +1,9 @@
 import { PRESET_ALGORITHMS } from '@/data/preset-algorithms';
-import { PLL_IDS, type AlgorithmRecord, type PllId } from '@/types/pll';
+import { AUFS, PLL_IDS, type AlgorithmRecord, type Auf, type PllId } from '@/types/pll';
 import { splitAuf } from '@/lib/auf-from-algorithm';
 
 const STORAGE_KEY = 'pll-app:algorithms:v1';
+const EXPORT_VERSION = 1;
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -146,4 +147,81 @@ export function seedDefaultsIfMissing(): void {
   cached = seeded;
   writeToStorage(seeded);
   listeners.forEach((l) => l());
+}
+
+interface ExportEntry {
+  pllId: PllId;
+  auf: Auf;
+  algorithm: string;
+  isStarred: boolean;
+}
+
+interface ExportFile {
+  type: 'pll';
+  version: number;
+  exportedAt: string;
+  algorithms: ExportEntry[];
+}
+
+// Serialize the current algorithms to a JSON string. Only the algorithm body,
+// AUF and star flag are included — practice times are intentionally omitted.
+export function exportAlgorithms(): string {
+  const algorithms: ExportEntry[] = getSnapshot().map((r) => ({
+    pllId: r.pllId,
+    auf: r.auf,
+    algorithm: r.algorithm,
+    isStarred: r.isStarred,
+  }));
+  const file: ExportFile = {
+    type: 'pll',
+    version: EXPORT_VERSION,
+    exportedAt: nowIso(),
+    algorithms,
+  };
+  return JSON.stringify(file, null, 2);
+}
+
+// Parse an exported JSON string and replace all PLL algorithms with it.
+// Throws on malformed JSON or wrong `type`. Invalid individual entries are
+// skipped. Returns the number of imported records.
+export function importAlgorithms(json: string): { imported: number } {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    throw new Error('Invalid JSON file.');
+  }
+  if (typeof parsed !== 'object' || parsed === null) {
+    throw new Error('Unrecognized file format.');
+  }
+  const file = parsed as Partial<ExportFile>;
+  if (file.type !== 'pll') {
+    throw new Error('This file is not a PLL algorithm export.');
+  }
+  if (!Array.isArray(file.algorithms)) {
+    throw new Error('Unrecognized file format.');
+  }
+  const validIds = new Set<string>(PLL_IDS);
+  const validAufs = new Set<string>(AUFS);
+  const now = nowIso();
+  const next: AlgorithmRecord[] = [];
+  for (const raw of file.algorithms) {
+    if (typeof raw !== 'object' || raw === null) continue;
+    const e = raw as Partial<ExportEntry>;
+    if (typeof e.pllId !== 'string' || !validIds.has(e.pllId)) continue;
+    if (typeof e.auf !== 'string' || !validAufs.has(e.auf)) continue;
+    if (typeof e.algorithm !== 'string' || e.algorithm.trim() === '') continue;
+    next.push({
+      id: newId(),
+      pllId: e.pllId as PllId,
+      auf: e.auf as Auf,
+      algorithm: e.algorithm,
+      times: [],
+      isStarred: e.isStarred === true,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+  mutate(() => next);
+  return { imported: next.length };
 }

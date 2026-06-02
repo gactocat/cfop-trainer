@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { F2LAufModeToggle } from './F2LAufModeToggle';
+import { AlgorithmTransfer } from './AlgorithmTransfer';
 
 function GearIcon() {
   return (
@@ -100,6 +101,10 @@ export function SettingsButton() {
                   </li>
                 </ul>
               </section>
+
+              <div className="border-t border-zinc-200 dark:border-zinc-800" />
+
+              <AlgorithmTransfer />
             </div>
           </div>
         </div>,
