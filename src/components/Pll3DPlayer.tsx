@@ -37,7 +37,7 @@ export function Pll3DPlayer({ algorithm, auf = 'U0', className }: Pll3DPlayerPro
     const player = document.createElement('twisty-player');
     player.setAttribute('alg', algorithm);
     // Prefix `z2` so the cube renders with yellow on U / white on D — the
-    // standard CFOP orientation that matches our 2D PllImage and the
+    // standard CFOP orientation that matches our 2D LL view and the
     // reference diagrams users learn the cases from.
     player.setAttribute(
       'experimental-setup-alg',

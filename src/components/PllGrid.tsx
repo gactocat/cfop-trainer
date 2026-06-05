@@ -6,7 +6,7 @@ import { ALL_PLLS } from '@/data/pll-definitions';
 import { useAlgorithms } from '@/hooks/useAlgorithms';
 import { usePllRandomSelection } from '@/hooks/usePllRandomSelection';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
-import { PllImage } from './PllImage';
+import { PllLLView } from './PllLLView';
 import { PLL_IDS, type PllCategory, type PllId } from '@/types/pll';
 
 const CATEGORY_LABELS: Record<PllCategory, string> = {
@@ -182,7 +182,7 @@ export function PllGrid() {
                       </span>
                     </div>
                     <div className="flex justify-center mb-2">
-                      <PllImage pllId={pll.id} auf={displayAuf} size={96} />
+                      <PllLLView pllId={pll.id} auf={displayAuf} size={96} />
                     </div>
                     <div className="text-[11px] font-mono text-zinc-700 dark:text-zinc-300 break-words leading-snug min-h-[2.5em] flex items-center justify-center text-center">
                       {star ? (

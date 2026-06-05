@@ -10,7 +10,7 @@ import { type PllId } from '@/types/pll';
 import { AlgorithmForm } from './AlgorithmForm';
 import { AlgorithmRow } from './AlgorithmRow';
 import { Pll3DPlayer } from './Pll3DPlayer';
-import { PllImage } from './PllImage';
+import { PllLLView } from './PllLLView';
 
 type CubeView = '2d' | '3d';
 
@@ -134,7 +134,7 @@ export function PllDetail({ pllId }: PllDetailProps) {
           </div>
           {(view === '2d' || !star) && (
             <div className="rounded-lg p-2 bg-zinc-100 dark:bg-zinc-900">
-              <PllImage pllId={pllId} auf={displayAuf} size={220} />
+              <PllLLView pllId={pllId} auf={displayAuf} size={220} />
             </div>
           )}
         </div>

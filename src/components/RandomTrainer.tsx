@@ -1,13 +1,14 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getPllDefinition } from '@/data/pll-definitions';
 import { useAlgorithms } from '@/hooks/useAlgorithms';
 import { usePllRandomSelection } from '@/hooks/usePllRandomSelection';
 import { useRandomSolves } from '@/hooks/useRandomSolves';
 import { useSpacebar } from '@/hooks/useSpacebar';
+import { pickStaleWeighted } from '@/lib/stale-weighted-pick';
 import { PLL_IDS, type Auf, type PllId } from '@/types/pll';
-import { PllImage } from './PllImage';
+import { PllLLView } from './PllLLView';
 
 type TrainerState = 'idle' | 'running' | 'stopped';
 
@@ -17,7 +18,7 @@ interface Pick {
 }
 
 export function RandomTrainer() {
-  const { add } = useRandomSolves();
+  const { add, all } = useRandomSolves();
   const { starredFor } = useAlgorithms();
   const { selected } = usePllRandomSelection();
   const [state, setState] = useState<TrainerState>('idle');
@@ -29,6 +30,19 @@ export function RandomTrainer() {
 
   useEffect(() => setMounted(true), []);
 
+  // Epoch ms of each PLL's most recent solve, driving the staleness-weighted
+  // draw below — cases timed longest ago (or never) surface more often.
+  const lastRecorded = useMemo(() => {
+    const map = new Map<PllId, number>();
+    for (const s of all) {
+      const t = Date.parse(s.recordedAt);
+      if (Number.isNaN(t)) continue;
+      const prev = map.get(s.pllId);
+      if (prev === undefined || t > prev) map.set(s.pllId, t);
+    }
+    return map;
+  }, [all]);
+
   // AUF for the picked PLL comes from its starred algorithm in All PLLs mode,
   // so the random case is presented in the orientation the user actually
   // practices. Falls back to U0 if no algorithm is starred for that PLL.
@@ -37,10 +51,10 @@ export function RandomTrainer() {
   const pickRandom = useCallback((): Pick => {
     const pool = PLL_IDS.filter((id) => selected.has(id));
     const list = pool.length > 0 ? pool : PLL_IDS;
-    const pllId = list[Math.floor(Math.random() * list.length)];
+    const pllId = pickStaleWeighted(list, (id) => lastRecorded.get(id), Date.now());
     const auf = starredFor(pllId)?.auf ?? 'U0';
     return { pllId, auf };
-  }, [starredFor, selected]);
+  }, [starredFor, selected, lastRecorded]);
 
   const noneSelected = mounted && selected.size === 0;
 
@@ -98,7 +112,7 @@ export function RandomTrainer() {
       <div className="w-full flex-1 rounded-lg border border-amber-400 dark:border-amber-500 bg-amber-50 dark:bg-amber-950/30 p-6 flex flex-col items-center justify-center gap-6 select-none">
         <div className="flex flex-col sm:flex-row items-center gap-6">
           <div className="rounded-md p-2 bg-zinc-100 dark:bg-zinc-900">
-            <PllImage pllId={current.pllId} auf={current.auf} size={220} showArrows={false} />
+            <PllLLView pllId={current.pllId} auf={current.auf} size={220} />
           </div>
           <div className="text-center sm:text-left">
             <div className="text-sm uppercase tracking-wider text-amber-700 dark:text-amber-300">
@@ -152,7 +166,7 @@ export function RandomTrainer() {
         aria-label="Tap to stop the timer"
       >
         <div className="rounded-md p-2 bg-white/15">
-          <PllImage pllId={current.pllId} auf={current.auf} size={220} showArrows={false} />
+          <PllLLView pllId={current.pllId} auf={current.auf} size={220} />
         </div>
         <div
           className="font-mono text-6xl sm:text-8xl font-bold tabular-nums leading-none"
