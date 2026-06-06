@@ -66,25 +66,23 @@ export function F2LRandomTrainer() {
     };
   }, [state]);
 
-  // Begin timing the current case. Shared by the standard flow (straight from
-  // idle) and the inverse flow (after the setup screen).
-  const begin = useCallback(() => {
+  // In inverse mode the start screen shows the scramble, so the case is drawn
+  // ahead of time (here and after each solve); standard mode draws on start.
+  useEffect(() => {
+    if (state === 'idle' && trainerMode === 'inverse' && current === null && !noneSelected) {
+      setCurrent(pickRandom());
+    }
+  }, [state, trainerMode, current, noneSelected, pickRandom]);
+
+  const start = useCallback(() => {
+    // Inverse mode times the case already shown on the start screen; standard
+    // mode draws one now.
+    const id = trainerMode === 'inverse' && current ? current : pickRandom();
+    setCurrent(id);
     startRef.current = Date.now();
     setElapsed(0);
     setState('running');
-  }, []);
-
-  const start = useCallback(() => {
-    setCurrent(pickRandom());
-    setElapsed(0);
-    // Inverse mode shows the scramble first; standard mode times immediately.
-    if (trainerMode === 'inverse') {
-      setState('setup');
-    } else {
-      startRef.current = Date.now();
-      setState('running');
-    }
-  }, [pickRandom, trainerMode]);
+  }, [pickRandom, trainerMode, current]);
 
   const stop = useCallback(() => {
     setElapsed((Date.now() - startRef.current) / 1000);
@@ -107,10 +105,8 @@ export function F2LRandomTrainer() {
   const onSpace = useCallback(() => {
     if (state === 'idle') {
       if (!noneSelected) start();
-    } else if (state === 'setup') {
-      begin();
     } else if (state === 'running') stop();
-  }, [state, start, begin, stop, noneSelected]);
+  }, [state, start, stop, noneSelected]);
   useSpacebar(onSpace);
 
   if (state === 'stopped' && current) {
@@ -177,39 +173,6 @@ export function F2LRandomTrainer() {
     );
   }
 
-  if (state === 'setup' && current) {
-    const def = getF2LDefinition(current);
-    const star = starredFor(current);
-    const alg = star?.algorithm ?? def?.primaryAlg ?? '';
-    const auf = star?.auf ?? 'U0';
-    // Inverse of the full solving sequence (AUF + algorithm): applying it to a
-    // solved cube reproduces the case the algorithm solves.
-    const scramble = invertAlg(prefixAuf(auf, alg));
-    return (
-      <div className="w-full flex-1 min-h-[280px] rounded-lg border border-sky-400 dark:border-sky-500 bg-sky-50 dark:bg-sky-950/30 p-6 flex flex-col items-center justify-center gap-6 select-none">
-        <div className="text-sm font-medium uppercase tracking-wider text-sky-700 dark:text-sky-300">
-          Apply this to your cube
-        </div>
-        <div className="max-w-2xl w-full text-center font-mono text-2xl sm:text-3xl font-bold break-words text-sky-800 dark:text-sky-200">
-          {scramble || '—'}
-        </div>
-        <div className="text-xs text-zinc-500 text-center">
-          Inverse of the algorithm — run it from a solved cube to reach the case.
-        </div>
-        <button
-          type="button"
-          onClick={begin}
-          className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 font-semibold"
-        >
-          START
-        </button>
-        <div className="text-xs text-zinc-500 uppercase tracking-wider">
-          Tap START or Space to begin timing
-        </div>
-      </div>
-    );
-  }
-
   if (state === 'running' && current) {
     const def = getF2LDefinition(current);
     const star = starredFor(current);
@@ -257,6 +220,37 @@ export function F2LRandomTrainer() {
     );
   }
 
+  // Inverse mode shows the scramble (inverse of AUF + algorithm) right on the
+  // start button, so the user can set their cube up before timing.
+  if (trainerMode === 'inverse') {
+    const def = current ? getF2LDefinition(current) : null;
+    const star = current ? starredFor(current) : null;
+    const alg = star?.algorithm ?? def?.primaryAlg ?? '';
+    const scramble = current ? invertAlg(prefixAuf(star?.auf ?? 'U0', alg)) : '';
+    return (
+      <button
+        type="button"
+        onPointerDown={start}
+        className="w-full flex-1 min-h-[200px] rounded-lg flex flex-col items-center justify-center gap-4 px-6 transition-colors select-none touch-none bg-emerald-500 hover:bg-emerald-600 text-white"
+        aria-label="Tap to start the random F2L trainer"
+      >
+        <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
+          Apply this to your cube
+        </div>
+        <div className="max-w-2xl w-full text-center font-mono text-3xl sm:text-4xl font-bold break-words leading-snug">
+          {scramble || '…'}
+        </div>
+        <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
+          Tap or Space to start
+        </div>
+        <div className="text-xs opacity-75">
+          Inverse of the algorithm — run it from a solved cube to reach the case
+          {mounted && ` · ${selected.size}/${F2L_IDS.length} selected`}
+        </div>
+      </button>
+    );
+  }
+
   return (
     <button
       type="button"
@@ -271,9 +265,7 @@ export function F2LRandomTrainer() {
         Tap or Space to start
       </div>
       <div className="text-xs opacity-75">
-        {trainerMode === 'inverse'
-          ? 'Scramble your cube with the inverse algorithm, then time your solve'
-          : 'A random F2L case appears — number hidden until you stop'}
+        A random F2L case appears — number hidden until you stop
         {mounted && ` · ${selected.size}/${F2L_IDS.length} selected`}
       </div>
     </button>
