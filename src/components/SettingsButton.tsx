@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { F2LAufModeToggle } from './F2LAufModeToggle';
+import { F2LTrainerModeToggle } from './F2LTrainerModeToggle';
 import { AlgorithmTransfer } from './AlgorithmTransfer';
 
 function GearIcon() {
@@ -98,6 +99,33 @@ export function SettingsButton() {
                     </span>{' '}
                     — show the raw case; the AUF appears as the algorithm&apos;s
                     leading turn.
+                  </li>
+                </ul>
+              </section>
+
+              <div className="border-t border-zinc-200 dark:border-zinc-800" />
+
+              <section className="space-y-2">
+                <div>
+                  <h3 className="text-sm font-medium">Random trainer mode (F2L)</h3>
+                  <p className="text-xs text-zinc-500">
+                    How the random trainer sets up each case.
+                  </p>
+                </div>
+                <F2LTrainerModeToggle />
+                <ul className="text-xs text-zinc-500 space-y-1">
+                  <li>
+                    <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                      Standard
+                    </span>{' '}
+                    — a hidden case appears and timing starts immediately.
+                  </li>
+                  <li>
+                    <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                      Inverse setup
+                    </span>{' '}
+                    — the inverse algorithm is shown first so you can scramble your
+                    own cube into the case, then START to time.
                   </li>
                 </ul>
               </section>

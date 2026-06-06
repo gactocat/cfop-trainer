@@ -1,23 +1,27 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getF2LDefinition } from '@/data/f2l-definitions';
 import { useF2LAlgorithms } from '@/hooks/useF2LAlgorithms';
 import { useF2LAufDisplay } from '@/hooks/useF2LAufDisplay';
 import { useF2LRandomSelection } from '@/hooks/useF2LRandomSelection';
 import { useF2LRandomSolves } from '@/hooks/useF2LRandomSolves';
+import { useF2LTrainerMode } from '@/hooks/useF2LTrainerMode';
 import { prefixAuf } from '@/lib/f2l-auf';
+import { invertAlg } from '@/lib/invert-alg';
+import { pickStaleWeighted } from '@/lib/stale-weighted-pick';
 import { useSpacebar } from '@/hooks/useSpacebar';
 import { F2L_IDS, type F2LId } from '@/types/f2l';
 import { F2L3DPlayer } from './F2L3DPlayer';
 
-type TrainerState = 'idle' | 'running' | 'stopped';
+type TrainerState = 'idle' | 'setup' | 'running' | 'stopped';
 
 export function F2LRandomTrainer() {
-  const { add } = useF2LRandomSolves();
+  const { add, all } = useF2LRandomSolves();
   const { starredFor } = useF2LAlgorithms();
   const { selected } = useF2LRandomSelection();
   const { mode: aufMode } = useF2LAufDisplay();
+  const { mode: trainerMode } = useF2LTrainerMode();
   const [state, setState] = useState<TrainerState>('idle');
   const [current, setCurrent] = useState<F2LId | null>(null);
   const [elapsed, setElapsed] = useState(0);
@@ -27,13 +31,26 @@ export function F2LRandomTrainer() {
 
   useEffect(() => setMounted(true), []);
 
+  // Epoch ms of each case's most recent solve, driving the staleness-weighted
+  // draw below — cases timed longest ago (or never) surface more often.
+  const lastRecorded = useMemo(() => {
+    const map = new Map<F2LId, number>();
+    for (const s of all) {
+      const t = Date.parse(s.recordedAt);
+      if (Number.isNaN(t)) continue;
+      const prev = map.get(s.f2lId);
+      if (prev === undefined || t > prev) map.set(s.f2lId, t);
+    }
+    return map;
+  }, [all]);
+
   // Draw only from the cases the user ticked in the grid below. Falls back to
   // the full set if nothing is selected (shouldn't happen — start is disabled).
   const pickRandom = useCallback((): F2LId => {
     const pool = F2L_IDS.filter((id) => selected.has(id));
     const list = pool.length > 0 ? pool : F2L_IDS;
-    return list[Math.floor(Math.random() * list.length)];
-  }, [selected]);
+    return pickStaleWeighted(list, (id) => lastRecorded.get(id), Date.now());
+  }, [selected, lastRecorded]);
 
   const noneSelected = mounted && selected.size === 0;
 
@@ -49,12 +66,25 @@ export function F2LRandomTrainer() {
     };
   }, [state]);
 
-  const start = useCallback(() => {
-    setCurrent(pickRandom());
+  // Begin timing the current case. Shared by the standard flow (straight from
+  // idle) and the inverse flow (after the setup screen).
+  const begin = useCallback(() => {
     startRef.current = Date.now();
     setElapsed(0);
     setState('running');
-  }, [pickRandom]);
+  }, []);
+
+  const start = useCallback(() => {
+    setCurrent(pickRandom());
+    setElapsed(0);
+    // Inverse mode shows the scramble first; standard mode times immediately.
+    if (trainerMode === 'inverse') {
+      setState('setup');
+    } else {
+      startRef.current = Date.now();
+      setState('running');
+    }
+  }, [pickRandom, trainerMode]);
 
   const stop = useCallback(() => {
     setElapsed((Date.now() - startRef.current) / 1000);
@@ -77,8 +107,10 @@ export function F2LRandomTrainer() {
   const onSpace = useCallback(() => {
     if (state === 'idle') {
       if (!noneSelected) start();
+    } else if (state === 'setup') {
+      begin();
     } else if (state === 'running') stop();
-  }, [state, start, stop, noneSelected]);
+  }, [state, start, begin, stop, noneSelected]);
   useSpacebar(onSpace);
 
   if (state === 'stopped' && current) {
@@ -145,6 +177,39 @@ export function F2LRandomTrainer() {
     );
   }
 
+  if (state === 'setup' && current) {
+    const def = getF2LDefinition(current);
+    const star = starredFor(current);
+    const alg = star?.algorithm ?? def?.primaryAlg ?? '';
+    const auf = star?.auf ?? 'U0';
+    // Inverse of the full solving sequence (AUF + algorithm): applying it to a
+    // solved cube reproduces the case the algorithm solves.
+    const scramble = invertAlg(prefixAuf(auf, alg));
+    return (
+      <div className="w-full flex-1 min-h-[280px] rounded-lg border border-sky-400 dark:border-sky-500 bg-sky-50 dark:bg-sky-950/30 p-6 flex flex-col items-center justify-center gap-6 select-none">
+        <div className="text-sm font-medium uppercase tracking-wider text-sky-700 dark:text-sky-300">
+          Apply this to your cube
+        </div>
+        <div className="max-w-2xl w-full text-center font-mono text-2xl sm:text-3xl font-bold break-words text-sky-800 dark:text-sky-200">
+          {scramble || '—'}
+        </div>
+        <div className="text-xs text-zinc-500 text-center">
+          Inverse of the algorithm — run it from a solved cube to reach the case.
+        </div>
+        <button
+          type="button"
+          onClick={begin}
+          className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 font-semibold"
+        >
+          START
+        </button>
+        <div className="text-xs text-zinc-500 uppercase tracking-wider">
+          Tap START or Space to begin timing
+        </div>
+      </div>
+    );
+  }
+
   if (state === 'running' && current) {
     const def = getF2LDefinition(current);
     const star = starredFor(current);
@@ -206,7 +271,9 @@ export function F2LRandomTrainer() {
         Tap or Space to start
       </div>
       <div className="text-xs opacity-75">
-        A random F2L case appears — number hidden until you stop
+        {trainerMode === 'inverse'
+          ? 'Scramble your cube with the inverse algorithm, then time your solve'
+          : 'A random F2L case appears — number hidden until you stop'}
         {mounted && ` · ${selected.size}/${F2L_IDS.length} selected`}
       </div>
     </button>
