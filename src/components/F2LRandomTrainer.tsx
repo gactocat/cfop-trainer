@@ -6,10 +6,11 @@ import { useF2LAlgorithms } from '@/hooks/useF2LAlgorithms';
 import { useF2LAufDisplay } from '@/hooks/useF2LAufDisplay';
 import { useF2LRandomSelection } from '@/hooks/useF2LRandomSelection';
 import { useF2LRandomSolves } from '@/hooks/useF2LRandomSolves';
+import { useF2LScrambleSettings } from '@/hooks/useF2LScrambleSettings';
 import { useF2LTrainerMode } from '@/hooks/useF2LTrainerMode';
 import { useMounted } from '@/hooks/useMounted';
 import { prefixAuf } from '@/lib/f2l-auf';
-import { invertAlg } from '@/lib/invert-alg';
+import { buildF2LScramble, seededRandom } from '@/lib/f2l-scramble';
 import { pickStaleWeighted } from '@/lib/stale-weighted-pick';
 import { useSpacebar } from '@/hooks/useSpacebar';
 import { F2L_IDS, type F2LId } from '@/types/f2l';
@@ -23,8 +24,12 @@ export function F2LRandomTrainer() {
   const { selected } = useF2LRandomSelection();
   const { mode: aufMode } = useF2LAufDisplay();
   const { mode: trainerMode } = useF2LTrainerMode();
+  const { settings: scrambleSettings } = useF2LScrambleSettings();
   const [state, setState] = useState<TrainerState>('idle');
   const [current, setCurrent] = useState<F2LId | null>(null);
+  // Seed for the current case's setup scramble; drawn with the case so the
+  // scramble is stable across re-renders but different on every draw.
+  const [scrambleSeed, setScrambleSeed] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const mounted = useMounted();
   const startRef = useRef(0);
@@ -45,10 +50,14 @@ export function F2LRandomTrainer() {
 
   // Draw only from the cases the user ticked in the grid below. Falls back to
   // the full set if nothing is selected (shouldn't happen — start is disabled).
-  const pickRandom = useCallback((): F2LId => {
+  // Also returns a fresh seed for the case's setup scramble.
+  const pickRandom = useCallback((): { id: F2LId; seed: number } => {
     const pool = F2L_IDS.filter((id) => selected.has(id));
     const list = pool.length > 0 ? pool : F2L_IDS;
-    return pickStaleWeighted(list, (id) => lastRecorded.get(id), Date.now());
+    return {
+      id: pickStaleWeighted(list, (id) => lastRecorded.get(id), Date.now()),
+      seed: Math.floor(Math.random() * 0x7fffffff),
+    };
   }, [selected, lastRecorded]);
 
   const noneSelected = mounted && selected.size === 0;
@@ -71,13 +80,15 @@ export function F2LRandomTrainer() {
   // the "adjust state during render" pattern: React re-renders immediately with
   // the new state. Gated on `mounted` so the server markup stays deterministic.
   if (mounted && state === 'idle' && trainerMode === 'inverse' && current === null && !noneSelected) {
-    setCurrent(pickRandom());
+    const next = pickRandom();
+    setCurrent(next.id);
+    setScrambleSeed(next.seed);
   }
 
   const start = useCallback(() => {
     // Inverse mode times the case already shown on the start screen; standard
     // mode draws one now.
-    const id = trainerMode === 'inverse' && current ? current : pickRandom();
+    const id = trainerMode === 'inverse' && current ? current : pickRandom().id;
     setCurrent(id);
     startRef.current = Date.now();
     setElapsed(0);
@@ -220,13 +231,23 @@ export function F2LRandomTrainer() {
     );
   }
 
-  // Inverse mode shows the scramble (inverse of AUF + algorithm) right on the
-  // start button, so the user can set their cube up before timing.
+  // Inverse mode shows the setup scramble right on the start button, so the
+  // user can bring their cube into the case before timing.
   if (trainerMode === 'inverse') {
     const def = current ? getF2LDefinition(current) : null;
     const star = current ? starredFor(current) : null;
-    const alg = star?.algorithm ?? def?.primaryAlg ?? '';
-    const scramble = current ? invertAlg(prefixAuf(star?.auf ?? 'U0', alg)) : '';
+    const scramble = current
+      ? buildF2LScramble(
+          current,
+          { auf: star?.auf ?? 'U0', body: star?.algorithm ?? def?.primaryAlg ?? '' },
+          scrambleSettings,
+          seededRandom(scrambleSeed),
+        )
+      : '';
+    const hint =
+      scrambleSettings.style === 'varied'
+        ? 'A short setup for this case, not the inverse of your algorithm'
+        : 'The inverse of your algorithm';
     return (
       <button
         type="button"
@@ -244,7 +265,7 @@ export function F2LRandomTrainer() {
           Tap or Space to start
         </div>
         <div className="text-xs opacity-75">
-          Inverse of the algorithm — run it from a solved cube to reach the case
+          {hint} — apply it to a cube with F2L solved; the last layer does not matter
           {mounted && ` · ${selected.size}/${F2L_IDS.length} selected`}
         </div>
       </button>

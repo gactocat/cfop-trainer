@@ -13,7 +13,7 @@ function invertMove(move: string): string {
 // Split an algorithm into tokens, keeping each parenthesised group — with any
 // trailing modifier ('/2/repeat count) — as one token.
 //   "(R U R') R2 (r' D r U2)5" -> ["(R U R')", "R2", "(r' D r U2)5"]
-function tokenize(algorithm: string): string[] {
+export function tokenizeAlg(algorithm: string): string[] {
   const tokens: string[] = [];
   let i = 0;
   while (i < algorithm.length) {
@@ -66,5 +66,5 @@ function invertToken(token: string): string {
 //   "R U R' U' R U2"            -> "U2 R' U R U' R'"
 //   "(R U R' U') R' F (R U R')" -> "(R U' R') F' R (U R U' R')"
 export function invertAlg(algorithm: string): string {
-  return tokenize(algorithm).reverse().map(invertToken).join(' ');
+  return tokenizeAlg(algorithm).reverse().map(invertToken).join(' ');
 }

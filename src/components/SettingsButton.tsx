@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { F2LAufModeToggle } from './F2LAufModeToggle';
+import { F2LScrambleSettings } from './F2LScrambleSettings';
 import { F2LTrainerModeToggle } from './F2LTrainerModeToggle';
 import { AlgorithmTransfer } from './AlgorithmTransfer';
 
@@ -124,8 +125,36 @@ export function SettingsButton() {
                     <span className="font-medium text-zinc-700 dark:text-zinc-300">
                       Inverse setup
                     </span>{' '}
-                    — the inverse algorithm is shown first so you can scramble your
-                    own cube into the case, then START to time.
+                    — a setup scramble is shown first so you can bring your own cube
+                    into the case, then START to time.
+                  </li>
+                </ul>
+              </section>
+
+              <div className="border-t border-zinc-200 dark:border-zinc-800" />
+
+              <section className="space-y-2">
+                <div>
+                  <h3 className="text-sm font-medium">Setup scramble (F2L)</h3>
+                  <p className="text-xs text-zinc-500">
+                    What the inverse-setup trainer asks you to apply. Either way, start
+                    from a cube with F2L solved; the last layer does not matter.
+                  </p>
+                </div>
+                <F2LScrambleSettings />
+                <ul className="text-xs text-zinc-500 space-y-1">
+                  <li>
+                    <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                      Varied setup
+                    </span>{' '}
+                    — a short setup picked at random from several routes to the case,
+                    so you cannot read the solution off the scramble.
+                  </li>
+                  <li>
+                    <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                      Inverse algorithm
+                    </span>{' '}
+                    — your algorithm played backwards. Shortest, but predictable.
                   </li>
                 </ul>
               </section>

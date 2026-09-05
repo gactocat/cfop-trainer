@@ -8,7 +8,7 @@ const OPTIONS: { value: F2LTrainerMode; label: string; title: string }[] = [
   {
     value: 'inverse',
     label: 'Inverse setup',
-    title: 'Show the inverse algorithm first so you can scramble your own cube, then START to time',
+    title: 'Show a setup scramble first so you can bring your own cube into the case, then START to time',
   },
 ];
 

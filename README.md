@@ -18,8 +18,10 @@ dialog. The app is installable as a PWA and works offline.
   handled separately
 - Random trainer with per-case selection, spacebar / tap timing, and a
   staleness-weighted draw
-- F2L inverse-setup mode: shows the scramble to apply so you can set the case
-  up on your own cube before timing
+- F2L inverse-setup mode: shows a short setup scramble so you can bring your
+  own cube into the case before timing. By default the setup is drawn from a
+  pool of alternative routes to the case, so it does not spell out the
+  solution; the plain inverse of your algorithm is available as an option
 
 ## Development
 

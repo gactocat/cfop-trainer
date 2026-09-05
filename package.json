@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "check": "npm run lint && npm run typecheck && npm run build"
+    "check": "npm run lint && npm run typecheck && npm run build",
+    "generate:scrambles": "node --import ./scripts/register-src-alias.mjs scripts/generate-f2l-scramble-pool.mts"
   },
   "dependencies": {
     "cubing": "^0.63.3",
