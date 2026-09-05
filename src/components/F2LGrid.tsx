@@ -9,8 +9,8 @@ import {
 } from '@/data/f2l-definitions';
 import { useF2LAlgorithms } from '@/hooks/useF2LAlgorithms';
 import { useF2LAufDisplay } from '@/hooks/useF2LAufDisplay';
-import { useMounted } from '@/hooks/useMounted';
 import { useF2LRandomSelection } from '@/hooks/useF2LRandomSelection';
+import { useMounted } from '@/hooks/useMounted';
 import { prefixAuf } from '@/lib/f2l-auf';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import { F2L3DPlayer } from './F2L3DPlayer';
