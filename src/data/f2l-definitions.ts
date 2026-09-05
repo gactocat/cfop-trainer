@@ -88,12 +88,3 @@ export const F2L_CATEGORY_ORDER: F2LCategory[] = [
   'edge-in-slot',
   'pieces-in-slot',
 ];
-
-export const F2L_CATEGORY_LABELS: Record<F2LCategory, string> = {
-  easy: 'Easy / Free Pairs',
-  disconnected: 'Disconnected Pairs',
-  connected: 'Connected Pairs',
-  'corner-in-slot': 'Corner in Slot',
-  'edge-in-slot': 'Edge in Slot',
-  'pieces-in-slot': 'Pieces in Slot',
-};

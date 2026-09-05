@@ -1,11 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { useT } from '@/hooks/useT';
+import type { MessageKey } from '@/i18n/messages';
+import { AlgorithmTransfer } from './AlgorithmTransfer';
 import { F2LAufModeToggle } from './F2LAufModeToggle';
 import { F2LScrambleSettings } from './F2LScrambleSettings';
 import { F2LTrainerModeToggle } from './F2LTrainerModeToggle';
-import { AlgorithmTransfer } from './AlgorithmTransfer';
+import { LocaleToggle } from './LocaleToggle';
 
 function GearIcon() {
   return (
@@ -26,7 +29,41 @@ function GearIcon() {
   );
 }
 
+function Section({
+  title,
+  description,
+  children,
+}: {
+  title: MessageKey;
+  description: MessageKey;
+  children: ReactNode;
+}) {
+  const { t } = useT();
+  return (
+    <section className="space-y-2">
+      <div>
+        <h3 className="text-sm font-medium">{t(title)}</h3>
+        <p className="text-xs text-zinc-500">{t(description)}</p>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+// "Label — explanation" help line under a toggle.
+function Help({ label, text }: { label: MessageKey; text: MessageKey }) {
+  const { t } = useT();
+  return (
+    <li>
+      <span className="font-medium text-zinc-700 dark:text-zinc-300">{t(label)}</span> — {t(text)}
+    </li>
+  );
+}
+
+const Divider = () => <div className="border-t border-zinc-200 dark:border-zinc-800" />;
+
 export function SettingsButton() {
+  const { t } = useT();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -43,9 +80,9 @@ export function SettingsButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Settings"
+        aria-label={t('common.settings')}
         aria-haspopup="dialog"
-        title="Settings"
+        title={t('common.settings')}
         className="ml-auto inline-flex items-center justify-center h-9 w-9 rounded-md text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
       >
         <GearIcon />
@@ -53,7 +90,7 @@ export function SettingsButton() {
 
       {open && typeof document !== 'undefined' && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
+          className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 bg-black/40"
           role="presentation"
           onClick={() => setOpen(false)}
         >
@@ -62,16 +99,19 @@ export function SettingsButton() {
             aria-modal="true"
             aria-labelledby="settings-title"
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl"
+            // Cap the height and scroll inside: a fixed overlay adds nothing to
+            // the page's scroll height, so without this the settings are simply
+            // cut off on small screens.
+            className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl"
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
               <h2 id="settings-title" className="text-base font-semibold">
-                Settings
+                {t('settings.title')}
               </h2>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                aria-label="Close settings"
+                aria-label={t('settings.closeAria')}
                 className="inline-flex items-center justify-center h-8 w-8 rounded-md text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100"
               >
                 ✕
@@ -79,87 +119,56 @@ export function SettingsButton() {
             </div>
 
             <div className="p-4 space-y-4">
-              <section className="space-y-2">
-                <div>
-                  <h3 className="text-sm font-medium">AUF display (F2L)</h3>
-                  <p className="text-xs text-zinc-500">
-                    How an algorithm&apos;s AUF is shown.
-                  </p>
-                </div>
+              <Section title="settings.language.title" description="settings.language.description">
+                <LocaleToggle />
+              </Section>
+
+              <Divider />
+
+              <Section
+                title="settings.aufDisplay.title"
+                description="settings.aufDisplay.description"
+              >
                 <F2LAufModeToggle />
                 <ul className="text-xs text-zinc-500 space-y-1">
-                  <li>
-                    <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                      On cube
-                    </span>{' '}
-                    — rotate the displayed cube; the algorithm shows just its body.
-                  </li>
-                  <li>
-                    <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                      In algorithm
-                    </span>{' '}
-                    — show the raw case; the AUF appears as the algorithm&apos;s
-                    leading turn.
-                  </li>
+                  <Help label="settings.aufDisplay.onCube" text="settings.aufDisplay.onCubeHelp" />
+                  <Help
+                    label="settings.aufDisplay.inAlgorithm"
+                    text="settings.aufDisplay.inAlgorithmHelp"
+                  />
                 </ul>
-              </section>
+              </Section>
 
-              <div className="border-t border-zinc-200 dark:border-zinc-800" />
+              <Divider />
 
-              <section className="space-y-2">
-                <div>
-                  <h3 className="text-sm font-medium">Random trainer mode (F2L)</h3>
-                  <p className="text-xs text-zinc-500">
-                    How the random trainer sets up each case.
-                  </p>
-                </div>
+              <Section
+                title="settings.trainerMode.title"
+                description="settings.trainerMode.description"
+              >
                 <F2LTrainerModeToggle />
                 <ul className="text-xs text-zinc-500 space-y-1">
-                  <li>
-                    <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                      Standard
-                    </span>{' '}
-                    — a hidden case appears and timing starts immediately.
-                  </li>
-                  <li>
-                    <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                      Inverse setup
-                    </span>{' '}
-                    — a setup scramble is shown first so you can bring your own cube
-                    into the case, then START to time.
-                  </li>
+                  <Help
+                    label="settings.trainerMode.standard"
+                    text="settings.trainerMode.standardHelp"
+                  />
+                  <Help
+                    label="settings.trainerMode.inverse"
+                    text="settings.trainerMode.inverseHelp"
+                  />
                 </ul>
-              </section>
+              </Section>
 
-              <div className="border-t border-zinc-200 dark:border-zinc-800" />
+              <Divider />
 
-              <section className="space-y-2">
-                <div>
-                  <h3 className="text-sm font-medium">Setup scramble (F2L)</h3>
-                  <p className="text-xs text-zinc-500">
-                    What the inverse-setup trainer asks you to apply. Either way, start
-                    from a cube with F2L solved; the last layer does not matter.
-                  </p>
-                </div>
+              <Section title="settings.scramble.title" description="settings.scramble.description">
                 <F2LScrambleSettings />
                 <ul className="text-xs text-zinc-500 space-y-1">
-                  <li>
-                    <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                      Varied setup
-                    </span>{' '}
-                    — a short setup picked at random from several routes to the case,
-                    so you cannot read the solution off the scramble.
-                  </li>
-                  <li>
-                    <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                      Inverse algorithm
-                    </span>{' '}
-                    — your algorithm played backwards. Shortest, but predictable.
-                  </li>
+                  <Help label="settings.scramble.varied" text="settings.scramble.variedHelp" />
+                  <Help label="settings.scramble.inverse" text="settings.scramble.inverseHelp" />
                 </ul>
-              </section>
+              </Section>
 
-              <div className="border-t border-zinc-200 dark:border-zinc-800" />
+              <Divider />
 
               <AlgorithmTransfer />
             </div>

@@ -7,6 +7,7 @@ import { useMounted } from '@/hooks/useMounted';
 import { usePllRandomSelection } from '@/hooks/usePllRandomSelection';
 import { useRandomSolves } from '@/hooks/useRandomSolves';
 import { useSpacebar } from '@/hooks/useSpacebar';
+import { useT } from '@/hooks/useT';
 import { pickStaleWeighted } from '@/lib/stale-weighted-pick';
 import { PLL_IDS, type Auf, type PllId } from '@/types/pll';
 import { PllLLView } from './PllLLView';
@@ -19,6 +20,7 @@ interface Pick {
 }
 
 export function RandomTrainer() {
+  const { t } = useT();
   const { add, all } = useRandomSolves();
   const { starredFor } = useAlgorithms();
   const { selected } = usePllRandomSelection();
@@ -34,10 +36,10 @@ export function RandomTrainer() {
   const lastRecorded = useMemo(() => {
     const map = new Map<PllId, number>();
     for (const s of all) {
-      const t = Date.parse(s.recordedAt);
-      if (Number.isNaN(t)) continue;
+      const ts = Date.parse(s.recordedAt);
+      if (Number.isNaN(ts)) continue;
       const prev = map.get(s.pllId);
-      if (prev === undefined || t > prev) map.set(s.pllId, t);
+      if (prev === undefined || ts > prev) map.set(s.pllId, ts);
     }
     return map;
   }, [all]);
@@ -131,9 +133,7 @@ export function RandomTrainer() {
               {star.algorithm}
             </p>
           ) : (
-            <p className="italic text-zinc-500">
-              No star algorithm saved for this PLL
-            </p>
+            <p className="italic text-zinc-500">{t('trainer.pll.noStar')}</p>
           )}
         </div>
         <div className="flex gap-3">
@@ -142,14 +142,14 @@ export function RandomTrainer() {
             onClick={record}
             className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 font-semibold"
           >
-            ✓ Record
+            ✓ {t('common.record')}
           </button>
           <button
             type="button"
             onClick={discard}
             className="rounded-md border border-zinc-300 dark:border-zinc-700 px-6 py-2.5 font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800"
           >
-            ✗ Discard
+            ✗ {t('common.discard')}
           </button>
         </div>
       </div>
@@ -162,7 +162,7 @@ export function RandomTrainer() {
         type="button"
         onPointerDown={stop}
         className="w-full flex-1 min-h-[280px] rounded-lg flex flex-col items-center justify-center gap-4 sm:gap-8 transition-colors select-none touch-none bg-rose-500 hover:bg-rose-600 text-white"
-        aria-label="Tap to stop the timer"
+        aria-label={t('trainer.tapToStopAria')}
       >
         <div className="rounded-md p-2 bg-white/15">
           <PllLLView pllId={current.pllId} auf={current.auf} size={220} />
@@ -174,7 +174,7 @@ export function RandomTrainer() {
           {elapsed.toFixed(3)}
         </div>
         <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
-          Tap or Space to stop
+          {t('trainer.tapOrSpaceToStop')}
         </div>
       </button>
     );
@@ -184,11 +184,9 @@ export function RandomTrainer() {
     return (
       <div className="w-full flex-1 min-h-[200px] rounded-lg flex flex-col items-center justify-center gap-2 select-none bg-zinc-200 dark:bg-zinc-800 text-zinc-500">
         <div className="text-sm font-medium uppercase tracking-wider">
-          No cases selected
+          {t('trainer.noneSelected')}
         </div>
-        <div className="text-xs">
-          Tick at least one PLL on the list to start the trainer
-        </div>
+        <div className="text-xs">{t('trainer.pll.tickOne')}</div>
       </div>
     );
   }
@@ -198,17 +196,18 @@ export function RandomTrainer() {
       type="button"
       onPointerDown={start}
       className="w-full flex-1 min-h-[200px] rounded-lg flex flex-col items-center justify-center gap-3 transition-colors select-none touch-none bg-emerald-500 hover:bg-emerald-600 text-white"
-      aria-label="Tap to start the random trainer"
+      aria-label={t('trainer.tapToStartAria')}
     >
       <div className="font-mono text-6xl sm:text-8xl font-bold tabular-nums leading-none">
         0.000
       </div>
       <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
-        Tap or Space to start
+        {t('trainer.tapOrSpaceToStart')}
       </div>
       <div className="text-xs opacity-75">
-        A random PLL appears — name hidden until you stop
-        {mounted && ` · ${selected.size}/${PLL_IDS.length} selected`}
+        {t('trainer.pll.hidden')}
+        {mounted &&
+          ` · ${t('trainer.selectedCount', { count: selected.size, total: PLL_IDS.length })}`}
       </div>
     </button>
   );

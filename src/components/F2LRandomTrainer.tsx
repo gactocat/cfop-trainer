@@ -9,6 +9,7 @@ import { useF2LRandomSolves } from '@/hooks/useF2LRandomSolves';
 import { useF2LScrambleSettings } from '@/hooks/useF2LScrambleSettings';
 import { useF2LTrainerMode } from '@/hooks/useF2LTrainerMode';
 import { useMounted } from '@/hooks/useMounted';
+import { useT } from '@/hooks/useT';
 import { prefixAuf } from '@/lib/f2l-auf';
 import { buildF2LScramble, seededRandom } from '@/lib/f2l-scramble';
 import { pickStaleWeighted } from '@/lib/stale-weighted-pick';
@@ -19,6 +20,7 @@ import { F2L3DPlayer } from './F2L3DPlayer';
 type TrainerState = 'idle' | 'setup' | 'running' | 'stopped';
 
 export function F2LRandomTrainer() {
+  const { t } = useT();
   const { add, all } = useF2LRandomSolves();
   const { starredFor } = useF2LAlgorithms();
   const { selected } = useF2LRandomSelection();
@@ -139,7 +141,7 @@ export function F2LRandomTrainer() {
           </div>
           <div className="text-center sm:text-left">
             <div className="text-sm uppercase tracking-wider text-amber-700 dark:text-amber-300">
-              F2L {def?.number ?? current}
+              {def ? t('common.f2lCase', { number: def.number }) : current}
             </div>
             <div className="font-mono text-6xl sm:text-7xl font-bold tabular-nums text-amber-700 dark:text-amber-300">
               {elapsed.toFixed(3)}
@@ -161,7 +163,7 @@ export function F2LRandomTrainer() {
           ) : def ? (
             <p className="text-zinc-500">{def.primaryAlg}</p>
           ) : (
-            <p className="italic text-zinc-500">No algorithm saved for this case</p>
+            <p className="italic text-zinc-500">{t('trainer.f2l.noAlgorithm')}</p>
           )}
         </div>
         <div className="flex gap-3">
@@ -170,14 +172,14 @@ export function F2LRandomTrainer() {
             onClick={record}
             className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 font-semibold"
           >
-            ✓ Record
+            ✓ {t('common.record')}
           </button>
           <button
             type="button"
             onClick={discard}
             className="rounded-md border border-zinc-300 dark:border-zinc-700 px-6 py-2.5 font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800"
           >
-            ✗ Discard
+            ✗ {t('common.discard')}
           </button>
         </div>
       </div>
@@ -194,7 +196,7 @@ export function F2LRandomTrainer() {
         type="button"
         onPointerDown={stop}
         className="w-full flex-1 min-h-[280px] rounded-lg flex flex-col items-center justify-center gap-4 sm:gap-8 transition-colors select-none touch-none bg-rose-500 hover:bg-rose-600 text-white"
-        aria-label="Tap to stop the timer"
+        aria-label={t('trainer.tapToStopAria')}
       >
         <div className="rounded-md p-2 bg-white/15 w-[180px] h-[180px] sm:w-[260px] sm:h-[260px]">
           <F2L3DPlayer
@@ -212,7 +214,7 @@ export function F2LRandomTrainer() {
           {elapsed.toFixed(3)}
         </div>
         <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
-          Tap or Space to stop
+          {t('trainer.tapOrSpaceToStop')}
         </div>
       </button>
     );
@@ -222,11 +224,9 @@ export function F2LRandomTrainer() {
     return (
       <div className="w-full flex-1 min-h-[200px] rounded-lg flex flex-col items-center justify-center gap-2 select-none bg-zinc-200 dark:bg-zinc-800 text-zinc-500">
         <div className="text-sm font-medium uppercase tracking-wider">
-          No cases selected
+          {t('trainer.noneSelected')}
         </div>
-        <div className="text-xs">
-          Tick at least one F2L case on the list to start the trainer
-        </div>
+        <div className="text-xs">{t('trainer.f2l.tickOne')}</div>
       </div>
     );
   }
@@ -245,28 +245,27 @@ export function F2LRandomTrainer() {
         )
       : '';
     const hint =
-      scrambleSettings.style === 'varied'
-        ? 'A short setup for this case, not the inverse of your algorithm'
-        : 'The inverse of your algorithm';
+      scrambleSettings.style === 'varied' ? t('trainer.hint.varied') : t('trainer.hint.inverse');
     return (
       <button
         type="button"
         onPointerDown={start}
         className="w-full flex-1 min-h-[200px] rounded-lg flex flex-col items-center justify-center gap-4 px-6 transition-colors select-none touch-none bg-emerald-500 hover:bg-emerald-600 text-white"
-        aria-label="Tap to start the random F2L trainer"
+        aria-label={t('trainer.tapToStartAria')}
       >
         <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
-          Apply this to your cube
+          {t('trainer.applyToCube')}
         </div>
         <div className="max-w-2xl w-full text-center font-mono text-3xl sm:text-4xl font-bold break-words leading-snug">
           {scramble || '…'}
         </div>
         <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
-          Tap or Space to start
+          {t('trainer.tapOrSpaceToStart')}
         </div>
         <div className="text-xs opacity-75">
-          {hint} — apply it to a cube with F2L solved; the last layer does not matter
-          {mounted && ` · ${selected.size}/${F2L_IDS.length} selected`}
+          {hint} — {t('trainer.hint.f2lSolvedEnough')}
+          {mounted &&
+            ` · ${t('trainer.selectedCount', { count: selected.size, total: F2L_IDS.length })}`}
         </div>
       </button>
     );
@@ -277,17 +276,18 @@ export function F2LRandomTrainer() {
       type="button"
       onPointerDown={start}
       className="w-full flex-1 min-h-[200px] rounded-lg flex flex-col items-center justify-center gap-3 transition-colors select-none touch-none bg-emerald-500 hover:bg-emerald-600 text-white"
-      aria-label="Tap to start the random F2L trainer"
+      aria-label={t('trainer.tapToStartAria')}
     >
       <div className="font-mono text-6xl sm:text-8xl font-bold tabular-nums leading-none">
         0.000
       </div>
       <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
-        Tap or Space to start
+        {t('trainer.tapOrSpaceToStart')}
       </div>
       <div className="text-xs opacity-75">
-        A random F2L case appears — number hidden until you stop
-        {mounted && ` · ${selected.size}/${F2L_IDS.length} selected`}
+        {t('trainer.f2l.hidden')}
+        {mounted &&
+            ` · ${t('trainer.selectedCount', { count: selected.size, total: F2L_IDS.length })}`}
       </div>
     </button>
   );

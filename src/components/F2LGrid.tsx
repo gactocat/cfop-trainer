@@ -2,19 +2,26 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import {
-  ALL_F2LS,
-  F2L_CATEGORY_LABELS,
-  F2L_CATEGORY_ORDER,
-} from '@/data/f2l-definitions';
+import { ALL_F2LS, F2L_CATEGORY_ORDER } from '@/data/f2l-definitions';
 import { useF2LAlgorithms } from '@/hooks/useF2LAlgorithms';
 import { useF2LAufDisplay } from '@/hooks/useF2LAufDisplay';
 import { useF2LRandomSelection } from '@/hooks/useF2LRandomSelection';
 import { useMounted } from '@/hooks/useMounted';
+import { useT } from '@/hooks/useT';
+import type { MessageKey } from '@/i18n/messages';
 import { prefixAuf } from '@/lib/f2l-auf';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import { F2L3DPlayer } from './F2L3DPlayer';
-import { F2L_IDS, type F2LId } from '@/types/f2l';
+import { F2L_IDS, type F2LCategory, type F2LId } from '@/types/f2l';
+
+const CATEGORY_KEYS: Record<F2LCategory, MessageKey> = {
+  easy: 'f2l.category.easy',
+  disconnected: 'f2l.category.disconnected',
+  connected: 'f2l.category.connected',
+  'corner-in-slot': 'f2l.category.corner-in-slot',
+  'edge-in-slot': 'f2l.category.edge-in-slot',
+  'pieces-in-slot': 'f2l.category.pieces-in-slot',
+};
 
 function timeBadgeClasses(seconds: number | null): string {
   if (seconds === null) return 'bg-zinc-200 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400';
@@ -24,10 +31,10 @@ function timeBadgeClasses(seconds: number | null): string {
   return 'bg-rose-400 text-rose-950';
 }
 
-function formatLastDate(iso: string | undefined): string {
+function formatLastDate(iso: string | undefined, intl: string): string {
   if (!iso) return '—';
   try {
-    return new Date(iso).toLocaleDateString('en-US', {
+    return new Date(iso).toLocaleDateString(intl, {
       month: 'short',
       day: 'numeric',
     });
@@ -40,6 +47,7 @@ export function F2LGrid() {
   const { ready: algReady, starredFor, all: allAlgorithms } = useF2LAlgorithms();
   const selection = useF2LRandomSelection();
   const { mode: aufMode } = useF2LAufDisplay();
+  const { t, tn, intl } = useT();
   const mounted = useMounted();
   const [selectionMode, setSelectionMode] = useState(false);
   // Checkboxes only render in selection mode (and after mount so SSR/hydration
@@ -70,12 +78,12 @@ export function F2LGrid() {
 
   const heading = (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight">All F2Ls</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{t('f2l.grid.title')}</h1>
       <p className="text-sm text-zinc-500 mt-1">
-        The 41 standard F2L cases (Front-Right slot). Pick a case to manage algorithms and times.
+        {t('f2l.grid.description')}
         {algReady && (
           <span className="ml-2 text-xs">
-            · {allAlgorithms.length} algorithm{allAlgorithms.length === 1 ? '' : 's'} saved
+            · {tn('common.algorithmsSaved', allAlgorithms.length)}
           </span>
         )}
       </p>
@@ -91,28 +99,28 @@ export function F2LGrid() {
           {selectionMode ? (
             <>
               <span className="text-zinc-500">
-                {selection.count}/{F2L_IDS.length} selected for random
+                {t('grid.selectedForRandom', { count: selection.count, total: F2L_IDS.length })}
               </span>
               <button
                 type="button"
                 onClick={selection.selectAll}
                 className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
               >
-                Select all
+                {t('common.selectAll')}
               </button>
               <button
                 type="button"
                 onClick={selection.clear}
                 className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
               >
-                Clear
+                {t('common.clear')}
               </button>
               <button
                 type="button"
                 onClick={() => setSelectionMode(false)}
                 className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 text-xs font-medium"
               >
-                Done
+                {t('common.done')}
               </button>
             </>
           ) : (
@@ -122,10 +130,10 @@ export function F2LGrid() {
                 onClick={() => setSelectionMode(true)}
                 className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
               >
-                Select cases
+                {t('common.selectCases')}
               </button>
               <span className="text-zinc-500 text-xs">
-                {selection.count}/{F2L_IDS.length} shown
+                {t('grid.shown', { count: selection.count, total: F2L_IDS.length })}
               </span>
             </>
           )}
@@ -133,9 +141,7 @@ export function F2LGrid() {
       )}
 
       {mounted && !selectionMode && totalVisible === 0 && (
-        <p className="text-sm text-zinc-500 py-6 text-center">
-          No cases selected. Tap “Select cases” to choose which F2L cases to show.
-        </p>
+        <p className="text-sm text-zinc-500 py-6 text-center">{t('f2l.grid.noneSelected')}</p>
       )}
 
       {grouped.map(({ category, items }) => {
@@ -144,7 +150,7 @@ export function F2LGrid() {
         return (
         <section key={category}>
           <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-3">
-            {F2L_CATEGORY_LABELS[category]}
+            {t(CATEGORY_KEYS[category])}
           </h2>
           <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {visible.map((f2l) => {
@@ -168,10 +174,12 @@ export function F2LGrid() {
                             onChange={() => selection.toggle(f2l.id)}
                             onClick={(e) => e.stopPropagation()}
                             className="h-4 w-4 shrink-0 accent-emerald-600 cursor-pointer"
-                            aria-label={`Include F2L ${f2l.number} in random selection`}
+                            aria-label={t('f2l.grid.includeInRandom', { number: f2l.number })}
                           />
                         )}
-                        <span className="font-medium text-sm">F2L {f2l.number}</span>
+                        <span className="font-medium text-sm">
+                          {t('common.f2lCase', { number: f2l.number })}
+                        </span>
                       </span>
                       <span
                         className={`text-xs font-mono px-1.5 py-0.5 rounded ${timeBadgeClasses(best)}`}
@@ -195,8 +203,8 @@ export function F2LGrid() {
                         <span>
                           <span
                             className="text-amber-500 mr-1"
-                            aria-label="Starred"
-                            title="Starred"
+                            aria-label={t('common.starred')}
+                            title={t('common.starred')}
                           >
                             ★
                           </span>
@@ -217,7 +225,7 @@ export function F2LGrid() {
                           </span>
                         </span>
                         <span aria-hidden>·</span>
-                        <span title="Last recorded date">{formatLastDate(last)}</span>
+                        <span title={t('common.lastRecordedDate')}>{formatLastDate(last, intl)}</span>
                       </div>
                     )}
                   </Link>

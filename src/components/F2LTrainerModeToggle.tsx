@@ -1,23 +1,30 @@
 'use client';
 
 import { useF2LTrainerMode } from '@/hooks/useF2LTrainerMode';
+import { useT } from '@/hooks/useT';
+import type { MessageKey } from '@/i18n/messages';
 import type { F2LTrainerMode } from '@/lib/f2l-trainer-mode-store';
 
-const OPTIONS: { value: F2LTrainerMode; label: string; title: string }[] = [
-  { value: 'standard', label: 'Standard', title: 'Pick a hidden case and start timing immediately' },
+const OPTIONS: { value: F2LTrainerMode; label: MessageKey; title: MessageKey }[] = [
+  {
+    value: 'standard',
+    label: 'settings.trainerMode.standard',
+    title: 'settings.trainerMode.standardTitle',
+  },
   {
     value: 'inverse',
-    label: 'Inverse setup',
-    title: 'Show a setup scramble first so you can bring your own cube into the case, then START to time',
+    label: 'settings.trainerMode.inverse',
+    title: 'settings.trainerMode.inverseTitle',
   },
 ];
 
 export function F2LTrainerModeToggle() {
   const { mode, setMode } = useF2LTrainerMode();
+  const { t } = useT();
   return (
     <div
       role="radiogroup"
-      aria-label="Random trainer mode"
+      aria-label={t('settings.trainerMode.aria')}
       className="inline-flex rounded-md bg-zinc-100 dark:bg-zinc-800 p-0.5 gap-0.5"
     >
       {OPTIONS.map((opt) => {
@@ -28,7 +35,7 @@ export function F2LTrainerModeToggle() {
             type="button"
             role="radio"
             aria-checked={active}
-            title={opt.title}
+            title={t(opt.title)}
             onClick={() => setMode(opt.value)}
             className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
               active
@@ -36,7 +43,7 @@ export function F2LTrainerModeToggle() {
                 : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
             }`}
           >
-            {opt.label}
+            {t(opt.label)}
           </button>
         );
       })}

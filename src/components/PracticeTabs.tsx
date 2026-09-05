@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useT } from '@/hooks/useT';
 
 type Practice = 'pll' | 'f2l';
 
@@ -18,10 +19,11 @@ function activeFor(pathname: string | null): Practice {
 export function PracticeTabs() {
   const pathname = usePathname();
   const active = activeFor(pathname);
+  const { t } = useT();
 
   return (
     <nav
-      aria-label="Practice"
+      aria-label={t('common.practice')}
       className="inline-flex rounded-md bg-zinc-100 dark:bg-zinc-800 p-0.5 gap-0.5"
     >
       {TABS.map((tab) => {

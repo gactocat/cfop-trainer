@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useSpacebar } from '@/hooks/useSpacebar';
+import { useT } from '@/hooks/useT';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import type { TimeRecord } from '@/types/pll';
 
@@ -11,10 +12,10 @@ interface TimeHistoryPanelProps {
   onRemove: (timeId: string) => void;
 }
 
-function formatRecordedAt(iso: string): string {
+function formatRecordedAt(iso: string, intl: string): string {
   try {
     const d = new Date(iso);
-    return d.toLocaleString('en-US', {
+    return d.toLocaleString(intl, {
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
@@ -28,6 +29,7 @@ function formatRecordedAt(iso: string): string {
 type StopwatchState = 'idle' | 'running' | 'stopped';
 
 function Stopwatch({ onRecord }: { onRecord: (seconds: number) => void }) {
+  const { t } = useT();
   const [state, setState] = useState<StopwatchState>('idle');
   const [elapsed, setElapsed] = useState(0);
   const startRef = useRef(0);
@@ -92,14 +94,14 @@ function Stopwatch({ onRecord }: { onRecord: (seconds: number) => void }) {
             onClick={record}
             className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 font-semibold"
           >
-            ✓ Record
+            ✓ {t('common.record')}
           </button>
           <button
             type="button"
             onClick={discard}
             className="rounded-md border border-zinc-300 dark:border-zinc-700 px-6 py-2.5 font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800"
           >
-            ✗ Discard
+            ✗ {t('common.discard')}
           </button>
         </div>
       </div>
@@ -111,7 +113,7 @@ function Stopwatch({ onRecord }: { onRecord: (seconds: number) => void }) {
       type="button"
       onPointerDown={state === 'idle' ? start : stop}
       className={`w-full min-h-[220px] rounded-md flex flex-col items-center justify-center gap-3 transition-colors select-none touch-none ${surfaceClasses}`}
-      aria-label={state === 'idle' ? 'Tap to start the stopwatch' : 'Tap to stop the stopwatch'}
+      aria-label={state === 'idle' ? t('stopwatch.tapToStartAria') : t('stopwatch.tapToStopAria')}
     >
       <div
         className="font-mono text-6xl sm:text-7xl font-bold tabular-nums leading-none"
@@ -120,7 +122,7 @@ function Stopwatch({ onRecord }: { onRecord: (seconds: number) => void }) {
         {elapsed.toFixed(3)}
       </div>
       <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
-        {state === 'idle' ? 'Tap to start' : 'Tap to stop'}
+        {state === 'idle' ? t('stopwatch.tapToStart') : t('stopwatch.tapToStop')}
       </div>
     </button>
   );
@@ -131,6 +133,7 @@ export function TimeHistoryPanel({
   onAdd,
   onRemove,
 }: TimeHistoryPanelProps) {
+  const { t, intl } = useT();
   const [input, setInput] = useState('');
 
   const handleAdd = (e: FormEvent) => {
@@ -147,8 +150,8 @@ export function TimeHistoryPanel({
   return (
     <div className="rounded-md bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 p-3 space-y-3">
       <div className="grid grid-cols-2 gap-2 text-center">
-        <Stat label="Best" value={formatSeconds(best)} accent="emerald" />
-        <Stat label="ao5" value={formatSeconds(ao5)} />
+        <Stat label={t('common.best')} value={formatSeconds(best)} accent="emerald" />
+        <Stat label={t('common.ao5')} value={formatSeconds(ao5)} />
       </div>
 
       <Stopwatch onRecord={onAdd} />
@@ -161,39 +164,37 @@ export function TimeHistoryPanel({
           min="0"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="or enter seconds manually (e.g. 3.421)"
+          placeholder={t('times.placeholder')}
           className="flex-1 min-w-0 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3 py-1.5 text-base sm:text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
         />
         <button
           type="submit"
           className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-3 py-1.5 font-medium"
         >
-          Record
+          {t('common.record')}
         </button>
       </form>
 
       {times.length === 0 ? (
-        <p className="text-xs text-zinc-500 text-center py-2">
-          No times recorded yet.
-        </p>
+        <p className="text-xs text-zinc-500 text-center py-2">{t('times.none')}</p>
       ) : (
         <ul className="max-h-48 overflow-auto divide-y divide-zinc-200 dark:divide-zinc-800 text-sm">
-          {times.map((t) => (
+          {times.map((rec) => (
             <li
-              key={t.id}
+              key={rec.id}
               className="flex items-center justify-between py-1.5 gap-2"
             >
               <span className="font-mono tabular-nums">
-                {t.seconds.toFixed(3)}
+                {rec.seconds.toFixed(3)}
               </span>
               <span className="text-xs text-zinc-500">
-                {formatRecordedAt(t.recordedAt)}
+                {formatRecordedAt(rec.recordedAt, intl)}
               </span>
               <button
                 type="button"
-                onClick={() => onRemove(t.id)}
+                onClick={() => onRemove(rec.id)}
                 className="text-xs text-zinc-400 hover:text-rose-500"
-                aria-label="Delete this entry"
+                aria-label={t('times.deleteEntry')}
               >
                 ×
               </button>

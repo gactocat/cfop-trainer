@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useF2LAufDisplay } from '@/hooks/useF2LAufDisplay';
+import { useT } from '@/hooks/useT';
 import { aufToMove, prefixAuf } from '@/lib/f2l-auf';
 import { F2L_STICKERING_MASK } from '@/lib/f2l-stickering-mask';
 import type { Auf } from '@/types/pll';
@@ -32,6 +33,7 @@ export function F2L3DPlayer({
   className,
   interactive = true,
 }: F2L3DPlayerProps) {
+  const { t } = useT();
   const [ready, setReady] = useState(false);
   const [inView, setInView] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -125,7 +127,7 @@ export function F2L3DPlayer({
     <div
       ref={hostRef}
       className={`${className ?? ''} ${mounted ? '' : 'rounded-md bg-zinc-100 dark:bg-zinc-900 animate-pulse'}`.trim()}
-      aria-label={mounted ? '3D F2L case' : 'Loading 3D F2L case'}
+      aria-label={mounted ? t('view.f2l3d') : t('view.f2l3dLoading')}
     />
   );
 }

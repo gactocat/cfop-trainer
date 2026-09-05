@@ -1,6 +1,7 @@
 import { PRESET_ALGORITHMS } from '@/data/preset-algorithms';
 import { AUFS, PLL_IDS, type AlgorithmRecord, type Auf, type PllId } from '@/types/pll';
 import { splitAuf } from '@/lib/auf-from-algorithm';
+import { ImportError } from '@/lib/import-error';
 
 const STORAGE_KEY = 'pll-app:algorithms:v1';
 const EXPORT_VERSION = 1;
@@ -189,17 +190,17 @@ export function importAlgorithms(json: string): { imported: number } {
   try {
     parsed = JSON.parse(json);
   } catch {
-    throw new Error('Invalid JSON file.');
+    throw new ImportError('invalid-json');
   }
   if (typeof parsed !== 'object' || parsed === null) {
-    throw new Error('Unrecognized file format.');
+    throw new ImportError('unrecognized');
   }
   const file = parsed as Partial<ExportFile>;
   if (file.type !== 'pll') {
-    throw new Error('This file is not a PLL algorithm export.');
+    throw new ImportError('wrong-kind');
   }
   if (!Array.isArray(file.algorithms)) {
-    throw new Error('Unrecognized file format.');
+    throw new ImportError('unrecognized');
   }
   const validIds = new Set<string>(PLL_IDS);
   const validAufs = new Set<string>(AUFS);

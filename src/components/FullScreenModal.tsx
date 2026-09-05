@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { useT } from '@/hooks/useT';
 
 interface FullScreenModalProps {
   open: boolean;
@@ -13,6 +14,7 @@ interface FullScreenModalProps {
 // A full-viewport modal portaled to <body> so the sticky header's
 // backdrop-blur (a containing block for fixed elements) doesn't trap it.
 export function FullScreenModal({ open, onClose, title, children }: FullScreenModalProps) {
+  const { t } = useT();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -36,7 +38,7 @@ export function FullScreenModal({ open, onClose, title, children }: FullScreenMo
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t('common.close')}
           className="inline-flex items-center justify-center h-8 w-8 rounded-md text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100"
         >
           ✕

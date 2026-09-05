@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useT } from '@/hooks/useT';
 import type { Auf } from '@/types/pll';
 
 interface Pll3DPlayerProps {
@@ -17,6 +18,7 @@ const AUF_TO_SETUP: Record<Auf, string> = {
 };
 
 export function Pll3DPlayer({ algorithm, auf = 'U0', className }: Pll3DPlayerProps) {
+  const { t } = useT();
   const [ready, setReady] = useState(false);
   const hostRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<HTMLElement | null>(null);
@@ -72,7 +74,7 @@ export function Pll3DPlayer({ algorithm, auf = 'U0', className }: Pll3DPlayerPro
     <div
       ref={hostRef}
       className={`${className ?? ''} ${ready ? '' : 'rounded-md bg-zinc-100 dark:bg-zinc-900 animate-pulse'}`.trim()}
-      aria-label={ready ? '3D cube playback' : 'Loading 3D cube'}
+      aria-label={ready ? t('view.pll3d') : t('view.pll3dLoading')}
     />
   );
 }

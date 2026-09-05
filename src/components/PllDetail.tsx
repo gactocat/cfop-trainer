@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { getPllDefinition } from '@/data/pll-definitions';
 import { useAlgorithms } from '@/hooks/useAlgorithms';
 import { useRandomSolves } from '@/hooks/useRandomSolves';
+import { useT } from '@/hooks/useT';
 import { formatSeconds } from '@/lib/stats';
 import { type PllId } from '@/types/pll';
 import { AlgorithmForm } from './AlgorithmForm';
@@ -19,6 +20,7 @@ interface PllDetailProps {
 }
 
 export function PllDetail({ pllId }: PllDetailProps) {
+  const { t, tn } = useT();
   const def = getPllDefinition(pllId);
   const [adding, setAdding] = useState(false);
   const [view, setView] = useState<CubeView>('2d');
@@ -57,13 +59,15 @@ export function PllDetail({ pllId }: PllDetailProps) {
   if (!def) {
     return (
       <div className="space-y-4">
-        <p>PLL not found: {pllId}</p>
+        <p>{t('pll.detail.notFound', { id: pllId })}</p>
         <Link href="/pll" className="text-emerald-600 hover:underline text-sm">
-          ← Back to all PLLs
+          {t('pll.detail.backToAll')}
         </Link>
       </div>
     );
   }
+
+  const randomSolves = ready ? randomSolvesFor(pllId).length : 0;
 
   return (
     <div className="space-y-6">
@@ -72,35 +76,28 @@ export function PllDetail({ pllId }: PllDetailProps) {
           href="/pll"
           className="inline-flex items-center text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
         >
-          ← All PLLs
+          {t('pll.detail.all')}
         </Link>
       </div>
 
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
         <div className="space-y-2">
           <h1 className="text-3xl font-semibold tracking-tight">{def.name}</h1>
-          <p className="text-sm text-zinc-500">
-            {records.length} algorithm{records.length === 1 ? '' : 's'} saved
-          </p>
-          {ready && randomSolvesFor(pllId).length > 0 && (
+          <p className="text-sm text-zinc-500">{tn('common.algorithmsSaved', records.length)}</p>
+          {randomSolves > 0 && (
             <p className="text-xs text-zinc-500">
-              Random: best{' '}
-              <span className="font-mono text-zinc-700 dark:text-zinc-300">
-                {formatSeconds(randomBestFor(pllId))}
-              </span>{' '}
-              · ao5{' '}
-              <span className="font-mono text-zinc-700 dark:text-zinc-300">
-                {formatSeconds(randomAo5For(pllId))}
-              </span>{' '}
-              ({randomSolvesFor(pllId).length} solve
-              {randomSolvesFor(pllId).length === 1 ? '' : 's'})
+              {t('detail.randomStats', {
+                best: formatSeconds(randomBestFor(pllId)),
+                ao5: formatSeconds(randomAo5For(pllId)),
+                solves: tn('common.solves', randomSolves),
+              })}
             </p>
           )}
         </div>
         <div className="flex flex-col items-center md:items-end gap-2">
           <div
             role="tablist"
-            aria-label="Cube preview"
+            aria-label={t('pll.detail.cubePreview')}
             className="inline-flex rounded-md border border-zinc-200 dark:border-zinc-800 text-xs overflow-hidden"
           >
             <button
@@ -127,7 +124,7 @@ export function PllDetail({ pllId }: PllDetailProps) {
                   ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
                   : 'bg-transparent text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
               } disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent`}
-              title={star ? undefined : 'Star an algorithm to preview in 3D'}
+              title={star ? undefined : t('pll.detail.starToPreview3d')}
             >
               3D
             </button>
@@ -152,14 +149,14 @@ export function PllDetail({ pllId }: PllDetailProps) {
 
       <section className="space-y-3">
         <header className="flex items-center justify-between">
-          <h2 className="text-lg font-medium">Algorithms</h2>
+          <h2 className="text-lg font-medium">{t('detail.algorithms')}</h2>
           {!adding && (
             <button
               type="button"
               onClick={() => setAdding(true)}
               className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-3 py-1.5 font-medium"
             >
-              + Add
+              {t('detail.add')}
             </button>
           )}
         </header>
@@ -178,11 +175,9 @@ export function PllDetail({ pllId }: PllDetailProps) {
         )}
 
         {!ready ? (
-          <p className="text-sm text-zinc-500">Loading…</p>
+          <p className="text-sm text-zinc-500">{t('common.loading')}</p>
         ) : records.length === 0 && !adding ? (
-          <p className="text-sm text-zinc-500 py-6 text-center">
-            No algorithms saved yet.
-          </p>
+          <p className="text-sm text-zinc-500 py-6 text-center">{t('detail.noAlgorithms')}</p>
         ) : (
           <ul className="space-y-2">
             {records.map((record) => (

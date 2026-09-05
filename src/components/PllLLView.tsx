@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { getPllPermutation } from '@/data/pll-definitions';
+import { useT } from '@/hooks/useT';
 import type { Auf, PllId } from '@/types/pll';
 
 interface PllLLViewProps {
@@ -25,6 +26,7 @@ const CORNER_SLOT = [2, 1, 0, 3];
 const EDGE_SLOT = [2, 1, 0, 3];
 
 export function PllLLView({ pllId, auf = 'U0', size = 120, className }: PllLLViewProps) {
+  const { t } = useT();
   const hostRef = useRef<HTMLDivElement | null>(null);
   const [mod, setMod] = useState<{
     TwistyPlayer: typeof import('cubing/twisty').TwistyPlayer;
@@ -103,7 +105,7 @@ export function PllLLView({ pllId, auf = 'U0', size = 120, className }: PllLLVie
       ref={hostRef}
       style={{ width: size, height: size }}
       className={`${className ?? ''} ${mod ? '' : 'rounded-md bg-zinc-100 dark:bg-zinc-900 animate-pulse'}`.trim()}
-      aria-label={`${pllId} PLL (${auf})`}
+      aria-label={t('view.pllLL', { id: pllId, auf })}
       role="img"
     />
   );

@@ -77,6 +77,12 @@ CI (`.github/workflows/ci.yml`) runs the same three steps on every PR.
   before being inverted.
 - Styling is Tailwind utility classes inline, with `dark:` variants for every
   colour. No CSS modules.
+- UI text is translated (English, Japanese). Never put user-facing strings in
+  components: add a key to `src/i18n/messages.ts` (both locales) and read it
+  with `useT()` — `t(key, params)` for plain strings, `tn(stem, count)` for
+  `_one` / `_other` pairs. Dates go through the translator's `intl` tag. The
+  server renders English; the client switches after hydration via the locale
+  store, so text must not be assumed stable across the first render.
 - 3D players (`F2L3DPlayer`, `Pll3DPlayer`) each hold a WebGL context. Mount
   them lazily / on demand in lists to avoid exhausting contexts.
 - Commits: Conventional Commits with a scope (`feat(f2l): ...`,

@@ -1,5 +1,6 @@
 import { ALL_F2LS } from '@/data/f2l-definitions';
 import { splitF2LAuf } from '@/lib/f2l-auf';
+import { ImportError } from '@/lib/import-error';
 import type { F2LAlgorithmRecord, F2LId } from '@/types/f2l';
 import type { Auf } from '@/types/pll';
 
@@ -202,17 +203,17 @@ export function importF2LAlgorithms(json: string): { imported: number } {
   try {
     parsed = JSON.parse(json);
   } catch {
-    throw new Error('Invalid JSON file.');
+    throw new ImportError('invalid-json');
   }
   if (typeof parsed !== 'object' || parsed === null) {
-    throw new Error('Unrecognized file format.');
+    throw new ImportError('unrecognized');
   }
   const file = parsed as Partial<F2LExportFile>;
   if (file.type !== 'f2l') {
-    throw new Error('This file is not an F2L algorithm export.');
+    throw new ImportError('wrong-kind');
   }
   if (!Array.isArray(file.algorithms)) {
-    throw new Error('Unrecognized file format.');
+    throw new ImportError('unrecognized');
   }
   const validIds = new Set<string>(ALL_F2LS.map((d) => d.id));
   const validAufs = new Set<string>(VALID_AUFS);

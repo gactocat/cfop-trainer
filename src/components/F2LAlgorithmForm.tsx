@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { F2L_PRESET_ALGORITHMS } from '@/data/f2l-preset-algorithms';
+import { useT } from '@/hooks/useT';
 import { splitF2LAuf } from '@/lib/f2l-auf';
 import type { F2LId } from '@/types/f2l';
 import { AUFS, type Auf } from '@/types/pll';
@@ -27,11 +28,12 @@ export function F2LAlgorithmForm({
   f2lId,
   initialValue = '',
   initialAuf = 'U0',
-  submitLabel = 'Save',
-  placeholder = "e.g. R U R' U' R U' R'",
+  submitLabel,
+  placeholder,
   onSubmit,
   onCancel,
 }: F2LAlgorithmFormProps) {
+  const { t } = useT();
   const [value, setValue] = useState(initialValue);
   const [auf, setAuf] = useState<Auf>(initialAuf);
   const presets = f2lId ? F2L_PRESET_ALGORITHMS[f2lId] : undefined;
@@ -65,7 +67,7 @@ export function F2LAlgorithmForm({
             htmlFor="f2l-preset-picker"
             className="text-xs text-zinc-500 shrink-0"
           >
-            Presets ({presets.length}):
+            {t('algForm.presets', { count: presets.length })}
           </label>
           <select
             id="f2l-preset-picker"
@@ -85,10 +87,10 @@ export function F2LAlgorithmForm({
 
       <div className="flex flex-col sm:flex-row gap-2 items-stretch">
         <fieldset className="shrink-0">
-          <legend className="sr-only">Starting orientation</legend>
+          <legend className="sr-only">{t('algForm.startingOrientation')}</legend>
           <div
             role="radiogroup"
-            aria-label="Starting orientation (AUF)"
+            aria-label={t('algForm.startingOrientationAuf')}
             className="inline-flex rounded-md bg-zinc-100 dark:bg-zinc-800 p-0.5 gap-0.5 h-full"
           >
             {AUFS.map((a) => {
@@ -117,7 +119,7 @@ export function F2LAlgorithmForm({
           type="text"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder={placeholder}
+          placeholder={placeholder ?? t('algForm.placeholderF2l')}
           className="flex-1 min-w-0 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-base sm:text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
           autoFocus
         />
@@ -126,7 +128,7 @@ export function F2LAlgorithmForm({
             type="submit"
             className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-4 py-2 font-medium"
           >
-            {submitLabel}
+            {submitLabel ?? t('common.save')}
           </button>
           {onCancel && (
             <button
@@ -134,7 +136,7 @@ export function F2LAlgorithmForm({
               onClick={onCancel}
               className="rounded-md border border-zinc-300 dark:border-zinc-700 text-sm px-4 py-2 font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
           )}
         </div>

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { F2LAlgorithmForm } from './F2LAlgorithmForm';
 import { TimeHistoryPanel } from './TimeHistoryPanel';
 import { useF2LAufDisplay } from '@/hooks/useF2LAufDisplay';
+import { useT } from '@/hooks/useT';
 import { prefixAuf } from '@/lib/f2l-auf';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import type { F2LAlgorithmRecord } from '@/types/f2l';
@@ -26,6 +27,7 @@ export function F2LAlgorithmRow({
   onAddTime,
   onRemoveTime,
 }: F2LAlgorithmRowProps) {
+  const { t, tn } = useT();
   const [editing, setEditing] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const { mode: aufMode } = useF2LAufDisplay();
@@ -54,8 +56,8 @@ export function F2LAlgorithmRow({
                 ? 'text-amber-500 cursor-default'
                 : 'text-zinc-300 hover:text-amber-400 dark:text-zinc-700'
             }`}
-            aria-label={record.isStarred ? 'Starred (only one per F2L case)' : 'Set as starred'}
-            title={record.isStarred ? 'Starred — shown on the F2L grid' : 'Set as starred'}
+            aria-label={record.isStarred ? t('algRow.starredOnlyOneF2l') : t('algRow.setAsStarred')}
+            title={record.isStarred ? t('algRow.starredShownOnF2lGrid') : t('algRow.setAsStarred')}
           >
             ★
           </button>
@@ -66,7 +68,7 @@ export function F2LAlgorithmRow({
                 f2lId={record.f2lId}
                 initialValue={record.algorithm}
                 initialAuf={record.auf}
-                submitLabel="Update"
+                submitLabel={t('common.update')}
                 onSubmit={(algorithm, auf) => {
                   onUpdate(record.id, { algorithm, auf });
                   setEditing(false);
@@ -90,20 +92,18 @@ export function F2LAlgorithmRow({
 
             <div className="mt-2 flex items-center gap-4 text-xs">
               <span>
-                Best:{' '}
+                {t('common.best')}:{' '}
                 <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
                   {formatSeconds(best)}
                 </span>
               </span>
               <span>
-                ao5:{' '}
+                {t('common.ao5')}:{' '}
                 <span className="font-mono font-semibold">
                   {formatSeconds(ao5)}
                 </span>
               </span>
-              <span className="text-zinc-500">
-                {record.times.length} solve{record.times.length === 1 ? '' : 's'}
-              </span>
+              <span className="text-zinc-500">{tn('common.solves', record.times.length)}</span>
             </div>
           </div>
         </div>
@@ -116,23 +116,23 @@ export function F2LAlgorithmRow({
               className="text-xs px-2 py-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800"
               aria-expanded={expanded}
             >
-              {expanded ? 'Close' : 'Times'}
+              {expanded ? t('common.close') : t('algRow.times')}
             </button>
             <button
               type="button"
               onClick={() => setEditing(true)}
               className="text-xs px-2 py-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800"
             >
-              Edit
+              {t('common.edit')}
             </button>
             <button
               type="button"
               onClick={() => {
-                if (confirm('Delete this algorithm?')) onRemove(record.id);
+                if (confirm(t('algRow.confirmDelete'))) onRemove(record.id);
               }}
               className="text-xs px-2 py-1 rounded-md text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50"
             >
-              Delete
+              {t('common.delete')}
             </button>
           </div>
         )}

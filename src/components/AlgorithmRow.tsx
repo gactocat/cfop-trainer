@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { AlgorithmForm } from './AlgorithmForm';
 import { TimeHistoryPanel } from './TimeHistoryPanel';
+import { useT } from '@/hooks/useT';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import type { AlgorithmRecord, Auf } from '@/types/pll';
 
@@ -23,6 +24,7 @@ export function AlgorithmRow({
   onAddTime,
   onRemoveTime,
 }: AlgorithmRowProps) {
+  const { t, tn } = useT();
   const [editing, setEditing] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
@@ -52,8 +54,8 @@ export function AlgorithmRow({
                 ? 'text-amber-500 cursor-default'
                 : 'text-zinc-300 hover:text-amber-400 dark:text-zinc-700'
             }`}
-            aria-label={record.isStarred ? 'Starred (only one per PLL)' : 'Set as starred'}
-            title={record.isStarred ? 'Starred — shown on the PLL grid' : 'Set as starred'}
+            aria-label={record.isStarred ? t('algRow.starredOnlyOnePll') : t('algRow.setAsStarred')}
+            title={record.isStarred ? t('algRow.starredShownOnPllGrid') : t('algRow.setAsStarred')}
           >
             ★
           </button>
@@ -64,7 +66,7 @@ export function AlgorithmRow({
                 pllId={record.pllId}
                 initialValue={record.algorithm}
                 initialAuf={record.auf}
-                submitLabel="Update"
+                submitLabel={t('common.update')}
                 onSubmit={(algorithm, auf) => {
                   onUpdate(record.id, { algorithm, auf });
                   setEditing(false);
@@ -82,20 +84,18 @@ export function AlgorithmRow({
 
             <div className="mt-2 flex items-center gap-4 text-xs">
               <span>
-                Best:{' '}
+                {t('common.best')}:{' '}
                 <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
                   {formatSeconds(best)}
                 </span>
               </span>
               <span>
-                ao5:{' '}
+                {t('common.ao5')}:{' '}
                 <span className="font-mono font-semibold">
                   {formatSeconds(ao5)}
                 </span>
               </span>
-              <span className="text-zinc-500">
-                {record.times.length} solve{record.times.length === 1 ? '' : 's'}
-              </span>
+              <span className="text-zinc-500">{tn('common.solves', record.times.length)}</span>
             </div>
           </div>
         </div>
@@ -111,23 +111,23 @@ export function AlgorithmRow({
               className="text-xs px-2 py-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800"
               aria-expanded={expanded}
             >
-              {expanded ? 'Close' : 'Times'}
+              {expanded ? t('common.close') : t('algRow.times')}
             </button>
             <button
               type="button"
               onClick={() => setEditing(true)}
               className="text-xs px-2 py-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800"
             >
-              Edit
+              {t('common.edit')}
             </button>
             <button
               type="button"
               onClick={() => {
-                if (confirm('Delete this algorithm?')) onRemove(record.id);
+                if (confirm(t('algRow.confirmDelete'))) onRemove(record.id);
               }}
               className="text-xs px-2 py-1 rounded-md text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50"
             >
-              Delete
+              {t('common.delete')}
             </button>
           </div>
         )}

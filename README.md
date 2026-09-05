@@ -6,6 +6,7 @@ trainer that surfaces the cases you have practised least recently.
 
 Live: https://pll-manager.vercel.app
 
+The interface is available in English and Japanese (switch it in Settings).
 Everything is stored in your browser's `localStorage`; there is no account and
 no server. Algorithms can be exported and imported as JSON from the settings
 dialog. The app is installable as a PWA and works offline.

@@ -6,14 +6,16 @@ import { ALL_PLLS } from '@/data/pll-definitions';
 import { useAlgorithms } from '@/hooks/useAlgorithms';
 import { usePllRandomSelection } from '@/hooks/usePllRandomSelection';
 import { useMounted } from '@/hooks/useMounted';
+import { useT } from '@/hooks/useT';
+import type { MessageKey } from '@/i18n/messages';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import { PllLLView } from './PllLLView';
 import { PLL_IDS, type PllCategory, type PllId } from '@/types/pll';
 
-const CATEGORY_LABELS: Record<PllCategory, string> = {
-  epll: 'Permutations of Edges Only',
-  cpll: 'Permutations of Corners Only',
-  'ec-pll': 'Permutations of Edges and Corners',
+const CATEGORY_KEYS: Record<PllCategory, MessageKey> = {
+  epll: 'pll.category.epll',
+  cpll: 'pll.category.cpll',
+  'ec-pll': 'pll.category.ec-pll',
 };
 
 const CATEGORY_ORDER: PllCategory[] = ['epll', 'cpll', 'ec-pll'];
@@ -26,10 +28,10 @@ function timeBadgeClasses(seconds: number | null): string {
   return 'bg-rose-400 text-rose-950';
 }
 
-function formatLastDate(iso: string | undefined): string {
+function formatLastDate(iso: string | undefined, intl: string): string {
   if (!iso) return '—';
   try {
-    return new Date(iso).toLocaleDateString('en-US', {
+    return new Date(iso).toLocaleDateString(intl, {
       month: 'short',
       day: 'numeric',
     });
@@ -41,6 +43,7 @@ function formatLastDate(iso: string | undefined): string {
 export function PllGrid() {
   const { ready: algReady, starredFor, all: allAlgorithms } = useAlgorithms();
   const selection = usePllRandomSelection();
+  const { t, tn, intl } = useT();
   const mounted = useMounted();
   const [selectionMode, setSelectionMode] = useState(false);
   // Checkboxes only render in selection mode (and after mount so SSR/hydration
@@ -72,12 +75,12 @@ export function PllGrid() {
 
   const heading = (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight">All PLLs</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{t('pll.grid.title')}</h1>
       <p className="text-sm text-zinc-500 mt-1">
-        Pick a PLL to manage algorithms and times for each orientation (U0 / U / U2 / U&apos;).
+        {t('pll.grid.description')}
         {algReady && (
           <span className="ml-2 text-xs">
-            · {allAlgorithms.length} algorithm{allAlgorithms.length === 1 ? '' : 's'} saved
+            · {tn('common.algorithmsSaved', allAlgorithms.length)}
           </span>
         )}
       </p>
@@ -93,28 +96,28 @@ export function PllGrid() {
           {selectionMode ? (
             <>
               <span className="text-zinc-500">
-                {selection.count}/{PLL_IDS.length} selected for random
+                {t('grid.selectedForRandom', { count: selection.count, total: PLL_IDS.length })}
               </span>
               <button
                 type="button"
                 onClick={selection.selectAll}
                 className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
               >
-                Select all
+                {t('common.selectAll')}
               </button>
               <button
                 type="button"
                 onClick={selection.clear}
                 className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
               >
-                Clear
+                {t('common.clear')}
               </button>
               <button
                 type="button"
                 onClick={() => setSelectionMode(false)}
                 className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 text-xs font-medium"
               >
-                Done
+                {t('common.done')}
               </button>
             </>
           ) : (
@@ -124,10 +127,10 @@ export function PllGrid() {
                 onClick={() => setSelectionMode(true)}
                 className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
               >
-                Select cases
+                {t('common.selectCases')}
               </button>
               <span className="text-zinc-500 text-xs">
-                {selection.count}/{PLL_IDS.length} shown
+                {t('grid.shown', { count: selection.count, total: PLL_IDS.length })}
               </span>
             </>
           )}
@@ -135,9 +138,7 @@ export function PllGrid() {
       )}
 
       {mounted && !selectionMode && totalVisible === 0 && (
-        <p className="text-sm text-zinc-500 py-6 text-center">
-          No cases selected. Tap “Select cases” to choose which PLLs to show.
-        </p>
+        <p className="text-sm text-zinc-500 py-6 text-center">{t('pll.grid.noneSelected')}</p>
       )}
 
       {grouped.map(({ category, items }) => {
@@ -146,7 +147,7 @@ export function PllGrid() {
         return (
         <section key={category}>
           <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-3">
-            {CATEGORY_LABELS[category]}
+            {t(CATEGORY_KEYS[category])}
           </h2>
           <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {visible.map((pll) => {
@@ -170,7 +171,7 @@ export function PllGrid() {
                             onChange={() => selection.toggle(pll.id)}
                             onClick={(e) => e.stopPropagation()}
                             className="h-4 w-4 shrink-0 accent-emerald-600 cursor-pointer"
-                            aria-label={`Include ${pll.name} in random selection`}
+                            aria-label={t('pll.grid.includeInRandom', { name: pll.name })}
                           />
                         )}
                         <span className="font-medium text-sm">{pll.name}</span>
@@ -189,17 +190,15 @@ export function PllGrid() {
                         <span>
                           <span
                             className="text-amber-500 mr-1"
-                            aria-label="Starred"
-                            title="Starred"
+                            aria-label={t('common.starred')}
+                            title={t('common.starred')}
                           >
                             ★
                           </span>
                           {star.algorithm}
                         </span>
                       ) : (
-                        <span className="text-zinc-400 italic">
-                          No algorithm saved
-                        </span>
+                        <span className="text-zinc-400 italic">{t('pll.grid.noAlgorithm')}</span>
                       )}
                     </div>
                     {count > 0 && (
@@ -211,7 +210,7 @@ export function PllGrid() {
                           </span>
                         </span>
                         <span aria-hidden>·</span>
-                        <span title="Last recorded date">{formatLastDate(last)}</span>
+                        <span title={t('common.lastRecordedDate')}>{formatLastDate(last, intl)}</span>
                       </div>
                     )}
                   </Link>
