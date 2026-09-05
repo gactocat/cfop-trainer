@@ -3,7 +3,7 @@
 import { useF2LScrambleSettings } from '@/hooks/useF2LScrambleSettings';
 import { useT } from '@/hooks/useT';
 
-export function F2LScrambleSettings() {
+export function F2LRandomAufToggle() {
   const { settings, update } = useF2LScrambleSettings();
   const { t } = useT();
   return (
@@ -14,7 +14,7 @@ export function F2LScrambleSettings() {
         onChange={(e) => update({ randomAuf: e.target.checked })}
         className="h-3.5 w-3.5 accent-emerald-600"
       />
-      {t('settings.scramble.randomAuf')}
+      {t('settings.trainerMode.randomAuf')}
     </label>
   );
 }

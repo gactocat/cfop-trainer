@@ -148,11 +148,9 @@ const en = {
   'settings.trainerMode.inverseTitle':
     'Show a setup scramble first so you can bring your own cube into the case, then START to time',
   'settings.trainerMode.inverseHelp':
-    'a setup scramble is shown first so you can bring your own cube into the case, then START to time.',
-  'settings.scramble.title': 'Setup scramble (F2L)',
-  'settings.scramble.description':
-    'The inverse-setup trainer picks a short setup from several routes to each case, so the scramble does not spell out your algorithm. Start from a cube with F2L solved; the last layer does not matter.',
-  'settings.scramble.randomAuf': 'Add a random U turn so the case shows up in a random orientation',
+    'a short setup scramble is shown first so you can bring your own cube into the case, then START to time. The setup is drawn from several routes to the case, so it does not spell out your algorithm; start from a cube with F2L solved (the last layer does not matter).',
+  'settings.trainerMode.randomAuf':
+    'Show each case in a random U-layer orientation, so the AUF has to be recognised too (both modes)',
 
   // Export / import
   'transfer.title': 'Algorithms',
@@ -307,11 +305,9 @@ const ja: Messages = {
   'settings.trainerMode.inverseTitle':
     '先にセットアップ手順を表示し、自分のキューブをケースの状態にしてから START で計測する',
   'settings.trainerMode.inverseHelp':
-    '先にセットアップ手順を表示し、自分のキューブをケースの状態にしてから START で計測します。',
-  'settings.scramble.title': 'セットアップ手順 (F2L)',
-  'settings.scramble.description':
-    '逆手順セットアップでは、ケースに至る複数の経路からランダムに選んだ短い手順を表示します (登録手順の逆手順ではないので、回している間に解法が分かりません)。F2L が揃ったキューブから始めてください。LL の状態は問いません。',
-  'settings.scramble.randomAuf': 'ランダムな U 回転を加えて、ケースの向きも毎回変える',
+    '先に短いセットアップ手順を表示し、自分のキューブをケースの状態にしてから START で計測します。手順はケースに至る複数の経路から選ぶので、登録手順の逆手順にはなりません。F2L が揃ったキューブから始めてください (LL の状態は問いません)。',
+  'settings.trainerMode.randomAuf':
+    'ケースの U 面の向きを毎回ランダムにして、AUF の判断も練習する (両モード共通)',
 
   'transfer.title': '手順データ',
   'transfer.description':

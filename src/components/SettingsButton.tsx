@@ -6,7 +6,7 @@ import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
 import { AlgorithmTransfer } from './AlgorithmTransfer';
 import { F2LAufModeToggle } from './F2LAufModeToggle';
-import { F2LScrambleSettings } from './F2LScrambleSettings';
+import { F2LRandomAufToggle } from './F2LRandomAufToggle';
 import { F2LTrainerModeToggle } from './F2LTrainerModeToggle';
 import { LocaleToggle } from './LocaleToggle';
 
@@ -156,12 +156,7 @@ export function SettingsButton() {
                     text="settings.trainerMode.inverseHelp"
                   />
                 </ul>
-              </Section>
-
-              <Divider />
-
-              <Section title="settings.scramble.title" description="settings.scramble.description">
-                <F2LScrambleSettings />
+                <F2LRandomAufToggle />
               </Section>
 
               <Divider />

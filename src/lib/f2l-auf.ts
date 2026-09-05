@@ -26,3 +26,22 @@ export function prefixAuf(auf: Auf, body: string): string {
   const move = aufToMove(auf);
   return move ? `${move} ${body}` : body;
 }
+
+const AUF_QUARTER_TURNS: Record<Auf, number> = { U0: 0, U: 1, U2: 2, "U'": 3 };
+const AUF_FROM_QUARTER_TURNS: Auf[] = ['U0', 'U', 'U2', "U'"];
+
+// `first` then `second`, as a single U turn: ('U', "U'") -> 'U0'.
+export function combineAuf(first: Auf, second: Auf): Auf {
+  return AUF_FROM_QUARTER_TURNS[(AUF_QUARTER_TURNS[first] + AUF_QUARTER_TURNS[second]) % 4];
+}
+
+export function invertAuf(auf: Auf): Auf {
+  return AUF_FROM_QUARTER_TURNS[(4 - AUF_QUARTER_TURNS[auf]) % 4];
+}
+
+// Parse a bare U-turn token; undefined for anything else.
+export function aufFromMove(move: string): Auf | undefined {
+  return (AUF_FROM_QUARTER_TURNS as string[]).includes(move) && move !== 'U0'
+    ? (move as Auf)
+    : undefined;
+}

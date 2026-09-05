@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useF2LAufDisplay } from '@/hooks/useF2LAufDisplay';
 import { useT } from '@/hooks/useT';
-import { aufToMove, prefixAuf } from '@/lib/f2l-auf';
+import { aufToMove, combineAuf, invertAuf, prefixAuf } from '@/lib/f2l-auf';
 import { F2L_STICKERING_MASK } from '@/lib/f2l-stickering-mask';
 import type { Auf } from '@/types/pll';
 
@@ -13,6 +13,11 @@ interface F2L3DPlayerProps {
   // U-face adjustment applied to the displayed case so the (AUF-stripped)
   // algorithm body solves it directly. Defaults to no adjustment.
   auf?: Auf;
+  // Extra U turn applied to the raw case (random-orientation training). When
+  // set, the case is shown turned by this amount whatever the AUF display
+  // mode, and the played algorithm starts with the combined U turn that
+  // brings it back. Defaults to none.
+  uOffset?: Auf;
   className?: string;
   // When false, hides playback controls — used by the grid cards so the
   // case reads as a static image. Detail pages pass true.
@@ -30,6 +35,7 @@ export function F2L3DPlayer({
   algorithm,
   setupAlg,
   auf = 'U0',
+  uOffset = 'U0',
   className,
   interactive = true,
 }: F2L3DPlayerProps) {
@@ -84,10 +90,22 @@ export function F2L3DPlayer({
     //              the setup) and play just the algorithm body.
     //   'prefix' — leave the case raw and play `AUF + body`, so the AUF reads
     //              as the leading turn of the algorithm instead.
+    // With a random orientation offset the raw case is shown turned by the
+    // offset regardless of the display mode (baking the AUF in would undo the
+    // point of the exercise), and the algorithm plays with the combined U turn
+    // that gets from the shown orientation back to the algorithm's AUF.
     const aufMove = aufToMove(auf);
-    const setupWithAuf =
-      aufMode === 'cube' && aufMove ? `x2 ${setupAlg} ${aufMove}` : `x2 ${setupAlg}`;
-    const playAlg = aufMode === 'prefix' ? prefixAuf(auf, algorithm) : algorithm;
+    const offsetMove = aufToMove(uOffset);
+    let setupWithAuf: string;
+    let playAlg: string;
+    if (offsetMove) {
+      setupWithAuf = `x2 ${setupAlg} ${offsetMove}`;
+      playAlg = prefixAuf(combineAuf(invertAuf(uOffset), auf), algorithm);
+    } else {
+      setupWithAuf =
+        aufMode === 'cube' && aufMove ? `x2 ${setupAlg} ${aufMove}` : `x2 ${setupAlg}`;
+      playAlg = aufMode === 'prefix' ? prefixAuf(auf, algorithm) : algorithm;
+    }
     player.setAttribute('experimental-setup-alg', setupWithAuf);
     // `'start'` anchors the setup-alg to the START of the timeline, so the
     // resting (initial) position is the case (adjusted by the AUF in 'cube'
@@ -121,7 +139,7 @@ export function F2L3DPlayer({
       player.remove();
       setMounted(false);
     };
-  }, [ready, inView, algorithm, setupAlg, auf, aufMode, interactive]);
+  }, [ready, inView, algorithm, setupAlg, auf, uOffset, aufMode, interactive]);
 
   return (
     <div

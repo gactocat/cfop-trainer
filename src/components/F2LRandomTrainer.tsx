@@ -9,15 +9,16 @@ import { useF2LRandomSolves } from '@/hooks/useF2LRandomSolves';
 import { useF2LScrambleSettings } from '@/hooks/useF2LScrambleSettings';
 import { useF2LTrainerMode } from '@/hooks/useF2LTrainerMode';
 import { useMounted } from '@/hooks/useMounted';
-import { useT } from '@/hooks/useT';
-import { prefixAuf } from '@/lib/f2l-auf';
-import { buildF2LScramble, seededRandom } from '@/lib/f2l-scramble';
-import { pickStaleWeighted } from '@/lib/stale-weighted-pick';
 import { useSpacebar } from '@/hooks/useSpacebar';
+import { useT } from '@/hooks/useT';
+import { combineAuf, invertAuf, prefixAuf } from '@/lib/f2l-auf';
+import { buildF2LSetup, seededRandom } from '@/lib/f2l-scramble';
+import { pickStaleWeighted } from '@/lib/stale-weighted-pick';
 import { F2L_IDS, type F2LId } from '@/types/f2l';
+import type { Auf } from '@/types/pll';
 import { F2L3DPlayer } from './F2L3DPlayer';
 
-type TrainerState = 'idle' | 'setup' | 'running' | 'stopped';
+type TrainerState = 'idle' | 'running' | 'stopped';
 
 export function F2LRandomTrainer() {
   const { t } = useT();
@@ -29,10 +30,11 @@ export function F2LRandomTrainer() {
   const { settings: scrambleSettings } = useF2LScrambleSettings();
   const [state, setState] = useState<TrainerState>('idle');
   const [current, setCurrent] = useState<F2LId | null>(null);
-  // Seed for the current case's setup scramble; drawn with the case so the
-  // scramble is stable across re-renders but different on every draw.
-  const [scrambleSeed, setScrambleSeed] = useState(0);
   const [elapsed, setElapsed] = useState(0);
+  // Seed for the current case's setup (scramble and orientation offset);
+  // drawn with the case so the setup is stable across re-renders but
+  // different on every draw.
+  const [setupSeed, setSetupSeed] = useState(0);
   const mounted = useMounted();
   const startRef = useRef(0);
   const rafRef = useRef<number | null>(null);
@@ -42,17 +44,17 @@ export function F2LRandomTrainer() {
   const lastRecorded = useMemo(() => {
     const map = new Map<F2LId, number>();
     for (const s of all) {
-      const t = Date.parse(s.recordedAt);
-      if (Number.isNaN(t)) continue;
+      const ts = Date.parse(s.recordedAt);
+      if (Number.isNaN(ts)) continue;
       const prev = map.get(s.f2lId);
-      if (prev === undefined || t > prev) map.set(s.f2lId, t);
+      if (prev === undefined || ts > prev) map.set(s.f2lId, ts);
     }
     return map;
   }, [all]);
 
   // Draw only from the cases the user ticked in the grid below. Falls back to
   // the full set if nothing is selected (shouldn't happen — start is disabled).
-  // Also returns a fresh seed for the case's setup scramble.
+  // Also returns a fresh seed for the case's setup.
   const pickRandom = useCallback((): { id: F2LId; seed: number } => {
     const pool = F2L_IDS.filter((id) => selected.has(id));
     const list = pool.length > 0 ? pool : F2L_IDS;
@@ -84,14 +86,19 @@ export function F2LRandomTrainer() {
   if (mounted && state === 'idle' && trainerMode === 'inverse' && current === null && !noneSelected) {
     const next = pickRandom();
     setCurrent(next.id);
-    setScrambleSeed(next.seed);
+    setSetupSeed(next.seed);
   }
 
   const start = useCallback(() => {
     // Inverse mode times the case already shown on the start screen; standard
     // mode draws one now.
-    const id = trainerMode === 'inverse' && current ? current : pickRandom().id;
-    setCurrent(id);
+    if (trainerMode === 'inverse' && current) {
+      setCurrent(current);
+    } else {
+      const next = pickRandom();
+      setCurrent(next.id);
+      setSetupSeed(next.seed);
+    }
     startRef.current = Date.now();
     setElapsed(0);
     setState('running');
@@ -122,26 +129,43 @@ export function F2LRandomTrainer() {
   }, [state, start, stop, noneSelected]);
   useSpacebar(onSpace);
 
-  if (state === 'stopped' && current) {
+  // Everything the three case screens need, derived once from the drawn case
+  // and its seed. The starred algorithm wins; the speedcubedb primary (which
+  // carries its own AUF as a leading turn) is the fallback.
+  const shown = useMemo(() => {
+    if (!current) return null;
     const def = getF2LDefinition(current);
     const star = starredFor(current);
-    const alg = star?.algorithm ?? def?.primaryAlg ?? '';
-    const setupAlg = def?.setupAlg ?? '';
+    const auf: Auf = star?.auf ?? 'U0';
+    const body = star?.algorithm ?? def?.primaryAlg ?? '';
+    const setup = buildF2LSetup(current, { auf, body }, scrambleSettings, seededRandom(setupSeed));
+    // The U turn needed from the shown orientation before the body.
+    const effectiveAuf = combineAuf(invertAuf(setup.uOffset), auf);
+    return { def, star, auf, body, setup, effectiveAuf };
+  }, [current, starredFor, scrambleSettings, setupSeed]);
+
+  const player = (className: string) =>
+    shown && (
+      <F2L3DPlayer
+        algorithm={shown.body}
+        setupAlg={shown.def?.setupAlg ?? ''}
+        auf={shown.auf}
+        uOffset={shown.setup.uOffset}
+        interactive={false}
+        className={className}
+      />
+    );
+
+  if (state === 'stopped' && shown) {
     return (
       <div className="w-full flex-1 rounded-lg border border-amber-400 dark:border-amber-500 bg-amber-50 dark:bg-amber-950/30 p-6 flex flex-col items-center justify-center gap-6 select-none">
         <div className="flex flex-col sm:flex-row items-center gap-6">
           <div className="rounded-md p-2 bg-zinc-100 dark:bg-zinc-900 w-[200px] h-[200px] sm:w-[260px] sm:h-[260px]">
-            <F2L3DPlayer
-              algorithm={alg}
-              setupAlg={setupAlg}
-              auf={star?.auf ?? 'U0'}
-              interactive={false}
-              className="w-full h-full"
-            />
+            {player('w-full h-full')}
           </div>
           <div className="text-center sm:text-left">
             <div className="text-sm uppercase tracking-wider text-amber-700 dark:text-amber-300">
-              {def ? t('common.f2lCase', { number: def.number }) : current}
+              {shown.def ? t('common.f2lCase', { number: shown.def.number }) : current}
             </div>
             <div className="font-mono text-6xl sm:text-7xl font-bold tabular-nums text-amber-700 dark:text-amber-300">
               {elapsed.toFixed(3)}
@@ -149,19 +173,21 @@ export function F2LRandomTrainer() {
           </div>
         </div>
         <div className="max-w-2xl w-full text-center font-mono text-sm break-words text-zinc-700 dark:text-zinc-300">
-          {star ? (
+          {shown.star ? (
             aufMode === 'cube' ? (
               <p>
                 <span className="inline-block min-w-[2.5em] mr-2 px-1.5 py-0.5 text-[10px] rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 align-middle">
-                  {star.auf}
+                  {shown.effectiveAuf}
                 </span>
-                {star.algorithm}
+                {shown.star.algorithm}
               </p>
             ) : (
-              <p>{prefixAuf(star.auf, star.algorithm)}</p>
+              <p>{prefixAuf(shown.effectiveAuf, shown.star.algorithm)}</p>
             )
-          ) : def ? (
-            <p className="text-zinc-500">{def.primaryAlg}</p>
+          ) : shown.def ? (
+            <p className="text-zinc-500">
+              {prefixAuf(invertAuf(shown.setup.uOffset), shown.def.primaryAlg)}
+            </p>
           ) : (
             <p className="italic text-zinc-500">{t('trainer.f2l.noAlgorithm')}</p>
           )}
@@ -186,11 +212,7 @@ export function F2LRandomTrainer() {
     );
   }
 
-  if (state === 'running' && current) {
-    const def = getF2LDefinition(current);
-    const star = starredFor(current);
-    const alg = star?.algorithm ?? def?.primaryAlg ?? '';
-    const setupAlg = def?.setupAlg ?? '';
+  if (state === 'running' && shown) {
     return (
       <button
         type="button"
@@ -199,13 +221,7 @@ export function F2LRandomTrainer() {
         aria-label={t('trainer.tapToStopAria')}
       >
         <div className="rounded-md p-2 bg-white/15 w-[180px] h-[180px] sm:w-[260px] sm:h-[260px]">
-          <F2L3DPlayer
-            algorithm={alg}
-            setupAlg={setupAlg}
-            auf={star?.auf ?? 'U0'}
-            interactive={false}
-            className="w-full h-full"
-          />
+          {player('w-full h-full')}
         </div>
         <div
           className="font-mono text-6xl sm:text-8xl font-bold tabular-nums leading-none"
@@ -231,20 +247,13 @@ export function F2LRandomTrainer() {
     );
   }
 
+  const selectedNote = mounted
+    ? ` · ${t('trainer.selectedCount', { count: selected.size, total: F2L_IDS.length })}`
+    : '';
+
   // Inverse mode shows the setup scramble right on the start button, so the
   // user can bring their cube into the case before timing.
   if (trainerMode === 'inverse') {
-    const def = current ? getF2LDefinition(current) : null;
-    const star = current ? starredFor(current) : null;
-    const scramble = current
-      ? buildF2LScramble(
-          current,
-          { auf: star?.auf ?? 'U0', body: star?.algorithm ?? def?.primaryAlg ?? '' },
-          scrambleSettings,
-          seededRandom(scrambleSeed),
-        )
-      : '';
-    const hint = t('trainer.hint.varied');
     return (
       <button
         type="button"
@@ -256,15 +265,14 @@ export function F2LRandomTrainer() {
           {t('trainer.applyToCube')}
         </div>
         <div className="max-w-2xl w-full text-center font-mono text-3xl sm:text-4xl font-bold break-words leading-snug">
-          {scramble || '…'}
+          {shown?.setup.scramble || '…'}
         </div>
         <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
           {t('trainer.tapOrSpaceToStart')}
         </div>
         <div className="text-xs opacity-75">
-          {hint} — {t('trainer.hint.f2lSolvedEnough')}
-          {mounted &&
-            ` · ${t('trainer.selectedCount', { count: selected.size, total: F2L_IDS.length })}`}
+          {t('trainer.hint.varied')} — {t('trainer.hint.f2lSolvedEnough')}
+          {selectedNote}
         </div>
       </button>
     );
@@ -285,8 +293,7 @@ export function F2LRandomTrainer() {
       </div>
       <div className="text-xs opacity-75">
         {t('trainer.f2l.hidden')}
-        {mounted &&
-            ` · ${t('trainer.selectedCount', { count: selected.size, total: F2L_IDS.length })}`}
+        {selectedNote}
       </div>
     </button>
   );
