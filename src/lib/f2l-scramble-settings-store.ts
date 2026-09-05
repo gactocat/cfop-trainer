@@ -1,18 +1,12 @@
-import {
-  DEFAULT_F2L_SCRAMBLE_SETTINGS,
-  type F2LScrambleSettings,
-  type F2LScrambleStyle,
-} from '@/lib/f2l-scramble';
+import { DEFAULT_F2L_SCRAMBLE_SETTINGS, type F2LScrambleSettings } from '@/lib/f2l-scramble';
 
 // Persisted settings for the inverse-setup scramble (see lib/f2l-scramble.ts).
+// The stored JSON may carry fields from older versions (e.g. `style`); they
+// are ignored.
 const STORAGE_KEY = 'pll-app:f2l-scramble-settings:v1';
 
 let cached: F2LScrambleSettings | null = null;
 const listeners = new Set<() => void>();
-
-function isStyle(value: unknown): value is F2LScrambleStyle {
-  return value === 'inverse' || value === 'varied';
-}
 
 function readFromStorage(): F2LScrambleSettings {
   if (typeof window === 'undefined') return DEFAULT_F2L_SCRAMBLE_SETTINGS;
@@ -21,7 +15,6 @@ function readFromStorage(): F2LScrambleSettings {
     if (raw === null) return DEFAULT_F2L_SCRAMBLE_SETTINGS;
     const parsed = JSON.parse(raw) as Partial<F2LScrambleSettings>;
     return {
-      style: isStyle(parsed.style) ? parsed.style : DEFAULT_F2L_SCRAMBLE_SETTINGS.style,
       randomAuf:
         typeof parsed.randomAuf === 'boolean'
           ? parsed.randomAuf
@@ -57,7 +50,7 @@ export function subscribe(listener: () => void): () => void {
 export function update(patch: Partial<F2LScrambleSettings>): void {
   const prev = getSnapshot();
   const next = { ...prev, ...patch };
-  if (next.style === prev.style && next.randomAuf === prev.randomAuf) return;
+  if (next.randomAuf === prev.randomAuf) return;
   cached = next;
   writeToStorage(next);
   listeners.forEach((l) => l());

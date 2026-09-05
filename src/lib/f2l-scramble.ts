@@ -6,23 +6,18 @@ import { normalizeAlg } from '@/lib/normalize-alg';
 import type { F2LId } from '@/types/f2l';
 import type { Auf } from '@/types/pll';
 
-// How the inverse-setup trainer builds the scramble for a case:
-//   'inverse' — the algorithm played backwards. Short, but the user can read
-//               the solution off it while turning.
-//   'varied'  — a random pick from a pre-generated pool of short setups that
-//               reach the same case by a different route (see
-//               scripts/generate-f2l-scramble-pool.ts).
-export type F2LScrambleStyle = 'inverse' | 'varied';
-
+// The inverse-setup trainer's scramble is a random pick from a pre-generated
+// pool of short setups that reach the case by a different route than the
+// user's algorithm (see scripts/generate-f2l-scramble-pool.mts), so the
+// solution cannot be read off the scramble while turning. The plain inverse
+// of the algorithm is only used as a fallback when a case has no pool entry.
 export interface F2LScrambleSettings {
-  style: F2LScrambleStyle;
   // Append a random U turn so the case also appears in a random U-layer
   // orientation, as it would mid-solve.
   randomAuf: boolean;
 }
 
 export const DEFAULT_F2L_SCRAMBLE_SETTINGS: F2LScrambleSettings = {
-  style: 'varied',
   randomAuf: true,
 };
 
@@ -58,11 +53,9 @@ export function buildF2LScramble(
   // pair with the centers home instead of leaving the cube turned.
   const inverse = normalizeAlg(invertAlg(rotationNeutral(full)));
 
-  let scramble = inverse;
-  if (settings.style === 'varied') {
-    const candidates = (F2L_SCRAMBLE_POOL[f2lId] ?? []).filter((s) => s !== inverse);
-    if (candidates.length > 0) scramble = candidates[Math.floor(random() * candidates.length)];
-  }
+  const candidates = (F2L_SCRAMBLE_POOL[f2lId] ?? []).filter((s) => s !== inverse);
+  let scramble =
+    candidates.length > 0 ? candidates[Math.floor(random() * candidates.length)] : inverse;
 
   if (settings.randomAuf) {
     scramble = appendUTurn(scramble, AUF_MOVES[Math.floor(random() * AUF_MOVES.length)]);

@@ -162,10 +162,6 @@ export function SettingsButton() {
 
               <Section title="settings.scramble.title" description="settings.scramble.description">
                 <F2LScrambleSettings />
-                <ul className="text-xs text-zinc-500 space-y-1">
-                  <Help label="settings.scramble.varied" text="settings.scramble.variedHelp" />
-                  <Help label="settings.scramble.inverse" text="settings.scramble.inverseHelp" />
-                </ul>
               </Section>
 
               <Divider />

@@ -244,8 +244,7 @@ export function F2LRandomTrainer() {
           seededRandom(scrambleSeed),
         )
       : '';
-    const hint =
-      scrambleSettings.style === 'varied' ? t('trainer.hint.varied') : t('trainer.hint.inverse');
+    const hint = t('trainer.hint.varied');
     return (
       <button
         type="button"

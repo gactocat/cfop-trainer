@@ -120,7 +120,6 @@ const en = {
   'trainer.selectedCount': '{count}/{total} selected',
   'trainer.applyToCube': 'Apply this to your cube',
   'trainer.hint.varied': 'A short setup for this case, not the inverse of your algorithm',
-  'trainer.hint.inverse': 'The inverse of your algorithm',
   'trainer.hint.f2lSolvedEnough':
     'apply it to a cube with F2L solved; the last layer does not matter',
 
@@ -152,16 +151,7 @@ const en = {
     'a setup scramble is shown first so you can bring your own cube into the case, then START to time.',
   'settings.scramble.title': 'Setup scramble (F2L)',
   'settings.scramble.description':
-    'What the inverse-setup trainer asks you to apply. Either way, start from a cube with F2L solved; the last layer does not matter.',
-  'settings.scramble.aria': 'Setup scramble style',
-  'settings.scramble.varied': 'Varied setup',
-  'settings.scramble.variedTitle':
-    'A short setup picked at random from several routes to the case; it does not mirror your algorithm',
-  'settings.scramble.variedHelp':
-    'a short setup picked at random from several routes to the case, so you cannot read the solution off the scramble.',
-  'settings.scramble.inverse': 'Inverse algorithm',
-  'settings.scramble.inverseTitle': 'Your algorithm played backwards',
-  'settings.scramble.inverseHelp': 'your algorithm played backwards. Shortest, but predictable.',
+    'The inverse-setup trainer picks a short setup from several routes to each case, so the scramble does not spell out your algorithm. Start from a cube with F2L solved; the last layer does not matter.',
   'settings.scramble.randomAuf': 'Add a random U turn so the case shows up in a random orientation',
 
   // Export / import
@@ -292,7 +282,6 @@ const ja: Messages = {
   'trainer.selectedCount': '{count}/{total} 件を選択中',
   'trainer.applyToCube': 'この手順をキューブに適用',
   'trainer.hint.varied': 'このケースに至る短いセットアップ手順 (登録手順の逆手順ではありません)',
-  'trainer.hint.inverse': '登録手順の逆手順',
   'trainer.hint.f2lSolvedEnough': 'F2L が揃ったキューブに適用してください。LL の状態は問いません',
 
   'settings.title': '設定',
@@ -321,16 +310,7 @@ const ja: Messages = {
     '先にセットアップ手順を表示し、自分のキューブをケースの状態にしてから START で計測します。',
   'settings.scramble.title': 'セットアップ手順 (F2L)',
   'settings.scramble.description':
-    '逆手順セットアップで適用する手順の種類。どちらも F2L が揃ったキューブから始めます。LL の状態は問いません。',
-  'settings.scramble.aria': 'セットアップ手順の種類',
-  'settings.scramble.varied': 'バリエーション',
-  'settings.scramble.variedTitle':
-    'ケースに至る複数の経路からランダムに選んだ短い手順。登録手順の逆手順にはなりません',
-  'settings.scramble.variedHelp':
-    'ケースに至る複数の経路からランダムに選んだ短い手順。回している間に解法が分からないようにします。',
-  'settings.scramble.inverse': '逆手順',
-  'settings.scramble.inverseTitle': '登録手順をそのまま逆再生した手順',
-  'settings.scramble.inverseHelp': '登録手順をそのまま逆再生した手順。最短ですが解法が予測できます。',
+    '逆手順セットアップでは、ケースに至る複数の経路からランダムに選んだ短い手順を表示します (登録手順の逆手順ではないので、回している間に解法が分かりません)。F2L が揃ったキューブから始めてください。LL の状態は問いません。',
   'settings.scramble.randomAuf': 'ランダムな U 回転を加えて、ケースの向きも毎回変える',
 
   'transfer.title': '手順データ',
