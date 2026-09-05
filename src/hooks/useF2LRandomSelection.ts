@@ -7,6 +7,7 @@ import {
   mutate,
   subscribe,
 } from '@/lib/f2l-random-selection-store';
+import { useMounted } from '@/hooks/useMounted';
 import { F2L_IDS, type F2LId } from '@/types/f2l';
 
 export interface UseF2LRandomSelectionResult {
@@ -21,7 +22,9 @@ export interface UseF2LRandomSelectionResult {
 
 export function useF2LRandomSelection(): UseF2LRandomSelectionResult {
   const selected = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const ready = typeof window !== 'undefined';
+  // Store snapshots differ between server and client, so `ready` must flip
+  // only after hydration (a `typeof window` check would mismatch the SSR markup).
+  const ready = useMounted();
 
   const isSelected = useCallback((id: F2LId) => selected.has(id), [selected]);
 

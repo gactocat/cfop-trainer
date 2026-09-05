@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getPllDefinition } from '@/data/pll-definitions';
 import { useAlgorithms } from '@/hooks/useAlgorithms';
+import { useMounted } from '@/hooks/useMounted';
 import { usePllRandomSelection } from '@/hooks/usePllRandomSelection';
 import { useRandomSolves } from '@/hooks/useRandomSolves';
 import { useSpacebar } from '@/hooks/useSpacebar';
@@ -24,11 +25,9 @@ export function RandomTrainer() {
   const [state, setState] = useState<TrainerState>('idle');
   const [current, setCurrent] = useState<Pick | null>(null);
   const [elapsed, setElapsed] = useState(0);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   const startRef = useRef(0);
   const rafRef = useRef<number | null>(null);
-
-  useEffect(() => setMounted(true), []);
 
   // Epoch ms of each PLL's most recent solve, driving the staleness-weighted
   // draw below — cases timed longest ago (or never) surface more often.

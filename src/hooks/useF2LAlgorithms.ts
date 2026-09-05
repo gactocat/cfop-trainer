@@ -8,6 +8,7 @@ import {
   seedDefaultsIfMissing,
   subscribe,
 } from '@/lib/f2l-storage';
+import { useMounted } from '@/hooks/useMounted';
 import type {
   F2LAlgorithmRecord,
   F2LId,
@@ -43,7 +44,9 @@ export interface UseF2LAlgorithmsResult {
 
 export function useF2LAlgorithms(): UseF2LAlgorithmsResult {
   const records = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const ready = typeof window !== 'undefined';
+  // Store snapshots differ between server and client, so `ready` must flip
+  // only after hydration (a `typeof window` check would mismatch the SSR markup).
+  const ready = useMounted();
 
   useEffect(() => {
     seedDefaultsIfMissing();

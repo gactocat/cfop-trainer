@@ -7,6 +7,7 @@ import {
   mutate,
   subscribe,
 } from '@/lib/f2l-random-solves-store';
+import { useMounted } from '@/hooks/useMounted';
 import { averageOfN, bestSeconds } from '@/lib/stats';
 import type { F2LId, F2LRandomSolve } from '@/types/f2l';
 import type { TimeRecord } from '@/types/pll';
@@ -43,7 +44,9 @@ export interface UseF2LRandomSolvesResult {
 
 export function useF2LRandomSolves(): UseF2LRandomSolvesResult {
   const all = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const ready = typeof window !== 'undefined';
+  // Store snapshots differ between server and client, so `ready` must flip
+  // only after hydration (a `typeof window` check would mismatch the SSR markup).
+  const ready = useMounted();
 
   const solvesFor = useCallback(
     (f2lId: F2LId) => all.filter((s) => s.f2lId === f2lId),

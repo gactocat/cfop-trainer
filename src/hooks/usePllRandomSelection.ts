@@ -7,6 +7,7 @@ import {
   mutate,
   subscribe,
 } from '@/lib/pll-random-selection-store';
+import { useMounted } from '@/hooks/useMounted';
 import { PLL_IDS, type PllId } from '@/types/pll';
 
 export interface UsePllRandomSelectionResult {
@@ -21,7 +22,9 @@ export interface UsePllRandomSelectionResult {
 
 export function usePllRandomSelection(): UsePllRandomSelectionResult {
   const selected = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const ready = typeof window !== 'undefined';
+  // Store snapshots differ between server and client, so `ready` must flip
+  // only after hydration (a `typeof window` check would mismatch the SSR markup).
+  const ready = useMounted();
 
   const isSelected = useCallback((id: PllId) => selected.has(id), [selected]);
 

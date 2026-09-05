@@ -7,6 +7,7 @@ import {
   mutate,
   subscribe,
 } from '@/lib/random-solves-store';
+import { useMounted } from '@/hooks/useMounted';
 import { averageOfN, bestSeconds } from '@/lib/stats';
 import type { PllId, RandomSolve, TimeRecord } from '@/types/pll';
 
@@ -44,7 +45,9 @@ export interface UseRandomSolvesResult {
 
 export function useRandomSolves(): UseRandomSolvesResult {
   const all = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const ready = typeof window !== 'undefined';
+  // Store snapshots differ between server and client, so `ready` must flip
+  // only after hydration (a `typeof window` check would mismatch the SSR markup).
+  const ready = useMounted();
 
   const solvesFor = useCallback(
     (pllId: PllId) => all.filter((s) => s.pllId === pllId),

@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { ALL_PLLS } from '@/data/pll-definitions';
 import { useAlgorithms } from '@/hooks/useAlgorithms';
 import { usePllRandomSelection } from '@/hooks/usePllRandomSelection';
+import { useMounted } from '@/hooks/useMounted';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import { PllLLView } from './PllLLView';
 import { PLL_IDS, type PllCategory, type PllId } from '@/types/pll';
@@ -40,9 +41,8 @@ function formatLastDate(iso: string | undefined): string {
 export function PllGrid() {
   const { ready: algReady, starredFor, all: allAlgorithms } = useAlgorithms();
   const selection = usePllRandomSelection();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   const [selectionMode, setSelectionMode] = useState(false);
-  useEffect(() => setMounted(true), []);
   // Checkboxes only render in selection mode (and after mount so SSR/hydration
   // markup matches — the store returns "all selected" only on the client).
   const showSelect = mounted && selectionMode;
