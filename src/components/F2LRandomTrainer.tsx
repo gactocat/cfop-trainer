@@ -10,6 +10,7 @@ import { useF2LTrainerMode } from '@/hooks/useF2LTrainerMode';
 import { prefixAuf } from '@/lib/f2l-auf';
 import { invertAlg } from '@/lib/invert-alg';
 import { pickStaleWeighted } from '@/lib/stale-weighted-pick';
+import { useMounted } from '@/hooks/useMounted';
 import { useSpacebar } from '@/hooks/useSpacebar';
 import { F2L_IDS, type F2LId } from '@/types/f2l';
 import { F2L3DPlayer } from './F2L3DPlayer';
@@ -25,11 +26,9 @@ export function F2LRandomTrainer() {
   const [state, setState] = useState<TrainerState>('idle');
   const [current, setCurrent] = useState<F2LId | null>(null);
   const [elapsed, setElapsed] = useState(0);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   const startRef = useRef(0);
   const rafRef = useRef<number | null>(null);
-
-  useEffect(() => setMounted(true), []);
 
   // Epoch ms of each case's most recent solve, driving the staleness-weighted
   // draw below — cases timed longest ago (or never) surface more often.
@@ -66,13 +65,14 @@ export function F2LRandomTrainer() {
     };
   }, [state]);
 
-  // In inverse mode the start screen shows the scramble, so the case is drawn
-  // ahead of time (here and after each solve); standard mode draws on start.
-  useEffect(() => {
-    if (state === 'idle' && trainerMode === 'inverse' && current === null && !noneSelected) {
-      setCurrent(pickRandom());
-    }
-  }, [state, trainerMode, current, noneSelected, pickRandom]);
+  // In inverse mode the start screen shows the scramble, so a case is drawn as
+  // soon as the trainer is idle without one (first client render, after each
+  // solve, or when the mode is switched); standard mode draws on start. This is
+  // the "adjust state during render" pattern: React re-renders immediately with
+  // the new state. Gated on `mounted` so the server markup stays deterministic.
+  if (mounted && state === 'idle' && trainerMode === 'inverse' && current === null && !noneSelected) {
+    setCurrent(pickRandom());
+  }
 
   const start = useCallback(() => {
     // Inverse mode times the case already shown on the start screen; standard

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import {
   ALL_F2LS,
@@ -9,6 +9,7 @@ import {
 } from '@/data/f2l-definitions';
 import { useF2LAlgorithms } from '@/hooks/useF2LAlgorithms';
 import { useF2LAufDisplay } from '@/hooks/useF2LAufDisplay';
+import { useMounted } from '@/hooks/useMounted';
 import { useF2LRandomSelection } from '@/hooks/useF2LRandomSelection';
 import { prefixAuf } from '@/lib/f2l-auf';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
@@ -39,9 +40,8 @@ export function F2LGrid() {
   const { ready: algReady, starredFor, all: allAlgorithms } = useF2LAlgorithms();
   const selection = useF2LRandomSelection();
   const { mode: aufMode } = useF2LAufDisplay();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   const [selectionMode, setSelectionMode] = useState(false);
-  useEffect(() => setMounted(true), []);
   // Checkboxes only render in selection mode (and after mount so SSR/hydration
   // markup matches — the store returns "all selected" only on the client).
   const showSelect = mounted && selectionMode;
