@@ -65,6 +65,12 @@ const en = {
   'f2l.category.pieces-in-slot': 'Pieces in Slot',
   'grid.selectedForRandom': '{count}/{total} selected for random',
   'grid.shown': '{count}/{total} shown',
+  'selection.savedSets': 'Saved sets…',
+  'selection.savedSetsAria': 'Saved case sets',
+  'selection.saveAs': 'Save as…',
+  'selection.savePrompt': 'Name for this set of cases',
+  'selection.deleteSet': 'Delete “{name}”',
+  'selection.confirmDelete': 'Delete the saved set “{name}”?',
 
   // Detail pages
   'pll.detail.notFound': 'PLL not found: {id}',
@@ -229,6 +235,12 @@ const ja: Messages = {
   'f2l.category.pieces-in-slot': '両方がスロット内',
   'grid.selectedForRandom': 'ランダム練習の対象 {count}/{total}',
   'grid.shown': '{count}/{total} 件を表示',
+  'selection.savedSets': '保存したセット…',
+  'selection.savedSetsAria': '保存したケースのセット',
+  'selection.saveAs': '名前を付けて保存…',
+  'selection.savePrompt': 'このケースの組み合わせの名前',
+  'selection.deleteSet': '「{name}」を削除',
+  'selection.confirmDelete': '保存したセット「{name}」を削除しますか？',
 
   'pll.detail.notFound': 'PLL が見つかりません: {id}',
   'pll.detail.backToAll': '← PLL 一覧に戻る',

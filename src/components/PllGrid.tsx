@@ -6,11 +6,17 @@ import { ALL_PLLS } from '@/data/pll-definitions';
 import { useAlgorithms } from '@/hooks/useAlgorithms';
 import { usePllRandomSelection } from '@/hooks/usePllRandomSelection';
 import { useMounted } from '@/hooks/useMounted';
+import { useSelectionPresets } from '@/hooks/useSelectionPresets';
 import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
+import { pllSelectionPresets } from '@/lib/pll-selection-presets-store';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import { PllLLView } from './PllLLView';
+import { SelectionPresetsBar } from './SelectionPresetsBar';
 import { PLL_IDS, type PllCategory, type PllId } from '@/types/pll';
+
+const CARD_CLASS =
+  'group flex flex-col h-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors';
 
 const CATEGORY_KEYS: Record<PllCategory, MessageKey> = {
   epll: 'pll.category.epll',
@@ -43,6 +49,7 @@ function formatLastDate(iso: string | undefined, intl: string): string {
 export function PllGrid() {
   const { ready: algReady, starredFor, all: allAlgorithms } = useAlgorithms();
   const selection = usePllRandomSelection();
+  const presets = useSelectionPresets(pllSelectionPresets);
   const { t, tn, intl } = useT();
   const mounted = useMounted();
   const [selectionMode, setSelectionMode] = useState(false);
@@ -134,6 +141,14 @@ export function PllGrid() {
               </span>
             </>
           )}
+          <SelectionPresetsBar
+            presets={presets.presets}
+            selected={selection.selected}
+            selectionMode={selectionMode}
+            onLoad={selection.replace}
+            onSave={presets.save}
+            onDelete={presets.remove}
+          />
         </div>
       )}
 
@@ -154,25 +169,25 @@ export function PllGrid() {
               const star = algReady ? starredFor(pll.id) : null;
               const { best, ao5, last, count } = statsFor(pll.id);
               const displayAuf = star?.auf ?? 'U0';
-              return (
-                <li key={pll.id}>
-                  <Link
-                    href={`/pll/${pll.id}`}
-                    className={`group flex flex-col h-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors ${
-                      showSelect && !selection.isSelected(pll.id) ? 'opacity-40' : ''
-                    }`}
-                  >
+              const isSelected = selection.isSelected(pll.id);
+              // In selection mode the whole card is the toggle (a checkbox
+              // alone is too small a target on a phone), so it stops being a
+              // link to the detail page until selection is done.
+              const card = (
+                <>
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <span className="flex items-center gap-2 min-w-0">
                         {showSelect && (
-                          <input
-                            type="checkbox"
-                            checked={selection.isSelected(pll.id)}
-                            onChange={() => selection.toggle(pll.id)}
-                            onClick={(e) => e.stopPropagation()}
-                            className="h-4 w-4 shrink-0 accent-emerald-600 cursor-pointer"
-                            aria-label={t('pll.grid.includeInRandom', { name: pll.name })}
-                          />
+                          <span
+                            aria-hidden
+                            className={`h-5 w-5 shrink-0 rounded border flex items-center justify-center text-xs font-bold ${
+                              isSelected
+                                ? 'bg-emerald-600 border-emerald-600 text-white'
+                                : 'border-zinc-400 dark:border-zinc-600'
+                            }`}
+                          >
+                            {isSelected ? '✓' : ''}
+                          </span>
                         )}
                         <span className="font-medium text-sm">{pll.name}</span>
                       </span>
@@ -213,7 +228,36 @@ export function PllGrid() {
                         <span title={t('common.lastRecordedDate')}>{formatLastDate(last, intl)}</span>
                       </div>
                     )}
-                  </Link>
+                </>
+              );
+              return (
+                <li key={pll.id}>
+                  {showSelect ? (
+                    <div
+                      role="checkbox"
+                      aria-checked={isSelected}
+                      aria-label={t('pll.grid.includeInRandom', { name: pll.name })}
+                      tabIndex={0}
+                      onClick={() => selection.toggle(pll.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === ' ' || e.key === 'Enter') {
+                          e.preventDefault();
+                          selection.toggle(pll.id);
+                        }
+                      }}
+                      className={`${CARD_CLASS} cursor-pointer select-none ${
+                        isSelected
+                          ? 'border-emerald-500 dark:border-emerald-500 ring-1 ring-emerald-500'
+                          : 'opacity-50'
+                      }`}
+                    >
+                      {card}
+                    </div>
+                  ) : (
+                    <Link href={`/pll/${pll.id}`} className={CARD_CLASS}>
+                      {card}
+                    </Link>
+                  )}
                 </li>
               );
             })}

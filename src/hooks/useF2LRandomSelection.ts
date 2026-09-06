@@ -18,6 +18,8 @@ export interface UseF2LRandomSelectionResult {
   toggle: (id: F2LId) => void;
   selectAll: () => void;
   clear: () => void;
+  // Replace the whole selection (used to load a saved set).
+  replace: (ids: Iterable<F2LId>) => void;
 }
 
 export function useF2LRandomSelection(): UseF2LRandomSelectionResult {
@@ -45,8 +47,12 @@ export function useF2LRandomSelection(): UseF2LRandomSelectionResult {
     mutate(() => new Set());
   }, []);
 
+  const replace = useCallback((ids: Iterable<F2LId>) => {
+    mutate(() => new Set(ids));
+  }, []);
+
   return useMemo(
-    () => ({ ready, selected, count: selected.size, isSelected, toggle, selectAll, clear }),
-    [ready, selected, isSelected, toggle, selectAll, clear],
+    () => ({ ready, selected, count: selected.size, isSelected, toggle, selectAll, clear, replace }),
+    [ready, selected, isSelected, toggle, selectAll, clear, replace],
   );
 }

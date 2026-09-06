@@ -18,6 +18,8 @@ export interface UsePllRandomSelectionResult {
   toggle: (id: PllId) => void;
   selectAll: () => void;
   clear: () => void;
+  // Replace the whole selection (used to load a saved set).
+  replace: (ids: Iterable<PllId>) => void;
 }
 
 export function usePllRandomSelection(): UsePllRandomSelectionResult {
@@ -45,8 +47,12 @@ export function usePllRandomSelection(): UsePllRandomSelectionResult {
     mutate(() => new Set());
   }, []);
 
+  const replace = useCallback((ids: Iterable<PllId>) => {
+    mutate(() => new Set(ids));
+  }, []);
+
   return useMemo(
-    () => ({ ready, selected, count: selected.size, isSelected, toggle, selectAll, clear }),
-    [ready, selected, isSelected, toggle, selectAll, clear],
+    () => ({ ready, selected, count: selected.size, isSelected, toggle, selectAll, clear, replace }),
+    [ready, selected, isSelected, toggle, selectAll, clear, replace],
   );
 }

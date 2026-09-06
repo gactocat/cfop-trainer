@@ -7,12 +7,18 @@ import { useF2LAlgorithms } from '@/hooks/useF2LAlgorithms';
 import { useF2LAufDisplay } from '@/hooks/useF2LAufDisplay';
 import { useF2LRandomSelection } from '@/hooks/useF2LRandomSelection';
 import { useMounted } from '@/hooks/useMounted';
+import { useSelectionPresets } from '@/hooks/useSelectionPresets';
 import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
 import { prefixAuf } from '@/lib/f2l-auf';
+import { f2lSelectionPresets } from '@/lib/f2l-selection-presets-store';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import { F2L3DPlayer } from './F2L3DPlayer';
+import { SelectionPresetsBar } from './SelectionPresetsBar';
 import { F2L_IDS, type F2LCategory, type F2LId } from '@/types/f2l';
+
+const CARD_CLASS =
+  'group flex flex-col h-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors';
 
 const CATEGORY_KEYS: Record<F2LCategory, MessageKey> = {
   easy: 'f2l.category.easy',
@@ -46,6 +52,7 @@ function formatLastDate(iso: string | undefined, intl: string): string {
 export function F2LGrid() {
   const { ready: algReady, starredFor, all: allAlgorithms } = useF2LAlgorithms();
   const selection = useF2LRandomSelection();
+  const presets = useSelectionPresets(f2lSelectionPresets);
   const { mode: aufMode } = useF2LAufDisplay();
   const { t, tn, intl } = useT();
   const mounted = useMounted();
@@ -137,6 +144,14 @@ export function F2LGrid() {
               </span>
             </>
           )}
+          <SelectionPresetsBar
+            presets={presets.presets}
+            selected={selection.selected}
+            selectionMode={selectionMode}
+            onLoad={selection.replace}
+            onSave={presets.save}
+            onDelete={presets.remove}
+          />
         </div>
       )}
 
@@ -157,25 +172,25 @@ export function F2LGrid() {
               const star = algReady ? starredFor(f2l.id) : null;
               const algForDisplay = star?.algorithm ?? f2l.primaryAlg;
               const { best, ao5, last, count } = statsFor(f2l.id);
-              return (
-                <li key={f2l.id}>
-                  <Link
-                    href={`/f2l/${f2l.id}`}
-                    className={`group flex flex-col h-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors ${
-                      showSelect && !selection.isSelected(f2l.id) ? 'opacity-40' : ''
-                    }`}
-                  >
+              const isSelected = selection.isSelected(f2l.id);
+              // In selection mode the whole card is the toggle (a checkbox
+              // alone is too small a target on a phone), so it stops being a
+              // link to the detail page until selection is done.
+              const card = (
+                <>
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <span className="flex items-center gap-2 min-w-0">
                         {showSelect && (
-                          <input
-                            type="checkbox"
-                            checked={selection.isSelected(f2l.id)}
-                            onChange={() => selection.toggle(f2l.id)}
-                            onClick={(e) => e.stopPropagation()}
-                            className="h-4 w-4 shrink-0 accent-emerald-600 cursor-pointer"
-                            aria-label={t('f2l.grid.includeInRandom', { number: f2l.number })}
-                          />
+                          <span
+                            aria-hidden
+                            className={`h-5 w-5 shrink-0 rounded border flex items-center justify-center text-xs font-bold ${
+                              isSelected
+                                ? 'bg-emerald-600 border-emerald-600 text-white'
+                                : 'border-zinc-400 dark:border-zinc-600'
+                            }`}
+                          >
+                            {isSelected ? '✓' : ''}
+                          </span>
                         )}
                         <span className="font-medium text-sm">
                           {t('common.f2lCase', { number: f2l.number })}
@@ -228,7 +243,36 @@ export function F2LGrid() {
                         <span title={t('common.lastRecordedDate')}>{formatLastDate(last, intl)}</span>
                       </div>
                     )}
-                  </Link>
+                </>
+              );
+              return (
+                <li key={f2l.id}>
+                  {showSelect ? (
+                    <div
+                      role="checkbox"
+                      aria-checked={isSelected}
+                      aria-label={t('f2l.grid.includeInRandom', { number: f2l.number })}
+                      tabIndex={0}
+                      onClick={() => selection.toggle(f2l.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === ' ' || e.key === 'Enter') {
+                          e.preventDefault();
+                          selection.toggle(f2l.id);
+                        }
+                      }}
+                      className={`${CARD_CLASS} cursor-pointer select-none ${
+                        isSelected
+                          ? 'border-emerald-500 dark:border-emerald-500 ring-1 ring-emerald-500'
+                          : 'opacity-50'
+                      }`}
+                    >
+                      {card}
+                    </div>
+                  ) : (
+                    <Link href={`/f2l/${f2l.id}`} className={CARD_CLASS}>
+                      {card}
+                    </Link>
+                  )}
                 </li>
               );
             })}
