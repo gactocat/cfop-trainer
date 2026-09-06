@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getF2LDefinition } from '@/data/f2l-definitions';
 import { useF2LAlgorithms } from '@/hooks/useF2LAlgorithms';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useF2LAufDisplay } from '@/hooks/useF2LAufDisplay';
 import { useF2LRandomSelection } from '@/hooks/useF2LRandomSelection';
 import { useF2LRandomSolves } from '@/hooks/useF2LRandomSolves';
@@ -110,25 +111,29 @@ export function F2LRandomTrainer() {
     setState('stopped');
   }, []);
 
-  const record = () => {
+  const record = useCallback(() => {
     if (current && elapsed > 0) add(current, elapsed);
     setState('idle');
     setElapsed(0);
     setCurrent(null);
-  };
+  }, [current, elapsed, add]);
 
-  const discard = () => {
+  const discard = useCallback(() => {
     setState('idle');
     setElapsed(0);
     setCurrent(null);
-  };
+  }, []);
 
+  // Keyboard: Space mirrors the tap action (idle → start, running → stop) and
+  // records on the result screen; Escape discards there.
   const onSpace = useCallback(() => {
     if (state === 'idle') {
       if (!noneSelected) start();
     } else if (state === 'running') stop();
-  }, [state, start, stop, noneSelected]);
+    else record();
+  }, [state, start, stop, record, noneSelected]);
   useSpacebar(onSpace);
+  useEscapeKey(discard, state === 'stopped');
 
   // Everything the three case screens need, derived once from the drawn case
   // and its seed. The starred algorithm wins; the speedcubedb primary (which
@@ -212,6 +217,7 @@ export function F2LRandomTrainer() {
             className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 font-semibold"
           >
             ✓ {t('common.record')}
+            <kbd className="hidden sm:inline ml-2 text-[10px] font-mono font-normal opacity-70">Space</kbd>
           </button>
           <button
             type="button"
@@ -219,6 +225,7 @@ export function F2LRandomTrainer() {
             className="rounded-md border border-zinc-300 dark:border-zinc-700 px-6 py-2.5 font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800"
           >
             ✗ {t('common.discard')}
+            <kbd className="hidden sm:inline ml-2 text-[10px] font-mono font-normal opacity-70">Esc</kbd>
           </button>
         </div>
       </div>

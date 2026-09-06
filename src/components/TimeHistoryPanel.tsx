@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useSpacebar } from '@/hooks/useSpacebar';
 import { useT } from '@/hooks/useT';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
@@ -56,24 +57,25 @@ function Stopwatch({ onRecord }: { onRecord: (seconds: number) => void }) {
     setElapsed((Date.now() - startRef.current) / 1000);
     setState('stopped');
   }, []);
-  const record = () => {
+  const record = useCallback(() => {
     if (elapsed > 0) onRecord(elapsed);
     setState('idle');
     setElapsed(0);
-  };
-  const discard = () => {
+  }, [elapsed, onRecord]);
+  const discard = useCallback(() => {
     setState('idle');
     setElapsed(0);
-  };
+  }, []);
 
-  // Spacebar mirrors the tap action: idle → start, running → stop. Stopped
-  // state is intentionally inert so a stray press doesn't lose a captured
-  // time before the user picks Record / Discard.
+  // Keyboard: Space mirrors the tap action (idle → start, running → stop) and
+  // records on the result screen; Escape discards there.
   const onSpace = useCallback(() => {
     if (state === 'idle') start();
     else if (state === 'running') stop();
-  }, [state, start, stop]);
+    else record();
+  }, [state, start, stop, record]);
   useSpacebar(onSpace);
+  useEscapeKey(discard, state === 'stopped');
 
   // Big tap-anywhere surface for idle/running. Stopped state shrinks the
   // surface and shows explicit Record/Discard buttons.
@@ -95,6 +97,7 @@ function Stopwatch({ onRecord }: { onRecord: (seconds: number) => void }) {
             className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 font-semibold"
           >
             ✓ {t('common.record')}
+            <kbd className="hidden sm:inline ml-2 text-[10px] font-mono font-normal opacity-70">Space</kbd>
           </button>
           <button
             type="button"
@@ -102,6 +105,7 @@ function Stopwatch({ onRecord }: { onRecord: (seconds: number) => void }) {
             className="rounded-md border border-zinc-300 dark:border-zinc-700 px-6 py-2.5 font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800"
           >
             ✗ {t('common.discard')}
+            <kbd className="hidden sm:inline ml-2 text-[10px] font-mono font-normal opacity-70">Esc</kbd>
           </button>
         </div>
       </div>

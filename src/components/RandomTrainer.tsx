@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getPllDefinition } from '@/data/pll-definitions';
 import { useAlgorithms } from '@/hooks/useAlgorithms';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useMounted } from '@/hooks/useMounted';
 import { usePllRandomSelection } from '@/hooks/usePllRandomSelection';
 import { useRandomSolves } from '@/hooks/useRandomSolves';
@@ -84,28 +85,29 @@ export function RandomTrainer() {
     setState('stopped');
   }, []);
 
-  const record = () => {
+  const record = useCallback(() => {
     if (current && elapsed > 0) add(current.pllId, elapsed);
     setState('idle');
     setElapsed(0);
     setCurrent(null);
-  };
+  }, [current, elapsed, add]);
 
-  const discard = () => {
+  const discard = useCallback(() => {
     setState('idle');
     setElapsed(0);
     setCurrent(null);
-  };
+  }, []);
 
-  // Spacebar mirrors the tap action: idle → start, running → stop. Stopped
-  // state stays inert so a stray press doesn't lose the captured time
-  // before the user picks Record / Discard.
+  // Keyboard: Space mirrors the tap action (idle → start, running → stop) and
+  // records on the result screen; Escape discards there.
   const onSpace = useCallback(() => {
     if (state === 'idle') {
       if (!noneSelected) start();
     } else if (state === 'running') stop();
-  }, [state, start, stop, noneSelected]);
+    else record();
+  }, [state, start, stop, record, noneSelected]);
   useSpacebar(onSpace);
+  useEscapeKey(discard, state === 'stopped');
 
   if (state === 'stopped' && current) {
     const def = getPllDefinition(current.pllId);
@@ -156,6 +158,7 @@ export function RandomTrainer() {
             className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 font-semibold"
           >
             ✓ {t('common.record')}
+            <kbd className="hidden sm:inline ml-2 text-[10px] font-mono font-normal opacity-70">Space</kbd>
           </button>
           <button
             type="button"
@@ -163,6 +166,7 @@ export function RandomTrainer() {
             className="rounded-md border border-zinc-300 dark:border-zinc-700 px-6 py-2.5 font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800"
           >
             ✗ {t('common.discard')}
+            <kbd className="hidden sm:inline ml-2 text-[10px] font-mono font-normal opacity-70">Esc</kbd>
           </button>
         </div>
       </div>
