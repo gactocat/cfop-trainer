@@ -9,6 +9,7 @@ import { useRandomSolves } from '@/hooks/useRandomSolves';
 import { useSpacebar } from '@/hooks/useSpacebar';
 import { useT } from '@/hooks/useT';
 import { pickStaleWeighted } from '@/lib/stale-weighted-pick';
+import { formatSeconds } from '@/lib/stats';
 import { PLL_IDS, type Auf, type PllId } from '@/types/pll';
 import { PllLLView } from './PllLLView';
 
@@ -20,8 +21,8 @@ interface Pick {
 }
 
 export function RandomTrainer() {
-  const { t } = useT();
-  const { add, all } = useRandomSolves();
+  const { t, tn } = useT();
+  const { add, all, bestFor, ao5For, solvesFor } = useRandomSolves();
   const { starredFor } = useAlgorithms();
   const { selected } = usePllRandomSelection();
   const [state, setState] = useState<TrainerState>('idle');
@@ -109,6 +110,9 @@ export function RandomTrainer() {
   if (state === 'stopped' && current) {
     const def = getPllDefinition(current.pllId);
     const star = starredFor(current.pllId);
+    // Random-trainer history for this case so far (the time on screen is not
+    // recorded yet).
+    const previousSolves = solvesFor(current.pllId).length;
     return (
       <div className="w-full flex-1 rounded-lg border border-amber-400 dark:border-amber-500 bg-amber-50 dark:bg-amber-950/30 p-6 flex flex-col items-center justify-center gap-6 select-none">
         <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -122,6 +126,15 @@ export function RandomTrainer() {
             <div className="font-mono text-6xl sm:text-7xl font-bold tabular-nums text-amber-700 dark:text-amber-300">
               {elapsed.toFixed(3)}
             </div>
+            {previousSolves > 0 && (
+              <div className="mt-1 text-xs font-mono text-amber-700/80 dark:text-amber-300/80">
+                {t('detail.randomStats', {
+                  best: formatSeconds(bestFor(current.pllId)),
+                  ao5: formatSeconds(ao5For(current.pllId)),
+                  solves: tn('common.solves', previousSolves),
+                })}
+              </div>
+            )}
           </div>
         </div>
         <div className="max-w-2xl w-full text-center font-mono text-sm break-words text-zinc-700 dark:text-zinc-300">

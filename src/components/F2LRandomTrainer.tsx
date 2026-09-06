@@ -14,6 +14,7 @@ import { useT } from '@/hooks/useT';
 import { combineAuf, invertAuf, prefixAuf } from '@/lib/f2l-auf';
 import { buildF2LSetup, seededRandom } from '@/lib/f2l-scramble';
 import { pickStaleWeighted } from '@/lib/stale-weighted-pick';
+import { formatSeconds } from '@/lib/stats';
 import { F2L_IDS, type F2LId } from '@/types/f2l';
 import type { Auf } from '@/types/pll';
 import { F2L3DPlayer } from './F2L3DPlayer';
@@ -21,8 +22,8 @@ import { F2L3DPlayer } from './F2L3DPlayer';
 type TrainerState = 'idle' | 'running' | 'stopped';
 
 export function F2LRandomTrainer() {
-  const { t } = useT();
-  const { add, all } = useF2LRandomSolves();
+  const { t, tn } = useT();
+  const { add, all, bestFor, ao5For, solvesFor } = useF2LRandomSolves();
   const { starredFor } = useF2LAlgorithms();
   const { selected } = useF2LRandomSelection();
   const { mode: aufMode } = useF2LAufDisplay();
@@ -156,7 +157,10 @@ export function F2LRandomTrainer() {
       />
     );
 
-  if (state === 'stopped' && shown) {
+  if (state === 'stopped' && shown && current) {
+    // Random-trainer history for this case so far (the time on screen is not
+    // recorded yet).
+    const previousSolves = solvesFor(current).length;
     return (
       <div className="w-full flex-1 rounded-lg border border-amber-400 dark:border-amber-500 bg-amber-50 dark:bg-amber-950/30 p-6 flex flex-col items-center justify-center gap-6 select-none">
         <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -170,6 +174,15 @@ export function F2LRandomTrainer() {
             <div className="font-mono text-6xl sm:text-7xl font-bold tabular-nums text-amber-700 dark:text-amber-300">
               {elapsed.toFixed(3)}
             </div>
+            {previousSolves > 0 && (
+              <div className="mt-1 text-xs font-mono text-amber-700/80 dark:text-amber-300/80">
+                {t('detail.randomStats', {
+                  best: formatSeconds(bestFor(current)),
+                  ao5: formatSeconds(ao5For(current)),
+                  solves: tn('common.solves', previousSolves),
+                })}
+              </div>
+            )}
           </div>
         </div>
         <div className="max-w-2xl w-full text-center font-mono text-sm break-words text-zinc-700 dark:text-zinc-300">
