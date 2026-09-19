@@ -9,6 +9,7 @@ import { useF2LRandomSolves } from '@/hooks/useF2LRandomSolves';
 import { useMounted } from '@/hooks/useMounted';
 import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { useSpacebar } from '@/hooks/useSpacebar';
+import { useNativeTimer } from '@/hooks/useNativeTimer';
 import { useT } from '@/hooks/useT';
 import { combineAuf, invertAuf, prefixAuf } from '@/lib/f2l-auf';
 import { buildF2LSetup, seededRandom } from '@/lib/f2l-scramble';
@@ -107,6 +108,8 @@ export function F2LRandomTrainer() {
     setElapsed((Date.now() - startRef.current) / 1000);
     setState('stopped');
   }, []);
+
+  useNativeTimer(state === 'running', stop);
 
   const record = useCallback(() => {
     if (current && elapsed > 0) add(current, elapsed);

@@ -7,7 +7,7 @@ import { reloadAccount, retryAccountSave } from '@/lib/persistence';
 import { openAccountDialog } from '@/lib/app-dialog';
 
 export function AccountSession() {
-  useEffect(() => { startAccountSession(); }, []);
+  useEffect(() => { void startAccountSession(); }, []);
   return null;
 }
 export function StorageStatus() {

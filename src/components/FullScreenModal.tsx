@@ -32,7 +32,7 @@ export function FullScreenModal({ open, onClose, title, children }: FullScreenMo
       role="dialog"
       aria-modal="true"
       aria-label={title}
-      className="fixed inset-0 z-50 flex flex-col bg-zinc-50 dark:bg-zinc-950"
+      className="fixed inset-0 z-50 flex flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] bg-zinc-50 dark:bg-zinc-950"
     >
       <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
         <h2 className="text-base font-semibold">{title}</h2>

@@ -90,6 +90,7 @@ domain for `cfop-trainer`:
 | Site URL | `https://cfop-trainer-ten.vercel.app` |
 | Redirect URL | `https://cfop-trainer-ten.vercel.app/account` |
 | Redirect URL for local testing | `http://localhost:3000/account` |
+| Redirect URL for iOS | `cfoptrainer://auth/callback` |
 
 Add each redirect URL as a separate entry. If you use a different local port or
 preview deployment, add its exact `/account` URL too. Keep the default
@@ -177,11 +178,14 @@ build. See [Vercel environment variables](https://vercel.com/docs/environment-va
 
 ## Storage behavior
 
-- Guests use the existing versioned `localStorage` keys and can work offline.
+- Web guests use the existing versioned `localStorage` keys and can work offline.
+  iOS guests use a native Preferences document with the same record formats.
+  Browser guest data and iOS guest data are separate; sign in to share data.
 - Signed-in accounts use a database document containing the same serialized
   formats. Settings (including language), algorithms, times, selected cases,
   and saved selections are included. Account data is kept in memory only on
   the client; the auth SDK persists session credentials to maintain sign-in.
+  iOS stores session credentials and PKCE verifiers in the device Keychain.
 - The first login offers import of all supported device data or a fresh start.
   Import is a single atomic write; it never deletes the guest data. Later
   logins load the server document and never automatically re-import guest data.

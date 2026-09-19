@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useSpacebar } from '@/hooks/useSpacebar';
+import { useNativeTimer } from '@/hooks/useNativeTimer';
 import { useT } from '@/hooks/useT';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import type { TimeRecord } from '@/types/pll';
@@ -57,6 +58,8 @@ function Stopwatch({ onRecord }: { onRecord: (seconds: number) => void }) {
     setElapsed((Date.now() - startRef.current) / 1000);
     setState('stopped');
   }, []);
+  useNativeTimer(state === 'running', stop);
+
   const record = useCallback(() => {
     if (elapsed > 0) onRecord(elapsed);
     setState('idle');

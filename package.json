@@ -9,9 +9,21 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck && npm run build",
-    "generate:scrambles": "node --import ./scripts/register-src-alias.mjs scripts/generate-f2l-scramble-pool.mts"
+    "generate:scrambles": "node --import ./scripts/register-src-alias.mjs scripts/generate-f2l-scramble-pool.mts",
+    "build:ios:web": "node scripts/build-ios-web.mjs",
+    "ios:sync": "npm run build:ios:web && cap sync ios",
+    "ios:open": "cap open ios",
+    "ios:run": "npm run ios:sync && cap run ios",
+    "ios:build": "npm run ios:sync && xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath ios/DerivedData build"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/filesystem": "^8.1.3",
+    "@capacitor/ios": "^8.5.2",
+    "@capacitor/network": "^8.0.1",
+    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/share": "^8.0.2",
     "@supabase/supabase-js": "^2.116.0",
     "cubing": "^0.63.3",
     "next": "16.2.4",
@@ -19,6 +31,7 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

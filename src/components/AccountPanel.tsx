@@ -4,9 +4,10 @@ import { usePersistence } from '@/hooks/usePersistence';
 import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
 import { getSupabase, isAuthConfigured } from '@/lib/supabase';
-import { finishRecovery, getRecoveryServerSnapshot, getRecoverySnapshot, signOutAccount, subscribeRecovery } from '@/lib/account-session';
+import { finishRecovery, getCallbackError, getRecoveryServerSnapshot, getRecoverySnapshot, signOutAccount, subscribeRecovery } from '@/lib/account-session';
 import { initializeAccount, reloadAccount } from '@/lib/persistence';
 import { StorageStatus } from './AccountBoundary';
+import { authRedirectUrl } from '@/lib/native';
 
 type Mode = 'signIn' | 'signUp' | 'reset';
 const button = 'inline-flex items-center justify-center rounded-md bg-zinc-100 px-2.5 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 disabled:opacity-50 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700';
@@ -24,6 +25,7 @@ export function AccountPanel() {
   const { t } = useT();
   const state = usePersistence();
   const recovery = useSyncExternalStore(subscribeRecovery, getRecoverySnapshot, getRecoveryServerSnapshot);
+  const callbackError = useSyncExternalStore(subscribeRecovery, getCallbackError, getRecoveryServerSnapshot);
   const [mode, setMode] = useState<Mode>('signIn');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -41,7 +43,7 @@ export function AccountPanel() {
     }
     setBusy(true);
     try {
-      const redirectTo = `${window.location.origin}/account`;
+      const redirectTo = authRedirectUrl();
       if (recovery) {
         const result = await client.auth.updateUser({ password });
         if (result.error) throw result.error;
@@ -113,7 +115,7 @@ export function AccountPanel() {
         {(recovery || state.error === 'session') && <button className={textAction} disabled={busy} onClick={() => { void signOut(); }}>{t('account.signOut')}</button>}
       </>}
       {notice && <p role="status" className="text-xs text-emerald-600 dark:text-emerald-400">{t(notice)}</p>}
-      {error && <p role="alert" className="text-xs text-red-600 dark:text-red-400">{t(error)}</p>}
+      {(error || callbackError) && <p role="alert" className="text-xs text-red-600 dark:text-red-400">{t(error ?? 'account.authFailed')}</p>}
     </>}
   </div>;
 }

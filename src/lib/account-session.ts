@@ -1,28 +1,39 @@
 import type { Session } from '@supabase/supabase-js';
 import { getSupabase } from '@/lib/supabase';
 import { parseAccountData } from '@/lib/account-data';
+import { initializeGuestStorage } from '@/lib/guest-storage';
+import { isNativeApp } from '@/lib/native';
 import {
   getPersistenceSnapshot, lockSession, notifyGuestStorageChanged, setStorageOnline,
-  activateAccountStorage, activateGuestStorage, type AccountBackend,
+  activateAccountStorage, activateGuestStorage, reportGuestStorageError, type AccountBackend,
 } from '@/lib/persistence';
 
 let started = false;
 let explicitSignOut = false;
 let recovery = false;
+let callbackError = false;
 const listeners = new Set<() => void>();
 export const getRecoverySnapshot = () => recovery;
 export const getRecoveryServerSnapshot = () => false;
+export const getCallbackError = () => callbackError;
+export function reportAccountLinkError() {
+  callbackError = true;
+  listeners.forEach((listener) => listener());
+}
 export function subscribeRecovery(listener: () => void) {
   listeners.add(listener);
   return () => { listeners.delete(listener); };
 }
 export function finishRecovery() {
   recovery = false;
+  callbackError = false;
   listeners.forEach((listener) => listener());
 }
-export function startAccountSession() {
+export async function startAccountSession() {
   if (started) return;
   started = true;
+  try { await initializeGuestStorage(); }
+  catch { reportGuestStorageError(); return; }
   setStorageOnline(navigator.onLine);
   window.addEventListener('online', () => setStorageOnline(true));
   window.addEventListener('offline', () => setStorageOnline(false));
@@ -32,7 +43,11 @@ export function startAccountSession() {
     event.preventDefault();
   });
   const client = getSupabase();
-  if (!client) { activateGuestStorage(); return; }
+  if (!client) {
+    activateGuestStorage();
+    if (isNativeApp()) await (await import('@/lib/native-runtime')).startNativeRuntime();
+    return;
+  }
   const remote: AccountBackend = {
     load: async (userId) => {
       const { data, error } = await client.from('account_data').select('data, revision').eq('user_id', userId).maybeSingle();
@@ -57,6 +72,7 @@ export function startAccountSession() {
   client.auth.onAuthStateChange((event, session) => {
     if (event === 'PASSWORD_RECOVERY') {
       recovery = true;
+      callbackError = false;
       listeners.forEach((listener) => listener());
     }
     if (event === 'SIGNED_OUT') finishRecovery();
@@ -67,6 +83,10 @@ export function startAccountSession() {
     if (error) lockSession();
     else acceptSession(data.session);
   }).catch(() => lockSession());
+  if (isNativeApp()) {
+    try { await (await import('@/lib/native-runtime')).startNativeRuntime(); }
+    catch { reportAccountLinkError(); }
+  }
 }
 export async function signOutAccount() {
   const client = getSupabase();

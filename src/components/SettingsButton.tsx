@@ -96,7 +96,7 @@ export function SettingsButton() {
   const firstItem = useRef(0);
 
   useEffect(() => {
-    if (pathname === '/account') openAccountDialog();
+    if (pathname === '/account' || pathname === '/account/') openAccountDialog();
   }, [pathname]);
 
   useEffect(() => {

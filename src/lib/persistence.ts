@@ -1,4 +1,5 @@
 import { DATA_KEYS, type AccountData, parseAccountData } from '@/lib/account-data';
+import { readGuestValue, writeGuestValue } from '@/lib/guest-storage';
 
 export type PersistenceState = {
   mode: 'boot' | 'guest' | 'loading' | 'choice' | 'account';
@@ -16,7 +17,7 @@ export interface AccountBackend {
 }
 const configured = !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
 const initial: PersistenceState = {
-  mode: configured ? 'boot' : 'guest', userId: null, email: null, online: true,
+  mode: configured || process.env.NEXT_PUBLIC_NATIVE_APP === '1' ? 'boot' : 'guest', userId: null, email: null, online: true,
   saving: false, dirty: false, error: null, generation: 0,
 };
 let state = initial;
@@ -46,15 +47,24 @@ export function canWriteData() {
 }
 export function readStoredValue(key: string): string | null {
   if (typeof window === 'undefined') return null;
-  if (state.mode === 'guest') return window.localStorage.getItem(key);
+  if (state.mode === 'guest') return readGuestValue(key);
   return data[key] ?? null;
 }
 export function writeStoredValue(key: string, value: string) {
   if (!canWriteData()) throw new Error('Storage is read-only');
   if (state.mode === 'guest') {
-    try { window.localStorage.setItem(key, value); }
+    try {
+      const generation = state.generation;
+      const write = writeGuestValue(key, value);
+      if (write) {
+        void write.then(() => {
+          if (state.generation === generation && state.error === 'local') update({ error: null });
+        }).catch(() => {
+          if (state.generation === generation && state.mode === 'guest') update({ error: 'local' });
+        });
+      } else if (state.error === 'local') update({ error: null });
+    }
     catch (error) { update({ error: 'local' }); throw error; }
-    if (state.error === 'local') update({ error: null });
   } else {
     data = { ...data, [key]: value };
     update({ dirty: true });
@@ -71,6 +81,7 @@ export function activateGuestStorage() {
     generation: state.generation + 1 });
   invalidate();
 }
+export function reportGuestStorageError() { update({ mode: 'boot', error: 'local' }); }
 export function lockSession() {
   data = {};
   pending = null;
@@ -113,7 +124,7 @@ export async function initializeAccount(importGuest: boolean) {
   if (importGuest) {
     try {
       for (const key of DATA_KEYS) {
-        const value = window.localStorage.getItem(key);
+        const value = readGuestValue(key);
         if (value !== null) imported[key] = value;
       }
     } catch { update({ error: 'local' }); return; }

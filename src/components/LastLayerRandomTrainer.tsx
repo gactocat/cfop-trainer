@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useMounted } from '@/hooks/useMounted';
 import { useSpacebar } from '@/hooks/useSpacebar';
+import { useNativeTimer } from '@/hooks/useNativeTimer';
 import { useT } from '@/hooks/useT';
 import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { buildLastLayerSetup, type LastLayerAlgorithm, type LastLayerSetup } from '@/lib/last-layer-setup';
@@ -86,6 +87,8 @@ export function LastLayerRandomTrainer<Id extends string>({
     setElapsed((Date.now() - startRef.current) / 1000);
     setState('stopped');
   }, []);
+
+  useNativeTimer(state === 'running', stop);
 
   const record = useCallback(() => {
     if (current && elapsed > 0) add(current.id, elapsed);

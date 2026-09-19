@@ -8,6 +8,8 @@ There is no Next.js API route. Deployed on Vercel from `main` (https://cfop-trai
 
 Stack: Next.js (App Router, every route prerendered at build time), React 19,
 TypeScript strict, Tailwind CSS v4, cubing.js for 3D / LL visualisation.
+Capacitor 8 packages a separate static export for iOS 18+. See `docs/ios.md`.
+Native guest data uses Preferences; session credentials use the Keychain.
 
 <!-- BEGIN:nextjs-agent-rules -->
 ## This is NOT the Next.js you know
@@ -24,6 +26,9 @@ npm run lint          # eslint (next/core-web-vitals + typescript)
 npm run typecheck     # tsc --noEmit
 npm run build         # next build, prerenders every route
 npm run check         # lint + typecheck + build, same as CI
+npm run ios:sync      # static export + copy assets/plugins into iOS project
+npm run ios:build     # sync and build the iOS simulator app (macOS/Xcode)
+npm run ios:open      # open the native project in Xcode
 npm run generate:scrambles  # regenerate src/data/f2l-scramble-pool.ts (minutes; not part of build)
 ```
 
@@ -61,6 +66,8 @@ CI (`.github/workflows/ci.yml`) runs the same three steps on every PR.
   their `*_IDS` arrays.
 - `public/sw.js` — hand-written service worker (network-first navigations,
   stale-while-revalidate assets). Bump `CACHE_NAME` if you change what it caches.
+- `ios/` — Capacitor project and native bridge. Generated public assets and
+  config are ignored. Keep normal and native Next builds sequential.
 
 ## Conventions
 

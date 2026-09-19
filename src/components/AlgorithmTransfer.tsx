@@ -10,6 +10,7 @@ import {
 import { exportOLLAlgorithms, importOLLAlgorithms } from '@/lib/oll-storage';
 import { ImportError } from '@/lib/import-error';
 import { getPersistenceSnapshot } from '@/lib/persistence';
+import { exportJsonFile } from '@/lib/export-file';
 
 type Kind = 'pll' | 'f2l' | 'oll';
 
@@ -46,18 +47,6 @@ type Status =
   | { kind: 'success'; message: string }
   | { kind: 'error'; message: string };
 
-function downloadJson(fileName: string, json: string): void {
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
 function importErrorMessage(err: unknown, kind: string, t: Translator['t']): string {
   if (err instanceof ImportError) {
     switch (err.code) {
@@ -75,18 +64,24 @@ function importErrorMessage(err: unknown, kind: string, t: Translator['t']): str
 export function AlgorithmTransfer() {
   const { t, tn } = useT();
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
+  const [exporting, setExporting] = useState(false);
   const pllInputRef = useRef<HTMLInputElement>(null);
   const ollInputRef = useRef<HTMLInputElement>(null);
   const f2lInputRef = useRef<HTMLInputElement>(null);
 
-  const handleExport = (kind: Kind) => {
+  const handleExport = async (kind: Kind) => {
+    if (exporting) return;
+    setExporting(true);
     const cfg = CONFIGS[kind];
+    const generation = getPersistenceSnapshot().generation;
     try {
-      downloadJson(cfg.fileName, cfg.export());
+      if (!await exportJsonFile(cfg.fileName, cfg.export())) return;
+      if (getPersistenceSnapshot().generation !== generation) return;
       setStatus({ kind: 'success', message: t('transfer.exported', { kind: cfg.label }) });
     } catch {
+      if (getPersistenceSnapshot().generation !== generation) return;
       setStatus({ kind: 'error', message: t('transfer.exportFailed', { kind: cfg.label }) });
-    }
+    } finally { setExporting(false); }
   };
 
   const handleFile = async (kind: Kind, file: File) => {
@@ -135,7 +130,7 @@ export function AlgorithmTransfer() {
               <span className="w-10 text-xs font-medium text-zinc-700 dark:text-zinc-300">
                 {cfg.label}
               </span>
-              <button type="button" className={btnClass} onClick={() => handleExport(kind)}>
+              <button type="button" className={btnClass} disabled={exporting} onClick={() => { void handleExport(kind); }}>
                 {t('common.export')}
               </button>
               <button type="button" className={btnClass} onClick={() => ref.current?.click()}>

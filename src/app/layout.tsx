@@ -42,6 +42,7 @@ export const viewport: Viewport = {
   themeColor: '#0f172a',
   width: 'device-width',
   initialScale: 1,
+  viewportFit: 'cover',
   // Block accidental pinch-zoom in the trainer surfaces; UI is already
   // mobile-sized.
   maximumScale: 1,
@@ -59,7 +60,7 @@ export default function RootLayout({
         <AccountSession />
         <ServiceWorkerRegister />
         <HtmlLang />
-        <header className="border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur sticky top-0 z-10">
+        <header className="pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur sticky top-0 z-10">
           <div className="mx-auto max-w-6xl px-3 sm:px-4 py-3 flex items-center gap-2 sm:gap-4">
             <Link href="/" className="mr-1 sm:mr-2 shrink-0 whitespace-nowrap font-semibold text-base sm:text-lg tracking-tight">
               CFOP Trainer
@@ -68,7 +69,7 @@ export default function RootLayout({
             <SettingsButton />
           </div>
         </header>
-        <main className="mx-auto w-full max-w-6xl px-4 py-6 flex-1">
+        <main className="mx-auto w-full max-w-6xl pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] flex-1">
           <AccountBoundary>{children}</AccountBoundary>
         </main>
       </body>
