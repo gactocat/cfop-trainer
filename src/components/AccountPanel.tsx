@@ -9,8 +9,9 @@ import { initializeAccount, reloadAccount } from '@/lib/persistence';
 import { StorageStatus } from './AccountBoundary';
 
 type Mode = 'signIn' | 'signUp' | 'reset';
-const button = 'rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300';
-const input = 'mt-1 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100';
+const button = 'inline-flex items-center justify-center rounded-md bg-zinc-100 px-2.5 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 disabled:opacity-50 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700';
+const input = 'mt-1 w-full rounded-md border border-zinc-300 bg-white px-2.5 py-1.5 text-base font-normal text-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 sm:text-xs dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100';
+const textAction = 'text-xs text-zinc-500 underline-offset-4 transition-colors hover:text-zinc-900 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 disabled:opacity-50 dark:text-zinc-400 dark:hover:text-zinc-100';
 function authError(error: unknown): MessageKey {
   const code = error && typeof error === 'object' && 'code' in error ? error.code : '';
   if (code === 'invalid_credentials') return 'account.invalidCredentials';
@@ -69,50 +70,50 @@ export function AccountPanel() {
     finally { setBusy(false); }
   };
   const signedIn = !!state.userId && state.mode !== 'boot';
-  return <div className="mx-auto max-w-md space-y-5">
-    <p className="text-sm text-zinc-600 dark:text-zinc-400">{t('account.description')}</p>
+  return <div className="space-y-4">
+    <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('account.description')}</p>
     <StorageStatus />
-    {!isAuthConfigured ? <p className="text-sm text-zinc-600 dark:text-zinc-400">{t('account.unavailable')}</p> : <>
-      {signedIn && !recovery ? <div className="space-y-4">
-        <p className="break-all text-sm">{state.email}</p>
-        {state.mode === 'choice' && <section className="space-y-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-          <h2 className="font-medium">{t('account.firstLogin')}</h2>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">{t('account.importDescription')}</p>
+    {!isAuthConfigured ? <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('account.unavailable')}</p> : <>
+      {signedIn && !recovery ? <div className="space-y-3">
+        <p className="break-all text-sm font-medium">{state.email}</p>
+        {state.mode === 'choice' && <section className="space-y-3 border-t border-zinc-200 pt-3 dark:border-zinc-800">
+          <h3 className="text-sm font-medium">{t('account.firstLogin')}</h3>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('account.importDescription')}</p>
           <div className="flex flex-wrap gap-2">
             <button className={button} disabled={busy || state.saving || state.dirty || !state.online} onClick={() => { void initializeAccount(true); }}>{t('account.importGuest')}</button>
             <button className={button} disabled={busy || state.saving || state.dirty || !state.online} onClick={() => { void initializeAccount(false); }}>{t('account.startFresh')}</button>
           </div>
         </section>}
-        {state.mode === 'account' && <button className="text-sm underline disabled:opacity-50" disabled={!state.online || state.saving} onClick={() => {
+        {state.mode === 'account' && <button className={textAction} disabled={!state.online || state.saving} onClick={() => {
           if (!state.dirty || window.confirm(t('account.discardWarning'))) void reloadAccount();
         }}>{t('account.reload')}</button>}
         <div><button className={button} disabled={busy || state.saving} onClick={() => { void signOut(); }}>{t('account.signOut')}</button></div>
       </div> : <>
-        {(recovery || mode !== 'signIn') && <h3 className="font-medium">{t(recovery ? 'account.newPassword' : `account.${mode}`)}</h3>}
-        <form onSubmit={(event) => { void submit(event); }} className="space-y-4">
-          {!recovery && <label className="block text-sm">{t('account.email')}
+        {(recovery || mode !== 'signIn') && <h3 className="text-sm font-medium">{t(recovery ? 'account.newPassword' : `account.${mode}`)}</h3>}
+        <form onSubmit={(event) => { void submit(event); }} className="space-y-3">
+          {!recovery && <label className="block text-sm font-medium">{t('account.email')}
             <input type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} className={input} />
           </label>}
-          {(mode !== 'reset' || recovery) && <label className="block text-sm">{t('account.password')}
+          {(mode !== 'reset' || recovery) && <label className="block text-sm font-medium">{t('account.password')}
             <input type="password" autoComplete={mode === 'signIn' && !recovery ? 'current-password' : 'new-password'} minLength={mode === 'signIn' && !recovery ? undefined : 8} required value={password} onChange={(event) => setPassword(event.target.value)} className={input} />
           </label>}
           {(mode === 'signUp' || recovery) && <>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('account.passwordHint')}</p>
-            <label className="block text-sm">{t('account.confirmPassword')}
+            <label className="block text-sm font-medium">{t('account.confirmPassword')}
               <input type="password" autoComplete="new-password" minLength={8} required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className={input} />
             </label>
           </>}
           <button className={button} disabled={busy || !state.online || (state.mode === 'boot' && !state.error)}>{t(busy ? 'common.loading' : recovery ? 'account.updatePassword' : `account.${mode}`)}</button>
         </form>
-        {!recovery && <div className="flex flex-wrap gap-4 text-sm">
-          {(['signIn', 'signUp', 'reset'] as const).filter((item) => item !== mode).map((item) => <button key={item} disabled={busy} className="underline" onClick={() => {
+        {!recovery && <div className="flex flex-wrap gap-x-4 gap-y-2 border-t border-zinc-200 pt-3 dark:border-zinc-800">
+          {(['signIn', 'signUp', 'reset'] as const).filter((item) => item !== mode).map((item) => <button key={item} disabled={busy} className={textAction} onClick={() => {
             setMode(item); setPassword(''); setConfirmPassword(''); setError(null); setNotice(null);
           }}>{t(`account.${item}`)}</button>)}
         </div>}
-        {(recovery || state.error === 'session') && <button className="text-sm underline" disabled={busy} onClick={() => { void signOut(); }}>{t('account.signOut')}</button>}
+        {(recovery || state.error === 'session') && <button className={textAction} disabled={busy} onClick={() => { void signOut(); }}>{t('account.signOut')}</button>}
       </>}
-      {notice && <p role="status" className="text-sm text-emerald-700 dark:text-emerald-400">{t(notice)}</p>}
-      {error && <p role="alert" className="text-sm text-red-700 dark:text-red-400">{t(error)}</p>}
+      {notice && <p role="status" className="text-xs text-emerald-600 dark:text-emerald-400">{t(notice)}</p>}
+      {error && <p role="alert" className="text-xs text-red-600 dark:text-red-400">{t(error)}</p>}
     </>}
   </div>;
 }
