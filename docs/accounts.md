@@ -144,7 +144,7 @@ npm run dev
 
 Open `http://localhost:3000/account`, create an account using your test email,
 and open the confirmation link. Choose whether to import device data. Change a
-setting and reload; the Account page should report that the data is saved.
+setting and reload; confirm the setting is restored and no storage error appears.
 
 ## Verify Vercel connection and deploy
 
