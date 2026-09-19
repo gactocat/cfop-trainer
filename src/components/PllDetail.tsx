@@ -131,7 +131,7 @@ export function PllDetail({ pllId }: PllDetailProps) {
           </div>
           {(view === '2d' || !star) && (
             <div className="rounded-lg p-2 bg-zinc-100 dark:bg-zinc-900">
-              <PllLLView pllId={pllId} auf={displayAuf} size={220} />
+              <PllLLView pllId={pllId} auf={displayAuf} algorithm={star?.algorithm} size={220} />
             </div>
           )}
         </div>

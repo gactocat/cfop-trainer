@@ -7,9 +7,9 @@ import { useT } from '@/hooks/useT';
 type Practice = 'pll' | 'f2l' | 'oll';
 
 const TABS: ReadonlyArray<{ practice: Practice; label: string; href: string }> = [
-  { practice: 'pll', label: 'PLL', href: '/pll' },
-  { practice: 'oll', label: 'OLL', href: '/oll' },
   { practice: 'f2l', label: 'F2L', href: '/f2l' },
+  { practice: 'oll', label: 'OLL', href: '/oll' },
+  { practice: 'pll', label: 'PLL', href: '/pll' },
 ];
 
 function activeFor(pathname: string | null): Practice {

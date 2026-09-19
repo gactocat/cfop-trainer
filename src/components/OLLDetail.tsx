@@ -134,7 +134,7 @@ export function OLLDetail({ ollId }: OLLDetailProps) {
           </div>
           {(view === '2d' || !star) && (
             <div className="rounded-lg p-2 bg-zinc-100 dark:bg-zinc-900">
-              <OLLLLView ollId={ollId} auf={displayAuf} size={220} />
+              <OLLLLView ollId={ollId} auf={displayAuf} algorithm={star?.algorithm} size={220} />
             </div>
           )}
         </div>

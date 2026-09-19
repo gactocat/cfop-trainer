@@ -8,6 +8,7 @@ import { AlgorithmTransfer } from './AlgorithmTransfer';
 import { F2LAufModeToggle } from './F2LAufModeToggle';
 import { F2LRandomAufToggle } from './F2LRandomAufToggle';
 import { F2LTrainerModeToggle } from './F2LTrainerModeToggle';
+import { LastLayerSettings } from './LastLayerSettings';
 import { LocaleToggle } from './LocaleToggle';
 
 function GearIcon() {
@@ -159,6 +160,11 @@ export function SettingsButton() {
                 <F2LRandomAufToggle />
               </Section>
 
+              <Divider />
+
+              <LastLayerSettings practice="oll" />
+              <Divider />
+              <LastLayerSettings practice="pll" />
               <Divider />
 
               <AlgorithmTransfer />

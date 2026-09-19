@@ -12,6 +12,14 @@ export const LOCALE_LABELS: Record<Locale, string> = {
 };
 
 const en = {
+  "settings.lastLayer.title": "{kind} practice",
+  "settings.lastLayer.aufDescription": "AUF display in previews and training.",
+  "settings.lastLayer.aufAria": "AUF display ({kind})",
+  "settings.lastLayer.modeAria": "Random trainer mode ({kind})",
+  "settings.lastLayer.inverseHelp": "Apply the inverse of your starred algorithm (or the first preset) to a solved cube before timing.",
+  "trainer.hint.lastLayerSolved": "Start with a fully solved cube. Apply this setup before timing.",
+  "view.lastLayer2d": "{kind} last-layer diagram",
+  "view.lastLayer3d": "{kind} 3D algorithm preview",
   // Shared
   'common.close': 'Close',
   'common.cancel': 'Cancel',
@@ -221,6 +229,14 @@ export type MessageKey = keyof typeof en;
 export type Messages = Record<MessageKey, string>;
 
 const ja: Messages = {
+  "settings.lastLayer.title": "{kind} の練習",
+  "settings.lastLayer.aufDescription": "プレビューと練習での AUF の表示方法。",
+  "settings.lastLayer.aufAria": "AUF の表示 ({kind})",
+  "settings.lastLayer.modeAria": "ランダム練習モード ({kind})",
+  "settings.lastLayer.inverseHelp": "計測前に、完成状態のキューブにスター付き手順（未登録なら最初のプリセット）の逆手順を適用します。",
+  "trainer.hint.lastLayerSolved": "完成状態のキューブに、このセットアップを適用してから計測してください。",
+  "view.lastLayer2d": "{kind} の上面図",
+  "view.lastLayer3d": "{kind} 手順の 3D プレビュー",
   'common.close': '閉じる',
   'common.cancel': 'キャンセル',
   'common.save': '保存',

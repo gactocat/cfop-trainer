@@ -7,6 +7,8 @@ import { useAlgorithms } from '@/hooks/useAlgorithms';
 import { usePllRandomSelection } from '@/hooks/usePllRandomSelection';
 import { useMounted } from '@/hooks/useMounted';
 import { useSelectionPresets } from '@/hooks/useSelectionPresets';
+import { useLastLayerSettings } from '@/hooks/useLastLayerSettings';
+import { prefixAuf } from '@/lib/f2l-auf';
 import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
 import { pllSelectionPresets } from '@/lib/pll-selection-presets-store';
@@ -51,6 +53,7 @@ export function PllGrid() {
   const selection = usePllRandomSelection();
   const presets = useSelectionPresets(pllSelectionPresets);
   const { t, tn, intl } = useT();
+  const { settings } = useLastLayerSettings('pll');
   const mounted = useMounted();
   const [selectionMode, setSelectionMode] = useState(false);
   // Checkboxes only render in selection mode (and after mount so SSR/hydration
@@ -198,7 +201,7 @@ export function PllGrid() {
                       </span>
                     </div>
                     <div className="flex justify-center mb-2">
-                      <PllLLView pllId={pll.id} auf={displayAuf} size={96} />
+                      <PllLLView pllId={pll.id} auf={displayAuf} algorithm={star?.algorithm} size={96} />
                     </div>
                     <div className="text-[11px] font-mono text-zinc-700 dark:text-zinc-300 break-words leading-snug min-h-[2.5em] flex items-center justify-center text-center">
                       {star ? (
@@ -210,7 +213,7 @@ export function PllGrid() {
                           >
                             ★
                           </span>
-                          {star.algorithm}
+                          {settings.aufDisplay === 'prefix' ? prefixAuf(star.auf, star.algorithm) : star.algorithm}
                         </span>
                       ) : (
                         <span className="text-zinc-400 italic">{t('pll.grid.noAlgorithm')}</span>

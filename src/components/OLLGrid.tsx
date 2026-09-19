@@ -7,6 +7,8 @@ import { useOLLAlgorithms } from '@/hooks/useOLLAlgorithms';
 import { useOLLRandomSelection } from '@/hooks/useOLLRandomSelection';
 import { useMounted } from '@/hooks/useMounted';
 import { useSelectionPresets } from '@/hooks/useSelectionPresets';
+import { useLastLayerSettings } from '@/hooks/useLastLayerSettings';
+import { prefixAuf } from '@/lib/f2l-auf';
 import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
 import { ollSelectionPresets } from '@/lib/oll-selection-presets-store';
@@ -62,6 +64,7 @@ export function OLLGrid() {
   const selection = useOLLRandomSelection();
   const presets = useSelectionPresets(ollSelectionPresets);
   const { t, tn, intl } = useT();
+  const { settings } = useLastLayerSettings('oll');
   const mounted = useMounted();
   const [selectionMode, setSelectionMode] = useState(false);
   // Checkboxes only render in selection mode (and after mount so SSR/hydration
@@ -209,7 +212,7 @@ export function OLLGrid() {
                       </span>
                     </div>
                     <div className="flex justify-center mb-2">
-                      <OLLLLView ollId={oll.id} auf={displayAuf} size={96} />
+                      <OLLLLView ollId={oll.id} auf={displayAuf} algorithm={star?.algorithm} size={96} />
                     </div>
                     <div className="text-[11px] font-mono text-zinc-700 dark:text-zinc-300 break-words leading-snug min-h-[2.5em] flex items-center justify-center text-center">
                       {star ? (
@@ -221,7 +224,7 @@ export function OLLGrid() {
                           >
                             ★
                           </span>
-                          {star.algorithm}
+                          {settings.aufDisplay === 'prefix' ? prefixAuf(star.auf, star.algorithm) : star.algorithm}
                         </span>
                       ) : (
                         <span className="text-zinc-400 italic">{t('oll.grid.noAlgorithm')}</span>

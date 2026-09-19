@@ -13,7 +13,7 @@ dialog. The app is installable as a PWA and works offline.
 
 ## Features
 
-- PLL, OLL and F2L case lists with a 3D / last-layer view, best time, ao5, and
+- F2L, OLL and PLL case lists with a 3D / last-layer view, best time, ao5, and
   last-practised date per case
 - Multiple algorithms per case with one starred as the active one, with AUF
   handled separately
@@ -23,7 +23,11 @@ dialog. The app is installable as a PWA and works offline.
   own cube into the case before timing. The setup is drawn from a pool of
   alternative routes to the case, so it does not spell out the solution; a
   random U turn can be added on top
-
+- OLL and PLL inverse-setup modes: apply the inverse of the starred algorithm
+  (or first preset) to a fully solved cube before timing. Each practice has
+  independent AUF display and random U-layer orientation settings
+- AUF display can rotate the preview or include the AUF in the solution,
+  consistently across lists, 2D / 3D previews and random training
 - All 57 OLL cases with 285 preset algorithms from [SpeedCubeDB](https://www.speedcubedb.com/a/3x3/OLL), grouped by shape
 
 ## Development
@@ -34,6 +38,8 @@ npm run dev       # http://localhost:3000
 npm run check     # lint + typecheck + build
 # Verify OLL presets, AUF orientations and F2L preservation (Node 24):
 node --import ./scripts/register-src-alias.mjs scripts/verify-oll.mts
+# Verify OLL/PLL setup and solution pairs in both AUF display modes:
+node --import ./scripts/register-src-alias.mjs scripts/verify-last-layer-setup.mts
 ```
 
 Built with Next.js (App Router), React, TypeScript, Tailwind CSS, and

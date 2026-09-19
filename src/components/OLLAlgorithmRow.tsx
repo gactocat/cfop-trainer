@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { OLLAlgorithmForm } from './OLLAlgorithmForm';
 import { TimeHistoryPanel } from './TimeHistoryPanel';
+import { useLastLayerSettings } from '@/hooks/useLastLayerSettings';
+import { prefixAuf } from '@/lib/f2l-auf';
 import { useT } from '@/hooks/useT';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import type { OLLAlgorithmRecord } from '@/types/oll';
@@ -26,6 +28,7 @@ export function OLLAlgorithmRow({
   onRemoveTime,
 }: OLLAlgorithmRowProps) {
   const { t, tn } = useT();
+  const { settings } = useLastLayerSettings('oll');
   const [editing, setEditing] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
@@ -76,10 +79,14 @@ export function OLLAlgorithmRow({
               />
             ) : (
               <p className="font-mono text-sm break-words">
-                <span className="inline-block min-w-[2.5em] mr-2 px-1.5 py-0.5 text-[10px] rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 align-middle">
-                  {record.auf}
-                </span>
-                {record.algorithm}
+                {settings.aufDisplay === 'cube' ? (
+                  <>
+                    <span className="inline-block min-w-[2.5em] mr-2 px-1.5 py-0.5 text-[10px] rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 align-middle">
+                      {record.auf}
+                    </span>
+                    {record.algorithm}
+                  </>
+                ) : prefixAuf(record.auf, record.algorithm)}
               </p>
             )}
 
