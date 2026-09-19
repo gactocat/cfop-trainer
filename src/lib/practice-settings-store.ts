@@ -1,3 +1,4 @@
+import { readStoredValue } from '@/lib/persistence';
 import { createLocalStore } from '@/lib/local-store';
 
 export interface PracticeSettings {
@@ -26,7 +27,7 @@ function validSettings(raw: unknown): Partial<PracticeSettings> {
 // then PLL. Old keys are left intact; future edits use only the shared key.
 function readLegacySettings(): PracticeSettings {
   const read = (key: string): string | null => {
-    try { return window.localStorage.getItem(key); } catch { return null; }
+    try { return readStoredValue(key); } catch { return null; }
   };
   const readJSON = (key: string): unknown => {
     try { return JSON.parse(read(key) ?? 'null'); } catch { return null; }

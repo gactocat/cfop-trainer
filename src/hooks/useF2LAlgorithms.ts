@@ -9,6 +9,8 @@ import {
   subscribe,
 } from '@/lib/f2l-storage';
 import { useMounted } from '@/hooks/useMounted';
+import { usePersistence } from '@/hooks/usePersistence';
+import { canWriteData } from '@/lib/persistence';
 import type {
   F2LAlgorithmRecord,
   F2LId,
@@ -48,9 +50,11 @@ export function useF2LAlgorithms(): UseF2LAlgorithmsResult {
   // only after hydration (a `typeof window` check would mismatch the SSR markup).
   const ready = useMounted();
 
+  const persistence = usePersistence();
+  const writable = persistence.mode === 'guest' || (persistence.mode === 'account' && persistence.online && !persistence.error);
   useEffect(() => {
-    seedDefaultsIfMissing();
-  }, []);
+    if (canWriteData()) seedDefaultsIfMissing();
+  }, [writable]);
 
   const forF2L = useCallback(
     (f2lId: F2LId) => records.filter((r) => r.f2lId === f2lId),

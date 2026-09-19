@@ -1,3 +1,4 @@
+import { canWriteData, readStoredValue, subscribeData, writeStoredValue } from '@/lib/persistence';
 import { LOCALES, type Locale } from '@/i18n/messages';
 
 // UI language. Defaults to the browser language on first visit (Japanese
@@ -20,7 +21,7 @@ function fromNavigator(): Locale {
 function readFromStorage(): Locale {
   if (typeof window === 'undefined') return DEFAULT_LOCALE;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = readStoredValue(STORAGE_KEY);
     return isLocale(raw) ? raw : fromNavigator();
   } catch {
     return fromNavigator();
@@ -29,7 +30,7 @@ function readFromStorage(): Locale {
 
 function writeToStorage(locale: Locale): void {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(STORAGE_KEY, locale);
+  writeStoredValue(STORAGE_KEY, locale);
 }
 
 export function getSnapshot(): Locale {
@@ -52,8 +53,13 @@ export function subscribe(listener: () => void): () => void {
 }
 
 export function setLocale(locale: Locale): void {
-  if (locale === getSnapshot()) return;
-  cached = locale;
+  if (!canWriteData() || locale === getSnapshot()) return;
   writeToStorage(locale);
+  cached = locale;
   listeners.forEach((l) => l());
 }
+
+subscribeData(() => {
+  cached = null;
+  listeners.forEach((listener) => listener());
+});

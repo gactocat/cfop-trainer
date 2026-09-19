@@ -3,6 +3,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useT } from '@/hooks/useT';
+import { StorageStatus, WritableArea } from './AccountBoundary';
 
 interface FullScreenModalProps {
   open: boolean;
@@ -38,13 +39,17 @@ export function FullScreenModal({ open, onClose, title, children }: FullScreenMo
         <button
           type="button"
           onClick={onClose}
+          data-readonly-allowed
           aria-label={t('common.close')}
           className="inline-flex items-center justify-center h-8 w-8 rounded-md text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100"
         >
           ✕
         </button>
       </div>
-      <div className="flex-1 min-h-0 flex flex-col p-3 sm:p-4">{children}</div>
+      <div className="flex-1 min-h-0 flex flex-col p-3 sm:p-4">
+        <StorageStatus />
+        <WritableArea>{children}</WritableArea>
+      </div>
     </div>,
     document.body,
   );

@@ -1,3 +1,5 @@
+import { createLocalStore } from '@/lib/local-store';
+
 // Named sets of cases for the random trainer ("saved selections"), one store
 // per practice (PLL, F2L). Same shape as the other localStorage stores, built
 // by a factory because the two practices only differ in id type and key.
@@ -28,8 +30,6 @@ export function createSelectionPresetsStore<Id extends string>(
   isValidId: (value: unknown) => value is Id,
 ): SelectionPresetsStore<Id> {
   const EMPTY: SelectionPreset<Id>[] = [];
-  let cached: SelectionPreset<Id>[] | null = null;
-  const listeners = new Set<() => void>();
 
   const normalize = (raw: unknown): SelectionPreset<Id> | null => {
     if (typeof raw !== 'object' || raw === null) return null;
@@ -43,42 +43,13 @@ export function createSelectionPresetsStore<Id extends string>(
     };
   };
 
-  const readFromStorage = (): SelectionPreset<Id>[] => {
-    if (typeof window === 'undefined') return EMPTY;
-    try {
-      const raw = window.localStorage.getItem(storageKey);
-      if (raw === null) return EMPTY;
-      const parsed = JSON.parse(raw) as unknown;
-      if (!Array.isArray(parsed)) return EMPTY;
-      return parsed.map(normalize).filter((p): p is SelectionPreset<Id> => p !== null);
-    } catch {
-      return EMPTY;
-    }
-  };
-
-  const write = (next: SelectionPreset<Id>[]): void => {
-    cached = next;
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(storageKey, JSON.stringify(next));
-    }
-    listeners.forEach((l) => l());
-  };
-
-  const getSnapshot = (): SelectionPreset<Id>[] => {
-    if (typeof window === 'undefined') return EMPTY;
-    if (cached === null) cached = readFromStorage();
-    return cached;
-  };
-
+  const store = createLocalStore<SelectionPreset<Id>[]>(storageKey, EMPTY, (raw) =>
+    Array.isArray(raw) ? raw.map(normalize).filter((p): p is SelectionPreset<Id> => p !== null) : EMPTY,
+  );
+  const { getSnapshot } = store;
+  const write = (next: SelectionPreset<Id>[]) => store.mutate(() => next);
   return {
-    getSnapshot,
-    getServerSnapshot: () => EMPTY,
-    subscribe: (listener) => {
-      listeners.add(listener);
-      return () => {
-        listeners.delete(listener);
-      };
-    },
+    ...store,
     save: (name, ids) => {
       const trimmed = name.trim();
       const prev = getSnapshot();

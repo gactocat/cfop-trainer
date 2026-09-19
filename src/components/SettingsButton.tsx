@@ -9,6 +9,8 @@ import { AufModeToggle } from './AufModeToggle';
 import { RandomAufToggle } from './RandomAufToggle';
 import { TrainerModeToggle } from './TrainerModeToggle';
 import { LocaleToggle } from './LocaleToggle';
+import Link from 'next/link';
+import { WritableArea } from './AccountBoundary';
 
 function GearIcon() {
   return (
@@ -119,49 +121,54 @@ export function SettingsButton() {
             </div>
 
             <div className="p-4 space-y-4">
-              <Section title="settings.language.title" description="settings.language.description">
-                <LocaleToggle />
-              </Section>
+              <Link href="/account" onClick={() => setOpen(false)} className="block text-sm underline">{t('account.open')}</Link>
+              <WritableArea>
+                <div className="space-y-4">
+                  <Section title="settings.language.title" description="settings.language.description">
+                    <LocaleToggle />
+                  </Section>
 
-              <Divider />
+                  <Divider />
 
-              <Section
-                title="settings.aufDisplay.title"
-                description="settings.aufDisplay.description"
-              >
-                <AufModeToggle />
-                <ul className="text-xs text-zinc-500 space-y-1">
-                  <Help label="settings.aufDisplay.onCube" text="settings.aufDisplay.onCubeHelp" />
-                  <Help
-                    label="settings.aufDisplay.inAlgorithm"
-                    text="settings.aufDisplay.inAlgorithmHelp"
-                  />
-                </ul>
-              </Section>
+                  <Section
+                    title="settings.aufDisplay.title"
+                    description="settings.aufDisplay.description"
+                  >
+                    <AufModeToggle />
+                    <ul className="text-xs text-zinc-500 space-y-1">
+                      <Help label="settings.aufDisplay.onCube" text="settings.aufDisplay.onCubeHelp" />
+                      <Help
+                        label="settings.aufDisplay.inAlgorithm"
+                        text="settings.aufDisplay.inAlgorithmHelp"
+                      />
+                    </ul>
+                  </Section>
 
-              <Divider />
+                  <Divider />
 
-              <Section
-                title="settings.trainerMode.title"
-                description="settings.trainerMode.description"
-              >
-                <TrainerModeToggle />
-                <ul className="text-xs text-zinc-500 space-y-1">
-                  <Help
-                    label="settings.trainerMode.standard"
-                    text="settings.trainerMode.standardHelp"
-                  />
-                  <Help
-                    label="settings.trainerMode.inverse"
-                    text="settings.trainerMode.inverseHelp"
-                  />
-                </ul>
-                <RandomAufToggle />
-              </Section>
+                  <Section
+                    title="settings.trainerMode.title"
+                    description="settings.trainerMode.description"
+                  >
+                    <TrainerModeToggle />
+                    <ul className="text-xs text-zinc-500 space-y-1">
+                      <Help
+                        label="settings.trainerMode.standard"
+                        text="settings.trainerMode.standardHelp"
+                      />
+                      <Help
+                        label="settings.trainerMode.inverse"
+                        text="settings.trainerMode.inverseHelp"
+                      />
+                    </ul>
+                    <RandomAufToggle />
+                  </Section>
 
-              <Divider />
+                  <Divider />
 
-              <AlgorithmTransfer />
+                  <AlgorithmTransfer />
+                </div>
+              </WritableArea>
             </div>
           </div>
         </div>,

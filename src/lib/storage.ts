@@ -1,3 +1,4 @@
+import { readStoredValue } from '@/lib/persistence';
 import { createLocalStore } from '@/lib/local-store';
 import { PRESET_ALGORITHMS } from '@/data/preset-algorithms';
 import { AUFS, PLL_IDS, type AlgorithmRecord, type Auf, type PllId } from '@/types/pll';
@@ -84,7 +85,7 @@ export function enforceStarInvariant(records: AlgorithmRecord[]): AlgorithmRecor
 // field. An explicit `[]` is treated as an intentional clear and left alone.
 export function seedDefaultsIfMissing(): void {
   if (typeof window === 'undefined') return;
-  if (window.localStorage.getItem(STORAGE_KEY) !== null) return;
+  if (readStoredValue(STORAGE_KEY) !== null) return;
   const now = nowIso();
   const seeded: AlgorithmRecord[] = [];
   for (const pllId of PLL_IDS) {

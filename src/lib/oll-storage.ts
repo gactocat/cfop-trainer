@@ -1,3 +1,4 @@
+import { readStoredValue } from '@/lib/persistence';
 import { createLocalStore } from '@/lib/local-store';
 import { OLL_PRESET_ALGORITHMS } from '@/data/oll-preset-algorithms';
 import { OLL_IDS, type OLLAlgorithmRecord, type OLLId } from '@/types/oll';
@@ -84,7 +85,7 @@ export function enforceStarInvariant(records: OLLAlgorithmRecord[]): OLLAlgorith
 // field. An explicit `[]` is treated as an intentional clear and left alone.
 export function seedDefaultsIfMissing(): void {
   if (typeof window === 'undefined') return;
-  if (window.localStorage.getItem(STORAGE_KEY) !== null) return;
+  if (readStoredValue(STORAGE_KEY) !== null) return;
   const now = nowIso();
   const seeded: OLLAlgorithmRecord[] = [];
   for (const ollId of OLL_IDS) {

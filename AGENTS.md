@@ -1,9 +1,10 @@
 # CFOP Trainer
 
 Web app for managing CFOP F2L and PLL algorithms, recording solve times, and
-training recognition with random cases. Pure client-side: all user data lives
-in `localStorage`, there is no backend and no API route. Deployed on Vercel
-from `main` (https://pll-manager.vercel.app), installable as a PWA.
+training recognition with random cases. Guest data lives in `localStorage`.
+Optional Supabase email/password accounts save user data to PostgreSQL through
+Auth and an ownership-checked RPC; account data is held only in client memory.
+There is no Next.js API route. Deployed on Vercel from `main` (https://cfop-trainer-ten.vercel.app), installable as a PWA.
 
 Stack: Next.js (App Router, every route prerendered at build time), React 19,
 TypeScript strict, Tailwind CSS v4, cubing.js for 3D / LL visualisation.
@@ -33,7 +34,7 @@ CI (`.github/workflows/ci.yml`) runs the same three steps on every PR.
 ## Layout
 
 - `src/app/` — routes. `/` (home), `/pll`, `/pll/[id]`, `/f2l`, `/f2l/[id]`,
-  `/random`, `manifest.ts`. Detail routes use `generateStaticParams`.
+  `/random`, `/account`, `manifest.ts`. Detail routes use `generateStaticParams`.
 - `src/components/` — UI. Almost everything is a `'use client'` component.
   PLL and F2L have parallel component sets (`PllGrid` / `F2LGrid`,
   `RandomTrainer` / `F2LRandomTrainer`, ...); keep them in step when changing
@@ -44,6 +45,7 @@ CI (`.github/workflows/ci.yml`) runs the same three steps on every PR.
 - `src/lib/` — stores and pure helpers. Stores follow one pattern: a module
   with `getSnapshot` / `getServerSnapshot` / `subscribe` / `mutate`, a cached
   value, and a `localStorage` key prefixed `pll-app:` with a `:v1` suffix.
+  `persistence.ts` selects guest storage or account memory plus database writes.
   Hooks consume them via `useSyncExternalStore`. Where PLL and F2L need the
   same store shape, build both from a factory (`selection-presets-store.ts`)
   instead of copying the module. Pure helpers (`invert-alg`, `f2l-auf`,
@@ -89,3 +91,6 @@ CI (`.github/workflows/ci.yml`) runs the same three steps on every PR.
   them lazily / on demand in lists to avoid exhausting contexts.
 - Commits: Conventional Commits with a scope (`feat(f2l): ...`,
   `fix(pll): ...`, `chore: ...`). Explain the why in the body.
+
+Account deployment instructions and SQL migration live in `docs/accounts.md` and
+`supabase/migrations/`. Never expose a Supabase secret/service-role key to clients.

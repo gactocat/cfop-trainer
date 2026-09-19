@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { canWriteData } from '@/lib/persistence';
 
 // Fire `handler` when the user presses Space anywhere on the page, EXCEPT
 // while focus is in a text-entry control (input/textarea/select/content-
@@ -12,7 +13,7 @@ export function useSpacebar(handler: () => void, active = true): void {
     if (!active) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code !== 'Space' && e.key !== ' ') return;
-      if (e.repeat) return;
+      if (e.repeat || !canWriteData() || document.querySelector('[aria-modal="true"][aria-labelledby="settings-title"]')) return;
       const target = e.target as (HTMLElement & { isContentEditable?: boolean }) | null;
       const tag = target?.tagName;
       if (

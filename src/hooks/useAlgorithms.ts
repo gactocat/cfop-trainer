@@ -9,6 +9,8 @@ import {
   subscribe,
 } from '@/lib/storage';
 import { useMounted } from '@/hooks/useMounted';
+import { usePersistence } from '@/hooks/usePersistence';
+import { canWriteData } from '@/lib/persistence';
 import type {
   AlgorithmRecord,
   Auf,
@@ -49,9 +51,11 @@ export function useAlgorithms(): UseAlgorithmsResult {
   // only after hydration (a `typeof window` check would mismatch the SSR markup).
   const ready = useMounted();
 
+  const persistence = usePersistence();
+  const writable = persistence.mode === 'guest' || (persistence.mode === 'account' && persistence.online && !persistence.error);
   useEffect(() => {
-    seedDefaultsIfMissing();
-  }, []);
+    if (canWriteData()) seedDefaultsIfMissing();
+  }, [writable]);
 
   const forPll = useCallback(
     (pllId: PllId, auf?: Auf) =>

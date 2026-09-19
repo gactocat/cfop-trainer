@@ -4,12 +4,15 @@ A small web app for speedcubers working on CFOP. Manage your F2L, OLL and PLL
 algorithms, record solve times per case, and drill recognition with a random
 trainer that surfaces the cases you have practised least recently.
 
-Live: https://pll-manager.vercel.app
+Live: https://cfop-trainer-ten.vercel.app
 
 The interface is available in English and Japanese (switch it in Settings).
-Everything is stored in your browser's `localStorage`; there is no account and
-no server. Algorithms can be exported and imported as JSON from the settings
-dialog. The app is installable as a PWA and works offline.
+Guests save to the browser's `localStorage` and can work offline. With Supabase
+configured, email/password accounts save settings, algorithms and times to
+PostgreSQL and can use them across devices. Signed-in accounts require a
+connection to save. See [account setup](docs/accounts.md) for deployment steps.
+Algorithms can also be exported and imported as JSON from Settings.
+The app is installable as a PWA.
 
 ## Features
 

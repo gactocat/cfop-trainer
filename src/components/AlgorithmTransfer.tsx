@@ -9,6 +9,7 @@ import {
 } from '@/lib/f2l-storage';
 import { exportOLLAlgorithms, importOLLAlgorithms } from '@/lib/oll-storage';
 import { ImportError } from '@/lib/import-error';
+import { getPersistenceSnapshot } from '@/lib/persistence';
 
 type Kind = 'pll' | 'f2l' | 'oll';
 
@@ -93,8 +94,10 @@ export function AlgorithmTransfer() {
     if (!window.confirm(t('transfer.confirmImport', { kind: cfg.label }))) {
       return;
     }
+    const generation = getPersistenceSnapshot().generation;
     try {
       const text = await file.text();
+      if (getPersistenceSnapshot().generation !== generation) return;
       const { imported } = cfg.import(text);
       setStatus({
         kind: 'success',

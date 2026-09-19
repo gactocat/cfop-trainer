@@ -1,9 +1,9 @@
 // Minimal service worker for PLL Manager.
 // Strategy: stale-while-revalidate for navigations and static assets, so the
 // app loads instantly from cache and the network refresh updates the cache
-// for next time. Pure client-side app — no API requests to worry about.
+// for next time. Account traffic must never enter the offline cache.
 
-const CACHE_NAME = 'pll-manager-v1';
+const CACHE_NAME = 'pll-manager-v2';
 const APP_SHELL = ['/', '/manifest.webmanifest', '/icon.svg'];
 
 self.addEventListener('install', (event) => {
@@ -52,6 +52,7 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+  if (url.pathname === '/account' || url.pathname.startsWith('/auth/') || url.pathname.startsWith('/api/')) return;
 
   // Navigation requests (HTML): network-first so deploys propagate quickly,
   // fall back to cache when offline.

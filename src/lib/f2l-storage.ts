@@ -1,3 +1,4 @@
+import { readStoredValue } from '@/lib/persistence';
 import { createLocalStore } from '@/lib/local-store';
 import { ALL_F2LS } from '@/data/f2l-definitions';
 import { splitF2LAuf } from '@/lib/f2l-auf';
@@ -100,7 +101,7 @@ export function enforceStarInvariant(
 // intentional clear and left alone.
 export function seedDefaultsIfMissing(): void {
   if (typeof window === 'undefined') return;
-  if (window.localStorage.getItem(STORAGE_KEY) !== null) return;
+  if (readStoredValue(STORAGE_KEY) !== null) return;
   const now = nowIso();
   const seeded: F2LAlgorithmRecord[] = ALL_F2LS.map((def) => {
     const { auf, rest } = splitF2LAuf(def.primaryAlg);

@@ -5,6 +5,7 @@ import { PracticeTabs } from '@/components/PracticeTabs';
 import { HtmlLang } from '@/components/HtmlLang';
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
 import { SettingsButton } from '@/components/SettingsButton';
+import { AccountBoundary, AccountLink, AccountSession } from '@/components/AccountBoundary';
 import './globals.css';
 
 const geistSans = Geist({
@@ -55,6 +56,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+        <AccountSession />
         <ServiceWorkerRegister />
         <HtmlLang />
         <header className="border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur sticky top-0 z-10">
@@ -63,11 +65,12 @@ export default function RootLayout({
               CFOP Trainer
             </Link>
             <PracticeTabs />
+            <AccountLink />
             <SettingsButton />
           </div>
         </header>
         <main className="mx-auto w-full max-w-6xl px-4 py-6 flex-1">
-          {children}
+          <AccountBoundary>{children}</AccountBoundary>
         </main>
       </body>
     </html>

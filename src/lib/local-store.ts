@@ -1,3 +1,5 @@
+import { canWriteData, readStoredValue, subscribeData, writeStoredValue } from '@/lib/persistence';
+
 // The same cached useSyncExternalStore contract for all practice stores.
 // Decoders retain each practice's persisted schema and legacy migrations.
 export function createLocalStore<T>(
@@ -12,9 +14,13 @@ export function createLocalStore<T>(
 ) {
   let cached: T | null = null;
   const listeners = new Set<() => void>();
+  subscribeData(() => {
+    cached = null;
+    listeners.forEach((listener) => listener());
+  });
   const read = (): T => {
     try {
-      const raw = window.localStorage.getItem(storageKey);
+      const raw = readStoredValue(storageKey);
       return raw === null ? (options.missing?.() ?? empty) : decode(JSON.parse(raw));
     } catch {
       return options.missing?.() ?? empty;
@@ -26,12 +32,13 @@ export function createLocalStore<T>(
     return cached;
   };
   const mutate = (updater: (prev: T) => T): void => {
+    if (!canWriteData()) throw new Error('Storage is read-only');
     const prev = getSnapshot();
     const updated = updater(prev);
     const next = options.normalize ? options.normalize(updated) : updated;
     if (next === prev) return;
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem(storageKey, JSON.stringify(options.encode ? options.encode(next) : next));
+      writeStoredValue(storageKey, JSON.stringify(options.encode ? options.encode(next) : next));
     }
     cached = next;
     listeners.forEach((listener) => listener());

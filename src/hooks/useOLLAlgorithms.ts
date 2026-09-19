@@ -9,6 +9,8 @@ import {
   subscribe,
 } from '@/lib/oll-storage';
 import { useMounted } from '@/hooks/useMounted';
+import { usePersistence } from '@/hooks/usePersistence';
+import { canWriteData } from '@/lib/persistence';
 import type { Auf, TimeRecord } from '@/types/pll';
 import type {
   OLLAlgorithmRecord,
@@ -48,9 +50,11 @@ export function useOLLAlgorithms(): UseOLLAlgorithmsResult {
   // only after hydration (a `typeof window` check would mismatch the SSR markup).
   const ready = useMounted();
 
+  const persistence = usePersistence();
+  const writable = persistence.mode === 'guest' || (persistence.mode === 'account' && persistence.online && !persistence.error);
   useEffect(() => {
-    seedDefaultsIfMissing();
-  }, []);
+    if (canWriteData()) seedDefaultsIfMissing();
+  }, [writable]);
 
   const forOLL = useCallback(
     (ollId: OLLId, auf?: Auf) =>
