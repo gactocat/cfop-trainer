@@ -1,6 +1,6 @@
 # CFOP Trainer
 
-A small web app for speedcubers working on CFOP. Manage your F2L and PLL
+A small web app for speedcubers working on CFOP. Manage your F2L, OLL and PLL
 algorithms, record solve times per case, and drill recognition with a random
 trainer that surfaces the cases you have practised least recently.
 
@@ -13,7 +13,7 @@ dialog. The app is installable as a PWA and works offline.
 
 ## Features
 
-- PLL and F2L case lists with a 3D / last-layer view, best time, ao5, and
+- PLL, OLL and F2L case lists with a 3D / last-layer view, best time, ao5, and
   last-practised date per case
 - Multiple algorithms per case with one starred as the active one, with AUF
   handled separately
@@ -24,12 +24,16 @@ dialog. The app is installable as a PWA and works offline.
   alternative routes to the case, so it does not spell out the solution; a
   random U turn can be added on top
 
+- All 57 OLL cases with 285 preset algorithms from [SpeedCubeDB](https://www.speedcubedb.com/a/3x3/OLL), grouped by shape
+
 ## Development
 
 ```bash
 npm ci
 npm run dev       # http://localhost:3000
 npm run check     # lint + typecheck + build
+# Verify OLL presets, AUF orientations and F2L preservation (Node 24):
+node --import ./scripts/register-src-alias.mjs scripts/verify-oll.mts
 ```
 
 Built with Next.js (App Router), React, TypeScript, Tailwind CSS, and

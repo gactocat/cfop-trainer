@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'CFOP Trainer',
   description:
-    'Manage CFOP F2L and PLL algorithms, record solve times, and train recognition with random cases.',
+    'Manage CFOP F2L, OLL and PLL algorithms, record solve times, and train recognition with random cases.',
   applicationName: 'CFOP Trainer',
   appleWebApp: {
     capable: true,

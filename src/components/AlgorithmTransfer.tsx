@@ -7,9 +7,10 @@ import {
   exportF2LAlgorithms,
   importF2LAlgorithms,
 } from '@/lib/f2l-storage';
+import { exportOLLAlgorithms, importOLLAlgorithms } from '@/lib/oll-storage';
 import { ImportError } from '@/lib/import-error';
 
-type Kind = 'pll' | 'f2l';
+type Kind = 'pll' | 'f2l' | 'oll';
 
 interface Config {
   label: string;
@@ -24,6 +25,12 @@ const CONFIGS: Record<Kind, Config> = {
     fileName: 'cfop-pll-algorithms.json',
     export: exportAlgorithms,
     import: importAlgorithms,
+  },
+  oll: {
+    label: 'OLL',
+    fileName: 'cfop-oll-algorithms.json',
+    export: exportOLLAlgorithms,
+    import: importOLLAlgorithms,
   },
   f2l: {
     label: 'F2L',
@@ -68,6 +75,7 @@ export function AlgorithmTransfer() {
   const { t, tn } = useT();
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const pllInputRef = useRef<HTMLInputElement>(null);
+  const ollInputRef = useRef<HTMLInputElement>(null);
   const f2lInputRef = useRef<HTMLInputElement>(null);
 
   const handleExport = (kind: Kind) => {
@@ -116,9 +124,9 @@ export function AlgorithmTransfer() {
       </div>
 
       <div className="space-y-2">
-        {(['pll', 'f2l'] as Kind[]).map((kind) => {
+        {(['pll', 'oll', 'f2l'] as Kind[]).map((kind) => {
           const cfg = CONFIGS[kind];
-          const ref = kind === 'pll' ? pllInputRef : f2lInputRef;
+          const ref = kind === 'pll' ? pllInputRef : kind === 'oll' ? ollInputRef : f2lInputRef;
           return (
             <div key={kind} className={rowClass}>
               <span className="w-10 text-xs font-medium text-zinc-700 dark:text-zinc-300">

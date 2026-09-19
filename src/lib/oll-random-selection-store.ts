@@ -1,7 +1,7 @@
 import { createRandomSelectionStore } from '@/lib/random-selection-store';
-import { PLL_IDS } from '@/types/pll';
+import { OLL_IDS } from '@/types/oll';
 
 export const { getSnapshot, getServerSnapshot, subscribe, mutate } = createRandomSelectionStore(
-  'pll-app:pll-random-selection:v1',
-  PLL_IDS,
+  'pll-app:oll-random-selection:v1',
+  OLL_IDS,
 );

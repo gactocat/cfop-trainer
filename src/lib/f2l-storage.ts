@@ -1,3 +1,4 @@
+import { createLocalStore } from '@/lib/local-store';
 import { ALL_F2LS } from '@/data/f2l-definitions';
 import { splitF2LAuf } from '@/lib/f2l-auf';
 import { ImportError } from '@/lib/import-error';
@@ -19,9 +20,6 @@ function newId(): string {
   }
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
-
-let cached: F2LAlgorithmRecord[] | null = null;
-const listeners = new Set<() => void>();
 
 function normalizeRecord(raw: unknown): F2LAlgorithmRecord | null {
   if (typeof raw !== 'object' || raw === null) return null;
@@ -51,44 +49,14 @@ function normalizeRecord(raw: unknown): F2LAlgorithmRecord | null {
   };
 }
 
-function readFromStorage(): F2LAlgorithmRecord[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .map(normalizeRecord)
-      .filter((r): r is F2LAlgorithmRecord => r !== null);
-  } catch {
-    return [];
-  }
-}
-
-function writeToStorage(records: F2LAlgorithmRecord[]): void {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-}
-
-const EMPTY: F2LAlgorithmRecord[] = [];
-
-export function getSnapshot(): F2LAlgorithmRecord[] {
-  if (typeof window === 'undefined') return EMPTY;
-  if (cached === null) cached = readFromStorage();
-  return cached;
-}
-
-export function getServerSnapshot(): F2LAlgorithmRecord[] {
-  return EMPTY;
-}
-
-export function subscribe(listener: () => void): () => void {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
-}
+export const { getSnapshot, getServerSnapshot, subscribe, mutate } = createLocalStore<F2LAlgorithmRecord[]>(
+  STORAGE_KEY,
+  [],
+  (raw) => Array.isArray(raw)
+    ? raw.map(normalizeRecord).filter((r): r is F2LAlgorithmRecord => r !== null)
+    : [],
+  { normalize: enforceStarInvariant },
+);
 
 // Mirrors the PLL invariant: each F2L case with at least one algorithm has
 // exactly one starred entry. Promotes the first algorithm if none is starred,
@@ -127,17 +95,6 @@ export function enforceStarInvariant(
   return changed ? next : records;
 }
 
-export function mutate(
-  updater: (prev: F2LAlgorithmRecord[]) => F2LAlgorithmRecord[],
-): void {
-  const prev = getSnapshot();
-  const next = enforceStarInvariant(updater(prev));
-  if (next === prev) return;
-  cached = next;
-  writeToStorage(next);
-  listeners.forEach((l) => l());
-}
-
 // On first visit (storage key never written), seed every F2L case with its
 // primary algorithm marked as starred. An explicit `[]` is treated as an
 // intentional clear and left alone.
@@ -158,9 +115,7 @@ export function seedDefaultsIfMissing(): void {
       updatedAt: now,
     };
   });
-  cached = seeded;
-  writeToStorage(seeded);
-  listeners.forEach((l) => l());
+  mutate(() => seeded);
 }
 
 interface F2LExportEntry {

@@ -1,10 +1,11 @@
 import { createLocalStore } from '@/lib/local-store';
-import { PRESET_ALGORITHMS } from '@/data/preset-algorithms';
-import { AUFS, PLL_IDS, type AlgorithmRecord, type Auf, type PllId } from '@/types/pll';
+import { OLL_PRESET_ALGORITHMS } from '@/data/oll-preset-algorithms';
+import { OLL_IDS, type OLLAlgorithmRecord, type OLLId } from '@/types/oll';
+import { AUFS, type Auf } from '@/types/pll';
 import { splitAuf } from '@/lib/auf-from-algorithm';
 import { ImportError } from '@/lib/import-error';
 
-const STORAGE_KEY = 'pll-app:algorithms:v1';
+const STORAGE_KEY = 'pll-app:oll-algorithms:v1';
 const EXPORT_VERSION = 1;
 
 function nowIso(): string {
@@ -18,43 +19,42 @@ function newId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-// Migrate legacy `isFavorite` to `isStarred` when loading existing data.
-function normalizeRecord(raw: unknown): AlgorithmRecord | null {
+function normalizeRecord(raw: unknown): OLLAlgorithmRecord | null {
   if (typeof raw !== 'object' || raw === null) return null;
-  const r = raw as Partial<AlgorithmRecord> & { isFavorite?: boolean };
-  if (!r.id || !r.pllId || !r.algorithm) return null;
+  const r = raw as Partial<OLLAlgorithmRecord>;
+  if (typeof r.id !== 'string' || !OLL_IDS.includes(r.ollId as OLLId) || typeof r.algorithm !== 'string' || !r.algorithm.trim()) return null;
   return {
     id: r.id,
-    pllId: r.pllId,
-    auf: r.auf ?? 'U0',
+    ollId: r.ollId as OLLId,
+    auf: r.auf && AUFS.includes(r.auf) ? r.auf : 'U0',
     algorithm: r.algorithm,
     times: Array.isArray(r.times) ? r.times : [],
-    isStarred: typeof r.isStarred === 'boolean' ? r.isStarred : !!r.isFavorite,
+    isStarred: r.isStarred === true,
     createdAt: r.createdAt ?? new Date(0).toISOString(),
     updatedAt: r.updatedAt ?? new Date(0).toISOString(),
   };
 }
 
-export const { getSnapshot, getServerSnapshot, subscribe, mutate } = createLocalStore<AlgorithmRecord[]>(
+export const { getSnapshot, getServerSnapshot, subscribe, mutate } = createLocalStore<OLLAlgorithmRecord[]>(
   STORAGE_KEY,
   [],
   (raw) => Array.isArray(raw)
-    ? raw.map(normalizeRecord).filter((r): r is AlgorithmRecord => r !== null)
+    ? raw.map(normalizeRecord).filter((r): r is OLLAlgorithmRecord => r !== null)
     : [],
   { normalize: enforceStarInvariant },
 );
 
-// Enforce: each PLL with at least one algorithm has exactly one starred entry.
+// Enforce: each OLL with at least one algorithm has exactly one starred entry.
 // Preserves an existing star if there is one; otherwise stars the first record.
-export function enforceStarInvariant(records: AlgorithmRecord[]): AlgorithmRecord[] {
-  const byPll = new Map<PllId, AlgorithmRecord[]>();
+export function enforceStarInvariant(records: OLLAlgorithmRecord[]): OLLAlgorithmRecord[] {
+  const byOLL = new Map<OLLId, OLLAlgorithmRecord[]>();
   for (const r of records) {
-    const list = byPll.get(r.pllId) ?? [];
+    const list = byOLL.get(r.ollId) ?? [];
     list.push(r);
-    byPll.set(r.pllId, list);
+    byOLL.set(r.ollId, list);
   }
   const fixedIds = new Map<string, boolean>();
-  for (const [, list] of byPll) {
+  for (const [, list] of byOLL) {
     if (list.length === 0) continue;
     const stars = list.filter((r) => r.isStarred);
     let starredId: string;
@@ -79,21 +79,21 @@ export function enforceStarInvariant(records: AlgorithmRecord[]): AlgorithmRecor
   return changed ? next : records;
 }
 
-// On first visit (storage key never written), seed every PLL with the first
+// On first visit (storage key never written), seed every OLL with the first
 // preset algorithm, splitting any leading "(U)" / "(U2)" / "(U')" into the AUF
 // field. An explicit `[]` is treated as an intentional clear and left alone.
 export function seedDefaultsIfMissing(): void {
   if (typeof window === 'undefined') return;
   if (window.localStorage.getItem(STORAGE_KEY) !== null) return;
   const now = nowIso();
-  const seeded: AlgorithmRecord[] = [];
-  for (const pllId of PLL_IDS) {
-    const presets = PRESET_ALGORITHMS[pllId];
+  const seeded: OLLAlgorithmRecord[] = [];
+  for (const ollId of OLL_IDS) {
+    const presets = OLL_PRESET_ALGORITHMS[ollId];
     if (!presets || presets.length === 0) continue;
     const { auf, rest } = splitAuf(presets[0]);
     seeded.push({
       id: newId(),
-      pllId,
+      ollId,
       auf,
       algorithm: rest,
       times: [],
@@ -106,14 +106,14 @@ export function seedDefaultsIfMissing(): void {
 }
 
 interface ExportEntry {
-  pllId: PllId;
+  ollId: OLLId;
   auf: Auf;
   algorithm: string;
   isStarred: boolean;
 }
 
 interface ExportFile {
-  type: 'pll';
+  type: 'oll';
   version: number;
   exportedAt: string;
   algorithms: ExportEntry[];
@@ -121,15 +121,15 @@ interface ExportFile {
 
 // Serialize the current algorithms to a JSON string. Only the algorithm body,
 // AUF and star flag are included — practice times are intentionally omitted.
-export function exportAlgorithms(): string {
+export function exportOLLAlgorithms(): string {
   const algorithms: ExportEntry[] = getSnapshot().map((r) => ({
-    pllId: r.pllId,
+    ollId: r.ollId,
     auf: r.auf,
     algorithm: r.algorithm,
     isStarred: r.isStarred,
   }));
   const file: ExportFile = {
-    type: 'pll',
+    type: 'oll',
     version: EXPORT_VERSION,
     exportedAt: nowIso(),
     algorithms,
@@ -137,10 +137,10 @@ export function exportAlgorithms(): string {
   return JSON.stringify(file, null, 2);
 }
 
-// Parse an exported JSON string and replace all PLL algorithms with it.
+// Parse an exported JSON string and replace all OLL algorithms with it.
 // Throws on malformed JSON or wrong `type`. Invalid individual entries are
 // skipped. Returns the number of imported records.
-export function importAlgorithms(json: string): { imported: number } {
+export function importOLLAlgorithms(json: string): { imported: number } {
   let parsed: unknown;
   try {
     parsed = JSON.parse(json);
@@ -151,25 +151,25 @@ export function importAlgorithms(json: string): { imported: number } {
     throw new ImportError('unrecognized');
   }
   const file = parsed as Partial<ExportFile>;
-  if (file.type !== 'pll') {
+  if (file.type !== 'oll') {
     throw new ImportError('wrong-kind');
   }
   if (!Array.isArray(file.algorithms)) {
     throw new ImportError('unrecognized');
   }
-  const validIds = new Set<string>(PLL_IDS);
+  const validIds = new Set<string>(OLL_IDS);
   const validAufs = new Set<string>(AUFS);
   const now = nowIso();
-  const next: AlgorithmRecord[] = [];
+  const next: OLLAlgorithmRecord[] = [];
   for (const raw of file.algorithms) {
     if (typeof raw !== 'object' || raw === null) continue;
     const e = raw as Partial<ExportEntry>;
-    if (typeof e.pllId !== 'string' || !validIds.has(e.pllId)) continue;
+    if (typeof e.ollId !== 'string' || !validIds.has(e.ollId)) continue;
     if (typeof e.auf !== 'string' || !validAufs.has(e.auf)) continue;
     if (typeof e.algorithm !== 'string' || e.algorithm.trim() === '') continue;
     next.push({
       id: newId(),
-      pllId: e.pllId as PllId,
+      ollId: e.ollId as OLLId,
       auf: e.auf as Auf,
       algorithm: e.algorithm,
       times: [],

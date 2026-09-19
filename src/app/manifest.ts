@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'CFOP Trainer',
     short_name: 'CFOP',
     description:
-      'Manage CFOP F2L and PLL algorithms, record solve times, and train recognition with random cases.',
+      'Manage CFOP F2L, OLL and PLL algorithms, record solve times, and train recognition with random cases.',
     start_url: '/pll',
     display: 'standalone',
     orientation: 'portrait',

@@ -4,14 +4,16 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useT } from '@/hooks/useT';
 
-type Practice = 'pll' | 'f2l';
+type Practice = 'pll' | 'f2l' | 'oll';
 
 const TABS: ReadonlyArray<{ practice: Practice; label: string; href: string }> = [
   { practice: 'pll', label: 'PLL', href: '/pll' },
+  { practice: 'oll', label: 'OLL', href: '/oll' },
   { practice: 'f2l', label: 'F2L', href: '/f2l' },
 ];
 
 function activeFor(pathname: string | null): Practice {
+  if (pathname?.startsWith('/oll')) return 'oll';
   if (pathname?.startsWith('/f2l')) return 'f2l';
   return 'pll';
 }
