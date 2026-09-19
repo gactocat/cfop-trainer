@@ -36,20 +36,15 @@ function GearIcon({ size = 20 }: { size?: number }) {
 
 function Section({
   title,
-  description,
   children,
 }: {
   title: MessageKey;
-  description: MessageKey;
   children: ReactNode;
 }) {
   const { t } = useT();
   return (
     <section className="space-y-2">
-      <div>
-        <h3 className="text-sm font-medium">{t(title)}</h3>
-        <p className="text-xs text-zinc-500">{t(description)}</p>
-      </div>
+      <h3 className="text-sm font-medium">{t(title)}</h3>
       {children}
     </section>
   );
@@ -66,7 +61,7 @@ function Help({ label, text }: { label: MessageKey; text: MessageKey }) {
 }
 
 const Divider = () => <div className="border-t border-zinc-200 dark:border-zinc-800" />;
-const MENU_ITEMS = ['account', 'settings', 'data'] as const;
+const MENU_ITEMS = ['account', 'data', 'settings'] as const;
 function MenuIcon({ item }: { item: (typeof MENU_ITEMS)[number] }) {
   if (item === 'settings') return <GearIcon size={16} />;
   return (
@@ -171,16 +166,13 @@ export function SettingsButton() {
       ) : (
         <WritableArea>
           <div className="space-y-4">
-            <Section title="settings.language.title" description="settings.language.description">
+            <Section title="settings.language.title">
               <LocaleToggle />
             </Section>
 
             <Divider />
 
-            <Section
-              title="settings.aufDisplay.title"
-              description="settings.aufDisplay.description"
-            >
+            <Section title="settings.aufDisplay.title">
               <AufModeToggle />
               <ul className="text-xs text-zinc-500 space-y-1">
                 <Help label="settings.aufDisplay.onCube" text="settings.aufDisplay.onCubeHelp" />
@@ -193,10 +185,7 @@ export function SettingsButton() {
 
             <Divider />
 
-            <Section
-              title="settings.trainerMode.title"
-              description="settings.trainerMode.description"
-            >
+            <Section title="settings.trainerMode.title">
               <TrainerModeToggle />
               <ul className="text-xs text-zinc-500 space-y-1">
                 <Help
