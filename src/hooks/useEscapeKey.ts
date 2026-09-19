@@ -11,7 +11,7 @@ export function useEscapeKey(handler: () => void, active = true): void {
   useEffect(() => {
     if (!active) return;
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || e.repeat) return;
+      if (e.key !== 'Escape' || e.repeat || document.querySelector('[data-app-overlay]')) return;
       const target = e.target as (HTMLElement & { isContentEditable?: boolean }) | null;
       const tag = target?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable) {

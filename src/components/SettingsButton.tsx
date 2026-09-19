@@ -1,7 +1,11 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
+import { usePersistence } from '@/hooks/usePersistence';
+import { closeAppDialog, getAppDialog, getAppDialogServerSnapshot, openAccountDialog, openAppDialog, subscribeAppDialog } from '@/lib/app-dialog';
+import { AccountPanel } from './AccountPanel';
+import { AppModal } from './AppModal';
 import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
 import { AlgorithmTransfer } from './AlgorithmTransfer';
@@ -9,7 +13,6 @@ import { AufModeToggle } from './AufModeToggle';
 import { RandomAufToggle } from './RandomAufToggle';
 import { TrainerModeToggle } from './TrainerModeToggle';
 import { LocaleToggle } from './LocaleToggle';
-import Link from 'next/link';
 import { WritableArea } from './AccountBoundary';
 
 function GearIcon() {
@@ -66,114 +69,125 @@ const Divider = () => <div className="border-t border-zinc-200 dark:border-zinc-
 
 export function SettingsButton() {
   const { t } = useT();
-  const [open, setOpen] = useState(false);
+  const state = usePersistence();
+  const pathname = usePathname();
+  const dialog = useSyncExternalStore(subscribeAppDialog, getAppDialog, getAppDialogServerSnapshot);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const container = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const items = useRef<(HTMLButtonElement | null)[]>([]);
+  const firstItem = useRef(0);
 
   useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open]);
+    if (pathname === '/account') openAccountDialog();
+  }, [pathname]);
 
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label={t('common.settings')}
-        aria-haspopup="dialog"
-        title={t('common.settings')}
-        className="ml-auto inline-flex items-center justify-center h-9 w-9 rounded-md text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-      >
+  useEffect(() => {
+    if (!menuOpen) return;
+    items.current[firstItem.current]?.focus();
+    const onPointer = (event: PointerEvent) => {
+      if (!container.current?.contains(event.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointer);
+    return () => document.removeEventListener('pointerdown', onPointer);
+  }, [menuOpen]);
+
+  const choose = (target: 'settings' | 'account') => {
+    setMenuOpen(false);
+    trigger.current?.focus();
+    openAppDialog(target);
+  };
+
+  return <>
+    <div ref={container} className="relative ml-auto shrink-0"
+      onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setMenuOpen(false); }}>
+      <button ref={trigger} type="button"
+        onClick={() => { firstItem.current = 0; setMenuOpen(!menuOpen); }}
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            firstItem.current = event.key === 'ArrowUp' ? 1 : 0;
+            setMenuOpen(true);
+          }
+        }}
+        aria-label={t('common.menu')} title={t('common.menu')} aria-haspopup="menu"
+        aria-expanded={menuOpen} aria-controls={menuOpen ? 'header-menu' : undefined}
+        className="inline-flex h-9 w-9 items-center justify-center rounded-md text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100">
         <GearIcon />
       </button>
+      {menuOpen && <div id="header-menu" role="menu" aria-label={t('common.menu')} data-app-overlay
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            event.preventDefault(); event.stopPropagation();
+            setMenuOpen(false); trigger.current?.focus();
+          } else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+            event.preventDefault();
+            const index = items.current.indexOf(document.activeElement as HTMLButtonElement);
+            const next = event.key === 'Home' ? 0 : event.key === 'End' ? 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + 2) % 2;
+            items.current[next]?.focus();
+          }
+        }}
+        className="absolute right-0 top-full z-20 mt-2 w-40 rounded-lg border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-800 dark:bg-zinc-900">
+        {(['settings', 'account'] as const).map((target, index) => <button key={target}
+          ref={(element) => { items.current[index] = element; }} type="button" role="menuitem" tabIndex={-1}
+          onClick={() => choose(target)}
+          className="block w-full rounded-md px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none dark:text-zinc-200 dark:hover:bg-zinc-800 dark:focus:bg-zinc-800">
+          {t(target === 'settings' ? 'common.settings' : state.userId ? 'account.title' : 'account.signIn')}
+        </button>)}
+      </div>}
+    </div>
+    {dialog && <AppModal key={dialog}
+      title={t(dialog === 'settings' ? 'settings.title' : state.userId ? 'account.title' : 'account.signIn')}
+      onClose={closeAppDialog}>
+      {dialog === 'account' ? <AccountPanel key={state.generation} /> : (
+        <WritableArea>
+          <div className="space-y-4">
+            <Section title="settings.language.title" description="settings.language.description">
+              <LocaleToggle />
+            </Section>
 
-      {open && typeof document !== 'undefined' && createPortal(
-        <div
-          className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 bg-black/40"
-          role="presentation"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="settings-title"
-            onClick={(e) => e.stopPropagation()}
-            // Cap the height and scroll inside: a fixed overlay adds nothing to
-            // the page's scroll height, so without this the settings are simply
-            // cut off on small screens.
-            className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl"
-          >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
-              <h2 id="settings-title" className="text-base font-semibold">
-                {t('settings.title')}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                aria-label={t('settings.closeAria')}
-                className="inline-flex items-center justify-center h-8 w-8 rounded-md text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100"
-              >
-                ✕
-              </button>
-            </div>
+            <Divider />
 
-            <div className="p-4 space-y-4">
-              <Link href="/account" onClick={() => setOpen(false)} className="block text-sm underline">{t('account.open')}</Link>
-              <WritableArea>
-                <div className="space-y-4">
-                  <Section title="settings.language.title" description="settings.language.description">
-                    <LocaleToggle />
-                  </Section>
+            <Section
+              title="settings.aufDisplay.title"
+              description="settings.aufDisplay.description"
+            >
+              <AufModeToggle />
+              <ul className="text-xs text-zinc-500 space-y-1">
+                <Help label="settings.aufDisplay.onCube" text="settings.aufDisplay.onCubeHelp" />
+                <Help
+                  label="settings.aufDisplay.inAlgorithm"
+                  text="settings.aufDisplay.inAlgorithmHelp"
+                />
+              </ul>
+            </Section>
 
-                  <Divider />
+            <Divider />
 
-                  <Section
-                    title="settings.aufDisplay.title"
-                    description="settings.aufDisplay.description"
-                  >
-                    <AufModeToggle />
-                    <ul className="text-xs text-zinc-500 space-y-1">
-                      <Help label="settings.aufDisplay.onCube" text="settings.aufDisplay.onCubeHelp" />
-                      <Help
-                        label="settings.aufDisplay.inAlgorithm"
-                        text="settings.aufDisplay.inAlgorithmHelp"
-                      />
-                    </ul>
-                  </Section>
+            <Section
+              title="settings.trainerMode.title"
+              description="settings.trainerMode.description"
+            >
+              <TrainerModeToggle />
+              <ul className="text-xs text-zinc-500 space-y-1">
+                <Help
+                  label="settings.trainerMode.standard"
+                  text="settings.trainerMode.standardHelp"
+                />
+                <Help
+                  label="settings.trainerMode.inverse"
+                  text="settings.trainerMode.inverseHelp"
+                />
+              </ul>
+              <RandomAufToggle />
+            </Section>
 
-                  <Divider />
+            <Divider />
 
-                  <Section
-                    title="settings.trainerMode.title"
-                    description="settings.trainerMode.description"
-                  >
-                    <TrainerModeToggle />
-                    <ul className="text-xs text-zinc-500 space-y-1">
-                      <Help
-                        label="settings.trainerMode.standard"
-                        text="settings.trainerMode.standardHelp"
-                      />
-                      <Help
-                        label="settings.trainerMode.inverse"
-                        text="settings.trainerMode.inverseHelp"
-                      />
-                    </ul>
-                    <RandomAufToggle />
-                  </Section>
-
-                  <Divider />
-
-                  <AlgorithmTransfer />
-                </div>
-              </WritableArea>
-            </div>
+            <AlgorithmTransfer />
           </div>
-        </div>,
-        document.body,
+        </WritableArea>
       )}
-    </>
-  );
+    </AppModal>}
+  </>;
 }

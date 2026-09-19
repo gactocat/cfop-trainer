@@ -26,7 +26,7 @@ export function PracticeTabs() {
   return (
     <nav
       aria-label={t('common.practice')}
-      className="inline-flex rounded-md bg-zinc-100 dark:bg-zinc-800 p-0.5 gap-0.5"
+      className="inline-flex shrink-0 rounded-md bg-zinc-100 dark:bg-zinc-800 p-0.5 gap-0.5"
     >
       {TABS.map((tab) => {
         const isActive = tab.practice === active;
@@ -35,7 +35,7 @@ export function PracticeTabs() {
             key={tab.practice}
             href={tab.href}
             aria-current={isActive ? 'page' : undefined}
-            className={`px-3 py-1 text-sm font-semibold tracking-tight rounded transition-colors ${
+            className={`px-2 sm:px-3 py-1 text-sm font-semibold tracking-tight rounded transition-colors ${
               isActive
                 ? 'bg-white dark:bg-zinc-950 shadow-sm text-zinc-900 dark:text-zinc-100'
                 : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'

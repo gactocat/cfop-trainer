@@ -1,27 +1,14 @@
 'use client';
 import { Fragment, useEffect, type ReactNode } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { usePersistence } from '@/hooks/usePersistence';
 import { useT } from '@/hooks/useT';
 import { startAccountSession } from '@/lib/account-session';
 import { reloadAccount, retryAccountSave } from '@/lib/persistence';
+import { openAccountDialog } from '@/lib/app-dialog';
 
 export function AccountSession() {
   useEffect(() => { startAccountSession(); }, []);
   return null;
-}
-export function AccountLink() {
-  const { t } = useT();
-  const state = usePersistence();
-  const label = t(state.userId ? 'account.title' : 'account.signIn');
-  return <Link href="/account" aria-label={label} title={label}
-    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-2 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100">
-    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-      <circle cx="12" cy="8" r="3.5" />
-      <path d="M5 21v-2a7 7 0 0 1 14 0v2" />
-    </svg>
-  </Link>;
 }
 export function StorageStatus() {
   const { t } = useT();
@@ -58,13 +45,12 @@ export function WritableArea({ children }: { children: ReactNode }) {
 export function AccountBoundary({ children }: { children: ReactNode }) {
   const state = usePersistence();
   const { t } = useT();
-  const accountPage = usePathname() === '/account';
   const ready = state.mode === 'guest' || state.mode === 'account';
   return <>
-    {!accountPage && <StorageStatus />}
+    <StorageStatus />
     <Fragment key={state.generation}>
-      {accountPage ? children : ready ? <WritableArea>{children}</WritableArea> : (
-        <Link className="text-sm underline" href="/account">{t('account.open')}</Link>
+      {ready ? <WritableArea>{children}</WritableArea> : (
+        <button className="text-sm underline" onClick={openAccountDialog}>{t('account.open')}</button>
       )}
     </Fragment>
   </>;

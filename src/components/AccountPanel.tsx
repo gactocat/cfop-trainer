@@ -1,6 +1,5 @@
 'use client';
 import { useState, useSyncExternalStore, type FormEvent } from 'react';
-import Link from 'next/link';
 import { usePersistence } from '@/hooks/usePersistence';
 import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
@@ -71,10 +70,7 @@ export function AccountPanel() {
   };
   const signedIn = !!state.userId && state.mode !== 'boot';
   return <div className="mx-auto max-w-md space-y-5">
-    <div>
-      <h1 className="text-2xl font-semibold">{t('account.title')}</h1>
-      <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{t('account.description')}</p>
-    </div>
+    <p className="text-sm text-zinc-600 dark:text-zinc-400">{t('account.description')}</p>
     <StorageStatus />
     {!isAuthConfigured ? <p className="text-sm text-zinc-600 dark:text-zinc-400">{t('account.unavailable')}</p> : <>
       {signedIn && !recovery ? <div className="space-y-4">
@@ -92,7 +88,7 @@ export function AccountPanel() {
         }}>{t('account.reload')}</button>}
         <div><button className={button} disabled={busy || state.saving} onClick={() => { void signOut(); }}>{t('account.signOut')}</button></div>
       </div> : <>
-        <h2 className="font-medium">{t(recovery ? 'account.newPassword' : `account.${mode}`)}</h2>
+        {(recovery || mode !== 'signIn') && <h3 className="font-medium">{t(recovery ? 'account.newPassword' : `account.${mode}`)}</h3>}
         <form onSubmit={(event) => { void submit(event); }} className="space-y-4">
           {!recovery && <label className="block text-sm">{t('account.email')}
             <input type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} className={input} />
@@ -118,6 +114,5 @@ export function AccountPanel() {
       {notice && <p role="status" className="text-sm text-emerald-700 dark:text-emerald-400">{t(notice)}</p>}
       {error && <p role="alert" className="text-sm text-red-700 dark:text-red-400">{t(error)}</p>}
     </>}
-    <Link href="/" className="inline-block text-sm underline">{t('account.back')}</Link>
   </div>;
 }

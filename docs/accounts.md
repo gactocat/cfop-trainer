@@ -94,8 +94,9 @@ domain for `cfop-trainer`:
 Add each redirect URL as a separate entry. If you use a different local port or
 preview deployment, add its exact `/account` URL too. Keep the default
 confirmation/reset email links using `{{ .ConfirmationURL }}`. The app passes
-`/account` as the destination and handles confirmation and password recovery in
-the browser.
+`/account` as the destination and opens the same account modal over the practice
+screen for confirmation and password recovery. Normal sign-in opens from the
+header gear menu without navigating away from the current page.
 
 See [password authentication](https://supabase.com/docs/guides/auth/passwords)
 and [redirect URL configuration](https://supabase.com/docs/guides/auth/redirect-urls).
@@ -193,7 +194,7 @@ build. See [Vercel environment variables](https://vercel.com/docs/environment-va
   from another tab/device. A conflict requires explicitly reloading the server
   copy. A lost response can be retried with the same write id. Unsaved edits
   stay in memory, show a warning, and trigger a browser leave-page warning.
-- Use **Reload server data** on the Account page to pick up another device's
+- Use **Reload server data** in the Account modal to pick up another device's
   changes. This version does not stream live updates between devices.
 - Each document is limited to 8 MiB. A size-limit failure is shown as a failed
   save. Large histories may eventually need normalized, paginated tables.
