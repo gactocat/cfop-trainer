@@ -1,7 +1,7 @@
 'use client';
 
 import { PRESET_ALGORITHMS } from '@/data/preset-algorithms';
-import { useLastLayerSettings } from '@/hooks/useLastLayerSettings';
+import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { splitAuf } from '@/lib/auf-from-algorithm';
 import { buildLastLayerSetup } from '@/lib/last-layer-setup';
 import type { PllId } from '@/types/pll';
@@ -15,7 +15,7 @@ export function PllLLView({ pllId, algorithm, auf, size = 120, className }: {
   size?: number;
   className?: string;
 }) {
-  const { settings } = useLastLayerSettings('pll');
+  const { settings } = usePracticeSettings();
   const fallback = splitAuf(PRESET_ALGORITHMS[pllId][0]);
   const setup = buildLastLayerSetup({
     algorithm: algorithm ?? fallback.rest,

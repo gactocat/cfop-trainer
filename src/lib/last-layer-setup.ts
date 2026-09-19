@@ -1,7 +1,7 @@
 import { rotationNeutral } from '@/lib/cube-rotation';
 import { combineAuf, invertAuf, prefixAuf, aufToMove } from '@/lib/f2l-auf';
 import { invertAlg } from '@/lib/invert-alg';
-import type { LastLayerSettings } from '@/lib/last-layer-settings-store';
+import type { PracticeSettings } from '@/lib/practice-settings-store';
 import type { Auf } from '@/types/pll';
 
 export interface LastLayerAlgorithm {
@@ -14,7 +14,7 @@ export interface LastLayerAlgorithm {
 // body remains to solve. Prefix mode leaves that AUF in the solution.
 export function buildLastLayerSetup(
   record: LastLayerAlgorithm,
-  aufDisplay: LastLayerSettings['aufDisplay'],
+  aufDisplay: PracticeSettings['aufDisplay'],
   uOffset: Auf = 'U0',
 ) {
   const baseAuf = aufDisplay === 'prefix' ? record.auf : 'U0';

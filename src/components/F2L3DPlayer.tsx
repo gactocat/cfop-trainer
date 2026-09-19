@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useF2LAufDisplay } from '@/hooks/useF2LAufDisplay';
+import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { useT } from '@/hooks/useT';
 import { aufToMove, combineAuf, invertAuf, prefixAuf } from '@/lib/f2l-auf';
 import { F2L_STICKERING_MASK } from '@/lib/f2l-stickering-mask';
@@ -43,7 +43,7 @@ export function F2L3DPlayer({
   const [ready, setReady] = useState(false);
   const [inView, setInView] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const { mode: aufMode } = useF2LAufDisplay();
+  const { settings: { aufDisplay: aufMode } } = usePracticeSettings();
   const hostRef = useRef<HTMLDivElement | null>(null);
 
   // Each twisty-player holds a WebGL context, and browsers keep only ~16 alive

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ALL_F2LS, F2L_CATEGORY_ORDER } from '@/data/f2l-definitions';
 import { useF2LAlgorithms } from '@/hooks/useF2LAlgorithms';
-import { useF2LAufDisplay } from '@/hooks/useF2LAufDisplay';
+import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { useF2LRandomSelection } from '@/hooks/useF2LRandomSelection';
 import { useMounted } from '@/hooks/useMounted';
 import { useSelectionPresets } from '@/hooks/useSelectionPresets';
@@ -53,7 +53,7 @@ export function F2LGrid() {
   const { ready: algReady, starredFor, all: allAlgorithms } = useF2LAlgorithms();
   const selection = useF2LRandomSelection();
   const presets = useSelectionPresets(f2lSelectionPresets);
-  const { mode: aufMode } = useF2LAufDisplay();
+  const { settings: { aufDisplay: aufMode } } = usePracticeSettings();
   const { t, tn, intl } = useT();
   const mounted = useMounted();
   const [selectionMode, setSelectionMode] = useState(false);

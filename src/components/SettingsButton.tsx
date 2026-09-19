@@ -5,10 +5,9 @@ import { createPortal } from 'react-dom';
 import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
 import { AlgorithmTransfer } from './AlgorithmTransfer';
-import { F2LAufModeToggle } from './F2LAufModeToggle';
-import { F2LRandomAufToggle } from './F2LRandomAufToggle';
-import { F2LTrainerModeToggle } from './F2LTrainerModeToggle';
-import { LastLayerSettings } from './LastLayerSettings';
+import { AufModeToggle } from './AufModeToggle';
+import { RandomAufToggle } from './RandomAufToggle';
+import { TrainerModeToggle } from './TrainerModeToggle';
 import { LocaleToggle } from './LocaleToggle';
 
 function GearIcon() {
@@ -130,7 +129,7 @@ export function SettingsButton() {
                 title="settings.aufDisplay.title"
                 description="settings.aufDisplay.description"
               >
-                <F2LAufModeToggle />
+                <AufModeToggle />
                 <ul className="text-xs text-zinc-500 space-y-1">
                   <Help label="settings.aufDisplay.onCube" text="settings.aufDisplay.onCubeHelp" />
                   <Help
@@ -146,7 +145,7 @@ export function SettingsButton() {
                 title="settings.trainerMode.title"
                 description="settings.trainerMode.description"
               >
-                <F2LTrainerModeToggle />
+                <TrainerModeToggle />
                 <ul className="text-xs text-zinc-500 space-y-1">
                   <Help
                     label="settings.trainerMode.standard"
@@ -157,14 +156,9 @@ export function SettingsButton() {
                     text="settings.trainerMode.inverseHelp"
                   />
                 </ul>
-                <F2LRandomAufToggle />
+                <RandomAufToggle />
               </Section>
 
-              <Divider />
-
-              <LastLayerSettings practice="oll" />
-              <Divider />
-              <LastLayerSettings practice="pll" />
               <Divider />
 
               <AlgorithmTransfer />

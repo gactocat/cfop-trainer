@@ -5,9 +5,10 @@ import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useMounted } from '@/hooks/useMounted';
 import { useSpacebar } from '@/hooks/useSpacebar';
 import { useT } from '@/hooks/useT';
-import { useLastLayerSettings } from '@/hooks/useLastLayerSettings';
+import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { buildLastLayerSetup, type LastLayerAlgorithm, type LastLayerSetup } from '@/lib/last-layer-setup';
-import type { LastLayerPractice, LastLayerSettings } from '@/lib/last-layer-settings-store';
+import type { LastLayerPractice } from '@/types/practice';
+import type { PracticeSettings } from '@/lib/practice-settings-store';
 import { pickStaleWeighted } from '@/lib/stale-weighted-pick';
 import { formatSeconds } from '@/lib/stats';
 import { AUFS } from '@/types/pll';
@@ -17,7 +18,7 @@ type TrainerState = 'idle' | 'running' | 'stopped';
 interface Pick<Id> {
   id: Id;
   setup: LastLayerSetup;
-  settings: LastLayerSettings;
+  settings: PracticeSettings;
 }
 interface Props<Id extends string> {
   practice: LastLayerPractice;
@@ -36,7 +37,7 @@ export function LastLayerRandomTrainer<Id extends string>({
   practice, ids, selected, algorithmFor, nameFor, lastRecorded, add, bestFor, ao5For, solvesFor,
 }: Props<Id>) {
   const { t, tn } = useT();
-  const { settings } = useLastLayerSettings(practice);
+  const { settings } = usePracticeSettings();
   const [state, setState] = useState<TrainerState>('idle');
   const [current, setCurrent] = useState<Pick<Id> | null>(null);
   const [elapsed, setElapsed] = useState(0);

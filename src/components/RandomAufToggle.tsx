@@ -1,10 +1,10 @@
 'use client';
 
-import { useF2LScrambleSettings } from '@/hooks/useF2LScrambleSettings';
+import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { useT } from '@/hooks/useT';
 
-export function F2LRandomAufToggle() {
-  const { settings, update } = useF2LScrambleSettings();
+export function RandomAufToggle() {
+  const { settings, update } = usePracticeSettings();
   const { t } = useT();
   return (
     <label className="flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300 select-none">

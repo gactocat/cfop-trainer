@@ -7,7 +7,7 @@ import { useAlgorithms } from '@/hooks/useAlgorithms';
 import { usePllRandomSelection } from '@/hooks/usePllRandomSelection';
 import { useMounted } from '@/hooks/useMounted';
 import { useSelectionPresets } from '@/hooks/useSelectionPresets';
-import { useLastLayerSettings } from '@/hooks/useLastLayerSettings';
+import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { prefixAuf } from '@/lib/f2l-auf';
 import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
@@ -53,7 +53,7 @@ export function PllGrid() {
   const selection = usePllRandomSelection();
   const presets = useSelectionPresets(pllSelectionPresets);
   const { t, tn, intl } = useT();
-  const { settings } = useLastLayerSettings('pll');
+  const { settings } = usePracticeSettings();
   const mounted = useMounted();
   const [selectionMode, setSelectionMode] = useState(false);
   // Checkboxes only render in selection mode (and after mount so SSR/hydration

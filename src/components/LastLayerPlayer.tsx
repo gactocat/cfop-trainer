@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useT } from '@/hooks/useT';
-import type { LastLayerPractice } from '@/lib/last-layer-settings-store';
+import type { LastLayerPractice } from '@/types/practice';
 import { OLL_STICKERING_MASK } from '@/lib/oll-stickering-mask';
 
 interface LastLayerPlayerProps {

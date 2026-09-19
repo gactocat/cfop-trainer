@@ -12,11 +12,6 @@ export const LOCALE_LABELS: Record<Locale, string> = {
 };
 
 const en = {
-  "settings.lastLayer.title": "{kind} practice",
-  "settings.lastLayer.aufDescription": "AUF display in previews and training.",
-  "settings.lastLayer.aufAria": "AUF display ({kind})",
-  "settings.lastLayer.modeAria": "Random trainer mode ({kind})",
-  "settings.lastLayer.inverseHelp": "Apply the inverse of your starred algorithm (or the first preset) to a solved cube before timing.",
   "trainer.hint.lastLayerSolved": "Start with a fully solved cube. Apply this setup before timing.",
   "view.lastLayer2d": "{kind} last-layer diagram",
   "view.lastLayer3d": "{kind} 3D algorithm preview",
@@ -142,8 +137,8 @@ const en = {
   'settings.closeAria': 'Close settings',
   'settings.language.title': 'Language',
   'settings.language.description': 'Language of the interface.',
-  'settings.aufDisplay.title': 'AUF display (F2L)',
-  'settings.aufDisplay.description': "How an algorithm's AUF is shown.",
+  'settings.aufDisplay.title': 'AUF display',
+  'settings.aufDisplay.description': 'Shared by F2L, OLL and PLL previews and training.',
   'settings.aufDisplay.onCube': 'On cube',
   'settings.aufDisplay.onCubeTitle': 'Show the AUF by rotating the displayed cube',
   'settings.aufDisplay.onCubeHelp': 'rotate the displayed cube; the algorithm shows just its body.',
@@ -152,8 +147,8 @@ const en = {
   'settings.aufDisplay.inAlgorithmHelp':
     "show the raw case; the AUF appears as the algorithm's leading turn.",
   'settings.aufDisplay.aria': 'How to show the AUF',
-  'settings.trainerMode.title': 'Random trainer mode (F2L)',
-  'settings.trainerMode.description': 'How the random trainer sets up each case.',
+  'settings.trainerMode.title': 'Random trainer mode',
+  'settings.trainerMode.description': 'Shared by F2L, OLL and PLL random training.',
   'settings.trainerMode.aria': 'Random trainer mode',
   'settings.trainerMode.standard': 'Standard',
   'settings.trainerMode.standardTitle': 'Pick a hidden case and start timing immediately',
@@ -162,7 +157,7 @@ const en = {
   'settings.trainerMode.inverseTitle':
     'Show a setup scramble first so you can bring your own cube into the case, then START to time',
   'settings.trainerMode.inverseHelp':
-    'a short setup scramble is shown first so you can bring your own cube into the case, then START to time. The setup is drawn from several routes to the case, so it does not spell out your algorithm; start from a cube with F2L solved (the last layer does not matter).',
+    'apply the displayed setup before timing. For F2L, start with F2L solved; a varied setup is used. For OLL and PLL, start with a fully solved cube; the starred algorithm (or first preset) is inverted.',
   'settings.trainerMode.randomAuf':
     'Show each case in a random U-layer orientation, so the AUF has to be recognised too (both modes)',
 
@@ -229,11 +224,6 @@ export type MessageKey = keyof typeof en;
 export type Messages = Record<MessageKey, string>;
 
 const ja: Messages = {
-  "settings.lastLayer.title": "{kind} の練習",
-  "settings.lastLayer.aufDescription": "プレビューと練習での AUF の表示方法。",
-  "settings.lastLayer.aufAria": "AUF の表示 ({kind})",
-  "settings.lastLayer.modeAria": "ランダム練習モード ({kind})",
-  "settings.lastLayer.inverseHelp": "計測前に、完成状態のキューブにスター付き手順（未登録なら最初のプリセット）の逆手順を適用します。",
   "trainer.hint.lastLayerSolved": "完成状態のキューブに、このセットアップを適用してから計測してください。",
   "view.lastLayer2d": "{kind} の上面図",
   "view.lastLayer3d": "{kind} 手順の 3D プレビュー",
@@ -351,8 +341,8 @@ const ja: Messages = {
   'settings.closeAria': '設定を閉じる',
   'settings.language.title': '言語',
   'settings.language.description': '画面の表示言語。',
-  'settings.aufDisplay.title': 'AUF の表示 (F2L)',
-  'settings.aufDisplay.description': '手順の AUF をどう表示するか。',
+  'settings.aufDisplay.title': 'AUF の表示',
+  'settings.aufDisplay.description': 'F2L・OLL・PLL のプレビューと練習に共通の設定です。',
   'settings.aufDisplay.onCube': 'キューブに反映',
   'settings.aufDisplay.onCubeTitle': '表示するキューブを回して AUF を表す',
   'settings.aufDisplay.onCubeHelp': '表示するキューブを回し、手順は本体だけを表示します。',
@@ -360,8 +350,8 @@ const ja: Messages = {
   'settings.aufDisplay.inAlgorithmTitle': 'AUF を手順の先頭の回転として表示する',
   'settings.aufDisplay.inAlgorithmHelp': 'ケースをそのまま表示し、AUF は手順の先頭の回転として表示します。',
   'settings.aufDisplay.aria': 'AUF の表示方法',
-  'settings.trainerMode.title': 'ランダム練習のモード (F2L)',
-  'settings.trainerMode.description': 'ランダム練習でケースをどう準備するか。',
+  'settings.trainerMode.title': 'ランダム練習のモード',
+  'settings.trainerMode.description': 'F2L・OLL・PLL のランダム練習に共通の設定です。',
   'settings.trainerMode.aria': 'ランダム練習のモード',
   'settings.trainerMode.standard': '標準',
   'settings.trainerMode.standardTitle': 'ケースを伏せたまま出題し、すぐに計測を始める',
@@ -370,7 +360,7 @@ const ja: Messages = {
   'settings.trainerMode.inverseTitle':
     '先にセットアップ手順を表示し、自分のキューブをケースの状態にしてから START で計測する',
   'settings.trainerMode.inverseHelp':
-    '先に短いセットアップ手順を表示し、自分のキューブをケースの状態にしてから START で計測します。手順はケースに至る複数の経路から選ぶので、登録手順の逆手順にはなりません。F2L が揃ったキューブから始めてください (LL の状態は問いません)。',
+    '表示されたセットアップを適用してから計測します。F2L は F2L 完成状態から複数のセットアップ手順で準備します。OLL・PLL は完全な完成状態からスター付き手順（未登録なら最初のプリセット）の逆手順を適用します。',
   'settings.trainerMode.randomAuf':
     'ケースの U 面の向きを毎回ランダムにして、AUF の判断も練習する (両モード共通)',
 

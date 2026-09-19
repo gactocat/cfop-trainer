@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { OLLAlgorithmForm } from './OLLAlgorithmForm';
 import { TimeHistoryPanel } from './TimeHistoryPanel';
-import { useLastLayerSettings } from '@/hooks/useLastLayerSettings';
+import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { prefixAuf } from '@/lib/f2l-auf';
 import { useT } from '@/hooks/useT';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
@@ -28,7 +28,7 @@ export function OLLAlgorithmRow({
   onRemoveTime,
 }: OLLAlgorithmRowProps) {
   const { t, tn } = useT();
-  const { settings } = useLastLayerSettings('oll');
+  const { settings } = usePracticeSettings();
   const [editing, setEditing] = useState(false);
   const [expanded, setExpanded] = useState(false);
 

@@ -1,11 +1,11 @@
 'use client';
 
-import { useF2LAufDisplay } from '@/hooks/useF2LAufDisplay';
+import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
-import type { F2LAufDisplayMode } from '@/lib/f2l-auf-display-store';
+import type { PracticeSettings } from '@/lib/practice-settings-store';
 
-const OPTIONS: { value: F2LAufDisplayMode; label: MessageKey; title: MessageKey }[] = [
+const OPTIONS: { value: PracticeSettings['aufDisplay']; label: MessageKey; title: MessageKey }[] = [
   { value: 'cube', label: 'settings.aufDisplay.onCube', title: 'settings.aufDisplay.onCubeTitle' },
   {
     value: 'prefix',
@@ -14,8 +14,8 @@ const OPTIONS: { value: F2LAufDisplayMode; label: MessageKey; title: MessageKey 
   },
 ];
 
-export function F2LAufModeToggle() {
-  const { mode, setMode } = useF2LAufDisplay();
+export function AufModeToggle() {
+  const { settings: { aufDisplay: mode }, update } = usePracticeSettings();
   const { t } = useT();
   return (
     <div
@@ -32,7 +32,7 @@ export function F2LAufModeToggle() {
             role="radio"
             aria-checked={active}
             title={t(opt.title)}
-            onClick={() => setMode(opt.value)}
+            onClick={() => update({ aufDisplay: opt.value })}
             className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
               active
                 ? 'bg-emerald-600 text-white'

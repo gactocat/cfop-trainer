@@ -24,8 +24,8 @@ dialog. The app is installable as a PWA and works offline.
   alternative routes to the case, so it does not spell out the solution; a
   random U turn can be added on top
 - OLL and PLL inverse-setup modes: apply the inverse of the starred algorithm
-  (or first preset) to a fully solved cube before timing. Each practice has
-  independent AUF display and random U-layer orientation settings
+  (or first preset) to a fully solved cube before timing. AUF display, trainer mode
+  and random U-layer orientation settings are shared across F2L, OLL and PLL
 - AUF display can rotate the preview or include the AUF in the solution,
   consistently across lists, 2D / 3D previews and random training
 - All 57 OLL cases with 285 preset algorithms from [SpeedCubeDB](https://www.speedcubedb.com/a/3x3/OLL), grouped by shape
@@ -40,6 +40,8 @@ npm run check     # lint + typecheck + build
 node --import ./scripts/register-src-alias.mjs scripts/verify-oll.mts
 # Verify OLL/PLL setup and solution pairs in both AUF display modes:
 node --import ./scripts/register-src-alias.mjs scripts/verify-last-layer-setup.mts
+# Verify migration from per-practice preferences to shared settings:
+node --import ./scripts/register-src-alias.mjs scripts/verify-practice-settings.mts
 ```
 
 Built with Next.js (App Router), React, TypeScript, Tailwind CSS, and

@@ -7,7 +7,7 @@ import { useOLLAlgorithms } from '@/hooks/useOLLAlgorithms';
 import { useOLLRandomSelection } from '@/hooks/useOLLRandomSelection';
 import { useMounted } from '@/hooks/useMounted';
 import { useSelectionPresets } from '@/hooks/useSelectionPresets';
-import { useLastLayerSettings } from '@/hooks/useLastLayerSettings';
+import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { prefixAuf } from '@/lib/f2l-auf';
 import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
@@ -64,7 +64,7 @@ export function OLLGrid() {
   const selection = useOLLRandomSelection();
   const presets = useSelectionPresets(ollSelectionPresets);
   const { t, tn, intl } = useT();
-  const { settings } = useLastLayerSettings('oll');
+  const { settings } = usePracticeSettings();
   const mounted = useMounted();
   const [selectionMode, setSelectionMode] = useState(false);
   // Checkboxes only render in selection mode (and after mount so SSR/hydration

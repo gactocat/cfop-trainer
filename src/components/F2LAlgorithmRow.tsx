@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { F2LAlgorithmForm } from './F2LAlgorithmForm';
 import { TimeHistoryPanel } from './TimeHistoryPanel';
-import { useF2LAufDisplay } from '@/hooks/useF2LAufDisplay';
+import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { useT } from '@/hooks/useT';
 import { prefixAuf } from '@/lib/f2l-auf';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
@@ -30,7 +30,7 @@ export function F2LAlgorithmRow({
   const { t, tn } = useT();
   const [editing, setEditing] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const { mode: aufMode } = useF2LAufDisplay();
+  const { settings: { aufDisplay: aufMode } } = usePracticeSettings();
 
   const best = bestSeconds(record.times);
   const ao5 = averageOfN(record.times, 5);
