@@ -15,12 +15,14 @@ As of September 20, 2026:
 - Applied `20260919000000_account_data.sql`, including the `PT409` conflict code.
   Do not run the initial migration again on this project.
 - Verified live email/password authentication, database saves, and account isolation.
-- Email sign-up and email confirmation are enabled. Auth URL configuration is
-  still pending: generated links currently fall back to `http://localhost:3000`.
-- Custom SMTP and production deployment of the account feature remain pending.
+- Email sign-up and email confirmation are enabled, with an 8-character minimum
+  password. The Site URL and redirect allowlist match the production/local URLs
+  documented below.
+- Custom SMTP is not configured. The built-in sender only supports Supabase
+  team member addresses; configure SMTP before inviting other users.
 
 Open the [connected resource](https://vercel.com/d/dashboard/integrations/supabase/icfg_HJnISW7o0qy1QLElwyaR1BvA/resources/store_cg9bz95kXUJgmTiL)
-to access Supabase Studio. Configure the production URLs below before deploying.
+to access Supabase Studio. Authentication configuration is documented below.
 
 ## Create Supabase through Vercel
 
