@@ -16,7 +16,7 @@ export function StorageStatus() {
   const message = state.error ? `account.error.${state.error}` as const
     : state.mode === 'boot' || state.mode === 'loading' ? 'account.loading'
     : state.mode === 'choice' ? 'account.choose'
-    : state.mode === 'guest' ? 'account.guest'
+    : state.mode === 'guest' ? null
     : !state.online ? 'account.offline'
     : state.saving || state.dirty ? 'account.saving' : null;
   if (!message) return null;

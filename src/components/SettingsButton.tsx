@@ -15,11 +15,11 @@ import { TrainerModeToggle } from './TrainerModeToggle';
 import { LocaleToggle } from './LocaleToggle';
 import { WritableArea } from './AccountBoundary';
 
-function GearIcon() {
+function GearIcon({ size = 20 }: { size?: number }) {
   return (
     <svg
-      width="20"
-      height="20"
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -67,6 +67,22 @@ function Help({ label, text }: { label: MessageKey; text: MessageKey }) {
 
 const Divider = () => <div className="border-t border-zinc-200 dark:border-zinc-800" />;
 const MENU_ITEMS = ['account', 'settings', 'data'] as const;
+function MenuIcon({ item }: { item: (typeof MENU_ITEMS)[number] }) {
+  if (item === 'settings') return <GearIcon size={16} />;
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {item === 'account' ? <>
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2" />
+      </> : <>
+        <ellipse cx="12" cy="5" rx="9" ry="3" />
+        <path d="M3 5v14a9 3 0 0 0 18 0V5M3 12a9 3 0 0 0 18 0" />
+      </>}
+    </svg>
+  );
+}
+
 const DIALOG_TITLES = {
   account: 'account.title',
   settings: 'settings.title',
@@ -141,7 +157,8 @@ export function SettingsButton() {
         {MENU_ITEMS.map((target, index) => <button key={target}
           ref={(element) => { items.current[index] = element; }} type="button" role="menuitem" tabIndex={-1}
           onClick={() => choose(target)}
-          className="block w-full rounded-md px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none dark:text-zinc-200 dark:hover:bg-zinc-800 dark:focus:bg-zinc-800">
+          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none dark:text-zinc-200 dark:hover:bg-zinc-800 dark:focus:bg-zinc-800">
+          <MenuIcon item={target} />
           {t(DIALOG_TITLES[target])}
         </button>)}
       </div>}
