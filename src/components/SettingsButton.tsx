@@ -66,6 +66,12 @@ function Help({ label, text }: { label: MessageKey; text: MessageKey }) {
 }
 
 const Divider = () => <div className="border-t border-zinc-200 dark:border-zinc-800" />;
+const MENU_ITEMS = ['account', 'settings', 'data'] as const;
+const DIALOG_TITLES = {
+  account: 'account.title',
+  settings: 'settings.title',
+  data: 'common.data',
+} as const satisfies Record<(typeof MENU_ITEMS)[number], MessageKey>;
 
 export function SettingsButton() {
   const { t } = useT();
@@ -92,7 +98,7 @@ export function SettingsButton() {
     return () => document.removeEventListener('pointerdown', onPointer);
   }, [menuOpen]);
 
-  const choose = (target: 'settings' | 'account') => {
+  const choose = (target: (typeof MENU_ITEMS)[number]) => {
     setMenuOpen(false);
     trigger.current?.focus();
     openAppDialog(target);
@@ -102,11 +108,14 @@ export function SettingsButton() {
     <div ref={container} className="relative ml-auto shrink-0"
       onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setMenuOpen(false); }}>
       <button ref={trigger} type="button"
-        onClick={() => { firstItem.current = 0; setMenuOpen(!menuOpen); }}
+        // Keep focus inside the menu until click, including browsers that blur
+        // the active menu item without focusing a pointer-clicked button.
+        onPointerDown={(event) => { if (menuOpen) event.preventDefault(); }}
+        onClick={() => { firstItem.current = 0; trigger.current?.focus(); setMenuOpen((open) => !open); }}
         onKeyDown={(event) => {
           if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
             event.preventDefault();
-            firstItem.current = event.key === 'ArrowUp' ? 1 : 0;
+            firstItem.current = event.key === 'ArrowUp' ? MENU_ITEMS.length - 1 : 0;
             setMenuOpen(true);
           }
         }}
@@ -123,23 +132,26 @@ export function SettingsButton() {
           } else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
             event.preventDefault();
             const index = items.current.indexOf(document.activeElement as HTMLButtonElement);
-            const next = event.key === 'Home' ? 0 : event.key === 'End' ? 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + 2) % 2;
+            const count = MENU_ITEMS.length;
+            const next = event.key === 'Home' ? 0 : event.key === 'End' ? count - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + count) % count;
             items.current[next]?.focus();
           }
         }}
         className="absolute right-0 top-full z-20 mt-2 w-40 rounded-lg border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-800 dark:bg-zinc-900">
-        {(['settings', 'account'] as const).map((target, index) => <button key={target}
+        {MENU_ITEMS.map((target, index) => <button key={target}
           ref={(element) => { items.current[index] = element; }} type="button" role="menuitem" tabIndex={-1}
           onClick={() => choose(target)}
           className="block w-full rounded-md px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none dark:text-zinc-200 dark:hover:bg-zinc-800 dark:focus:bg-zinc-800">
-          {t(target === 'settings' ? 'common.settings' : state.userId ? 'account.title' : 'account.signIn')}
+          {t(DIALOG_TITLES[target])}
         </button>)}
       </div>}
     </div>
     {dialog && <AppModal key={dialog}
-      title={t(dialog === 'settings' ? 'settings.title' : state.userId ? 'account.title' : 'account.signIn')}
+      title={t(DIALOG_TITLES[dialog])}
       onClose={closeAppDialog}>
-      {dialog === 'account' ? <AccountPanel key={state.generation} /> : (
+      {dialog === 'account' ? <AccountPanel key={state.generation} /> : dialog === 'data' ? (
+        <WritableArea><AlgorithmTransfer key={state.generation} /></WritableArea>
+      ) : (
         <WritableArea>
           <div className="space-y-4">
             <Section title="settings.language.title" description="settings.language.description">
@@ -182,9 +194,6 @@ export function SettingsButton() {
               <RandomAufToggle />
             </Section>
 
-            <Divider />
-
-            <AlgorithmTransfer />
           </div>
         </WritableArea>
       )}

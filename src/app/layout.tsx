@@ -61,7 +61,7 @@ export default function RootLayout({
         <HtmlLang />
         <header className="border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur sticky top-0 z-10">
           <div className="mx-auto max-w-6xl px-3 sm:px-4 py-3 flex items-center gap-2 sm:gap-4">
-            <Link href="/" className="shrink-0 whitespace-nowrap font-semibold text-base sm:text-lg tracking-tight">
+            <Link href="/" className="mr-1 sm:mr-2 shrink-0 whitespace-nowrap font-semibold text-base sm:text-lg tracking-tight">
               CFOP Trainer
             </Link>
             <PracticeTabs />
