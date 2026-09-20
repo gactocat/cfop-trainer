@@ -12,6 +12,11 @@ export const LOCALE_LABELS: Record<Locale, string> = {
 };
 
 const en = {
+  "landing.useCases": "What you can do",
+  "landing.useCase.algorithms": "Manage your own algorithms for each case.",
+  "landing.useCase.times": "Track execution times for each algorithm.",
+  "landing.useCase.random": "Practice selected cases in random order.",
+
   "landing.brandName": "CFOP",
   "landing.brandDescriptor": "Trainer",
   "landing.caseCount": "{count} cases",
@@ -310,6 +315,11 @@ export type MessageKey = keyof typeof en;
 export type Messages = Record<MessageKey, string>;
 
 const ja: Messages = {
+  "landing.useCases": "できること",
+  "landing.useCase.algorithms": "ケースごとに、自分のアルゴリズムを管理",
+  "landing.useCase.times": "アルゴリズムごとのタイムを記録",
+  "landing.useCase.random": "選んだケースをランダムに練習",
+
   "landing.brandName": "CFOP",
   "landing.brandDescriptor": "Trainer",
   "landing.caseCount": "{count} ケース",

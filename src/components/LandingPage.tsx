@@ -6,6 +6,7 @@ import { useT } from '@/hooks/useT';
 import { F2L_IDS } from '@/types/f2l';
 import { OLL_IDS } from '@/types/oll';
 import { PLL_IDS } from '@/types/pll';
+import { ShuffleIcon } from './ShuffleIcon';
 
 const PRACTICES = [
   { id: 'f2l', name: 'F2L', count: F2L_IDS.length },
@@ -38,6 +39,19 @@ function Cube({ stage }: { stage: 'f2l' | 'oll' | 'pll' }) {
   );
 }
 
+function UseCaseIcon({ kind }: { kind: 'algorithms' | 'times' | 'random' }) {
+  if (kind === 'random') return <ShuffleIcon className="size-5" />;
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="size-5">
+      {kind === 'algorithms' ? (
+        <><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M8 8h8m-8 4h8m-8 4h5" /></>
+      ) : (
+        <><circle cx="12" cy="14" r="8" /><path d="M12 10v4l3 2M9 2h6m-3 0v4m6 1 2-2" /></>
+      )}
+    </svg>
+  );
+}
+
 export function LandingPage() {
   const { t } = useT();
   return (
@@ -62,6 +76,15 @@ export function LandingPage() {
           ))}
         </div>
       </nav>
+
+      <ul aria-label={t('landing.useCases')} className="mt-8 grid gap-5 px-1 sm:mt-10 sm:grid-cols-3 sm:gap-6 sm:px-6">
+        {(['algorithms', 'times', 'random'] as const).map((kind) => (
+          <li key={kind} className="flex items-start gap-3 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+            <span className="mt-0.5 shrink-0 text-emerald-700 dark:text-emerald-400"><UseCaseIcon kind={kind} /></span>
+            <span>{t(`landing.useCase.${kind}`)}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
