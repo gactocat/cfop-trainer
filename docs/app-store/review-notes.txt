@@ -1,0 +1,9 @@
+CFOP Trainer is a practice tool for a physical 3x3 cube. All algorithm reference, 3D previews, random drills, timers and local records work without signing in. No ads, purchases or subscriptions.
+
+Optional account access: Gear > Account. Use the supplied review credentials; email is already confirmed and no additional verification is needed. On first sign-in, choose Start fresh or import device data. Signed-in changes require internet access and are stored in Supabase. Guest practice works offline.
+
+To delete an account: Gear > Account > Delete account, enter the current password, then confirm permanent deletion. This deletes the authentication account and associated server data. Please use a separate account for deletion testing if you need to retain the supplied review account.
+
+Gear > Settings switches between English and Japanese. Gear > Data provides algorithm import/export. The gear menu includes the light/dark switch.
+
+Support and privacy policy links are accessible from Account without signing in. This is an independent cube training app.

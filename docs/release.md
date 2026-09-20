@@ -13,7 +13,7 @@
   preserving compatibility with existing account document keys. Older app
   versions may drop the appearance choice when saving practice settings.
 
-## Email delivery: configured, delivery testing pending
+## Email delivery: configured and verified
 
 Production configuration verified on September 20, 2026:
 
@@ -33,10 +33,11 @@ Production configuration verified on September 20, 2026:
 - The app URL and authentication redirects remain unchanged.
 
 Domain verification, SMTP authentication over TLS, and Supabase configuration
-readback passed. No test email was sent during setup. Before release, test
-signup/confirmation and password reset with a non-team recipient on web and a
-physical iPhone. Native links must return to the originating app installation.
-Also test expired links and cold launches.
+readback passed. The owner confirmed delivery and the web password-reset screen.
+A separate Gmail alias received a native signup email through Resend. Native
+links must return to the originating app installation. Physical-device email
+link verification remains a release follow-up; simulator results are recorded
+in [App Store release](app-store/README.md).
 
 References: [Supabase SMTP](https://supabase.com/docs/guides/auth/auth-smtp),
 [Resend setup](https://resend.com/docs/send-with-supabase-smtp),
@@ -67,5 +68,6 @@ Never commit that account's password. Register the app under the intended Apple
 Developer team, increment the build number, Archive, and distribute through
 TestFlight before submitting to the App Store.
 
-No Apple enrollment, app registration, TestFlight distribution or App Store
-submission has been performed by this implementation.
+The paid Apple team is configured. Version 1.0 (build 2) has been uploaded and
+processed successfully in App Store Connect. See [App Store release](app-store/README.md)
+for registration, metadata, screenshots, validation and submission status.

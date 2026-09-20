@@ -1,0 +1,17 @@
+Build a focused practice routine for the CFOP method. CFOP Trainer helps you organize F2L, OLL and PLL algorithms, recognize cases, and track your execution times.
+
+• Browse 41 F2L, 57 OLL and 21 PLL cases.
+• Save your preferred algorithms and choose a favorite for each case.
+• Explore cube diagrams and interactive 3D previews.
+• Practice selected cases in a random order, with optional random AUF.
+• Use standard or inverse practice modes.
+• Record times and compare your best results and averages.
+• Save case selections as presets for focused practice sessions.
+• Import and export your algorithms.
+• Choose a light or dark appearance, in English or Japanese.
+
+Start without an account and practice offline with data stored on your device. Create an optional email/password account to save your settings, algorithms and times online and use them across devices. An internet connection is required to update account data.
+
+The app is designed for use alongside a physical 3×3 cube. CFOP Trainer is an independent training app.
+
+Support: gactocat@gmail.com

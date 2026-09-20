@@ -67,9 +67,9 @@ on the same device/app installation that initiated the request. The code
 verifier stays in the Keychain. Unrelated links and token-fragment callbacks
 are not accepted by the native handler.
 
-Custom SMTP is still required before inviting general users. See
-[account setup](accounts.md). App packaging does not remove Supabase's default
-email recipient restrictions.
+Custom SMTP is configured through Resend using `noreply@auth.cfop.app`; general
+users can receive confirmation and recovery emails. See [release preparation](release.md)
+for the verified configuration and current service limits.
 
 ## Device and App Store release
 

@@ -1,0 +1,1 @@
+cube,speedcubing,CFOP,F2L,OLL,PLL,algorithm,timer,recognition,practice,puzzle,3x3
