@@ -18,8 +18,8 @@
 
 ## Uploaded material
 
-Version 1.0 (build 2) was uploaded on September 20, 2026 and processed as VALID.
-The build is attached to the initial App Store version. English and Japanese
+Version 1.0 (build 3) was uploaded on September 20, 2026 and processed as VALID.
+It replaces build 2 on the initial App Store version. English and Japanese
 names, subtitles, descriptions, keywords, promotional text, privacy and support
 URLs are registered from `metadata/`. The review contact and dedicated confirmed
 review account are registered with Apple; passwords must never be committed.
@@ -74,6 +74,9 @@ Web icons, favicon and launch artwork use the same geometry. The service worker
 cache version is incremented so existing web installations receive new assets.
 
 Build 3 archive and exported IPA are under `ios/App/output/1.0-3/`.
+The icon was visually checked on the iPhone simulator Home Screen. The web
+checks, native Release build, signed archive, export and Apple processing passed.
+The production web icon matches the updated asset.
 Build 2 screenshots and the dedicated review account remain unchanged.
 After the icon update is accepted, add the existing version to the same draft,
 submit it, and read back the review state. Do not create duplicate submissions.
