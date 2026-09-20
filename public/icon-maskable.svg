@@ -6,23 +6,23 @@
     <rect x="124" y="32" width="80" height="80" rx="10" fill="#0000f0"/>
     <rect x="216" y="32" width="80" height="80" rx="10" fill="#0000f0"/>
     <rect x="308" y="32" width="80" height="80" rx="10" fill="#0000f0"/>
-    <rect x="32" y="124" width="80" height="80" rx="10" fill="#f0a000"/>
+    <rect x="32" y="124" width="80" height="80" rx="10" fill="#e00000"/>
     <rect x="124" y="124" width="80" height="80" rx="10" fill="#f0f000"/>
     <rect x="216" y="124" width="80" height="80" rx="10" fill="#f0f000"/>
     <rect x="308" y="124" width="80" height="80" rx="10" fill="#f0f000"/>
-    <rect x="400" y="124" width="80" height="80" rx="10" fill="#00d000"/>
-    <rect x="32" y="216" width="80" height="80" rx="10" fill="#f0a000"/>
+    <rect x="400" y="124" width="80" height="80" rx="10" fill="#f0a000"/>
+    <rect x="32" y="216" width="80" height="80" rx="10" fill="#e00000"/>
     <rect x="124" y="216" width="80" height="80" rx="10" fill="#f0f000"/>
     <rect x="216" y="216" width="80" height="80" rx="10" fill="#f0f000"/>
     <rect x="308" y="216" width="80" height="80" rx="10" fill="#f0f000"/>
-    <rect x="400" y="216" width="80" height="80" rx="10" fill="#00d000"/>
-    <rect x="32" y="308" width="80" height="80" rx="10" fill="#f0a000"/>
+    <rect x="400" y="216" width="80" height="80" rx="10" fill="#f0a000"/>
+    <rect x="32" y="308" width="80" height="80" rx="10" fill="#e00000"/>
     <rect x="124" y="308" width="80" height="80" rx="10" fill="#f0f000"/>
     <rect x="216" y="308" width="80" height="80" rx="10" fill="#f0f000"/>
     <rect x="308" y="308" width="80" height="80" rx="10" fill="#f0f000"/>
-    <rect x="400" y="308" width="80" height="80" rx="10" fill="#00d000"/>
-    <rect x="124" y="400" width="80" height="80" rx="10" fill="#e00000"/>
-    <rect x="216" y="400" width="80" height="80" rx="10" fill="#e00000"/>
-    <rect x="308" y="400" width="80" height="80" rx="10" fill="#e00000"/>
+    <rect x="400" y="308" width="80" height="80" rx="10" fill="#f0a000"/>
+    <rect x="124" y="400" width="80" height="80" rx="10" fill="#00d000"/>
+    <rect x="216" y="400" width="80" height="80" rx="10" fill="#00d000"/>
+    <rect x="308" y="400" width="80" height="80" rx="10" fill="#00d000"/>
   </g>
 </svg>

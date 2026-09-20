@@ -3,7 +3,7 @@
 // app loads instantly from cache and the network refresh updates the cache
 // for next time. Account traffic must never enter the offline cache.
 
-const CACHE_NAME = 'pll-manager-v3';
+const CACHE_NAME = 'pll-manager-v4';
 const APP_SHELL = ['/', '/manifest.webmanifest', '/icon.svg'];
 
 self.addEventListener('install', (event) => {
