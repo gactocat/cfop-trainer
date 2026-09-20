@@ -14,6 +14,9 @@ import { RandomAufToggle } from './RandomAufToggle';
 import { TrainerModeToggle } from './TrainerModeToggle';
 import { LocaleToggle } from './LocaleToggle';
 import { WritableArea } from './AccountBoundary';
+import { useColorTheme } from '@/hooks/useColorTheme';
+import { canWriteData } from '@/lib/persistence';
+import { PublicLinks } from './PublicLinks';
 
 function GearIcon({ size = 20 }: { size?: number }) {
   return (
@@ -87,6 +90,7 @@ const DIALOG_TITLES = {
 export function SettingsButton() {
   const { t } = useT();
   const state = usePersistence();
+  const { dark, toggle } = useColorTheme();
   const pathname = usePathname();
   const dialog = useSyncExternalStore(subscribeAppDialog, getAppDialog, getAppDialogServerSnapshot);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -126,7 +130,7 @@ export function SettingsButton() {
         onKeyDown={(event) => {
           if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
             event.preventDefault();
-            firstItem.current = event.key === 'ArrowUp' ? MENU_ITEMS.length - 1 : 0;
+            firstItem.current = event.key === 'ArrowUp' ? MENU_ITEMS.length : 0;
             setMenuOpen(true);
           }
         }}
@@ -143,12 +147,12 @@ export function SettingsButton() {
           } else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
             event.preventDefault();
             const index = items.current.indexOf(document.activeElement as HTMLButtonElement);
-            const count = MENU_ITEMS.length;
+            const count = MENU_ITEMS.length + 1;
             const next = event.key === 'Home' ? 0 : event.key === 'End' ? count - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + count) % count;
             items.current[next]?.focus();
           }
         }}
-        className="absolute right-0 top-full z-20 mt-2 w-40 rounded-lg border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-800 dark:bg-zinc-900">
+        className="absolute right-0 top-full z-20 mt-2 w-48 rounded-lg border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-800 dark:bg-zinc-900">
         {MENU_ITEMS.map((target, index) => <button key={target}
           ref={(element) => { items.current[index] = element; }} type="button" role="menuitem" tabIndex={-1}
           onClick={() => choose(target)}
@@ -156,6 +160,17 @@ export function SettingsButton() {
           <MenuIcon item={target} />
           {t(DIALOG_TITLES[target])}
         </button>)}
+        <div role="separator" className="my-1 border-t border-zinc-200 dark:border-zinc-800" />
+        <button ref={(element) => { items.current[MENU_ITEMS.length] = element; }}
+          type="button" role="menuitemcheckbox" aria-checked={dark} aria-disabled={!canWriteData()}
+          tabIndex={-1} onClick={() => { if (canWriteData()) { try { toggle(); } catch { /* StorageStatus reports the failure. */ } } }}
+          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none aria-disabled:opacity-50 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:focus:bg-zinc-800">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M20.5 13A9 9 0 0 1 11 3.5 9 9 0 1 0 20.5 13Z" /></svg>
+          <span className="flex-1">{t('settings.darkMode')}</span>
+          <span aria-hidden="true" className={`flex h-5 w-8 shrink-0 items-center rounded-full p-0.5 transition-colors ${dark ? 'bg-emerald-600' : 'bg-zinc-300'}`}>
+            <span className={`h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${dark ? 'translate-x-3' : ''}`} />
+          </span>
+        </button>
       </div>}
     </div>
     {dialog && <AppModal key={dialog}
@@ -164,6 +179,7 @@ export function SettingsButton() {
       {dialog === 'account' ? <AccountPanel key={state.generation} /> : dialog === 'data' ? (
         <WritableArea><AlgorithmTransfer key={state.generation} /></WritableArea>
       ) : (
+        <>
         <WritableArea>
           <div className="space-y-4">
             <Section title="settings.language.title">
@@ -202,6 +218,8 @@ export function SettingsButton() {
 
           </div>
         </WritableArea>
+        <div className="mt-4 border-t border-zinc-200 pt-3 dark:border-zinc-800"><PublicLinks onNavigate={closeAppDialog} /></div>
+        </>
       )}
     </AppModal>}
   </>;

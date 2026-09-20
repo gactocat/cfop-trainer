@@ -10,7 +10,8 @@ public class NativeBridgePlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "get", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "set", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "remove", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "keepAwake", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "keepAwake", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setAppearance", returnType: CAPPluginReturnPromise)
     ]
 
     private func query(_ call: CAPPluginCall) -> [String: Any]? {
@@ -70,6 +71,15 @@ public class NativeBridgePlugin: CAPPlugin, CAPBridgedPlugin {
         let enabled = call.getBool("enabled") ?? false
         DispatchQueue.main.async {
             UIApplication.shared.isIdleTimerDisabled = enabled
+            call.resolve()
+        }
+    }
+
+    @objc func setAppearance(_ call: CAPPluginCall) {
+        let theme = call.getString("theme") ?? "system"
+        DispatchQueue.main.async {
+            self.bridge?.viewController?.overrideUserInterfaceStyle = theme == "dark" ? .dark : theme == "light" ? .light : .unspecified
+            self.bridge?.viewController?.setNeedsStatusBarAppearanceUpdate()
             call.resolve()
         }
     }

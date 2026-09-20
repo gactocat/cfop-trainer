@@ -82,9 +82,9 @@ Before TestFlight or App Store submission:
 - Enroll in the Apple Developer Program and register the app in App Store Connect.
 - Configure general-user email delivery and test confirmation/recovery on a
   physical device, including cold launches and expired links.
-- Implement in-app account deletion with a server-authorized deletion endpoint.
-  The current app offers sign-out but not account deletion.
-- Publish privacy-policy and support URLs and complete App Privacy disclosures
+- Verify in-app account deletion against the deployed Supabase Edge Function.
+  The app requires the current password and deletes only the authenticated user.
+- Review the published privacy-policy and support pages and complete App Privacy disclosures
   for email identifiers and account content. The included privacy manifest
   declares required-reason API use; it does not replace those disclosures.
 - Prepare store screenshots, description, age rating and review access.
@@ -101,3 +101,6 @@ remain compatible with previously released versions.
 References: [Capacitor workflow](https://capacitorjs.com/docs/basics/workflow),
 [iOS setup](https://capacitorjs.com/docs/ios),
 [account deletion](https://developer.apple.com/support/offering-account-deletion-in-your-app/).
+
+See [release preparation](release.md) for public URLs, SMTP setup and remaining
+external account steps.

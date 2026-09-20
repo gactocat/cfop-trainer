@@ -6,6 +6,8 @@ import { HtmlLang } from '@/components/HtmlLang';
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
 import { SettingsButton } from '@/components/SettingsButton';
 import { AccountBoundary, AccountSession } from '@/components/AccountBoundary';
+import { ColorTheme } from '@/components/ColorTheme';
+import { PublicLinks } from '@/components/PublicLinks';
 import './globals.css';
 
 const geistSans = Geist({
@@ -60,6 +62,7 @@ export default function RootLayout({
         <AccountSession />
         <ServiceWorkerRegister />
         <HtmlLang />
+        <ColorTheme />
         <header className="pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur sticky top-0 z-10">
           <div className="mx-auto max-w-6xl px-3 sm:px-4 py-3 flex items-center gap-2 sm:gap-4">
             <Link href="/" className="mr-1 sm:mr-2 shrink-0 whitespace-nowrap font-semibold text-base sm:text-lg tracking-tight">
@@ -72,6 +75,7 @@ export default function RootLayout({
         <main className="mx-auto w-full max-w-6xl pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] flex-1">
           <AccountBoundary>{children}</AccountBoundary>
         </main>
+        <footer className="mx-auto w-full max-w-6xl px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]"><PublicLinks /></footer>
       </body>
     </html>
   );

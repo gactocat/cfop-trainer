@@ -8,6 +8,7 @@ interface NativeBridgePlugin {
   set({ key, value }: { key: string; value: string }): Promise<void>;
   remove({ key }: { key: string }): Promise<void>;
   keepAwake({ enabled }: { enabled: boolean }): Promise<void>;
+  setAppearance({ theme }: { theme: 'light' | 'dark' | 'system' }): Promise<void>;
 }
 
 export const NativeBridge = registerPlugin<NativeBridgePlugin>('NativeBridge');

@@ -5,6 +5,7 @@ export interface PracticeSettings {
   aufDisplay: 'cube' | 'prefix';
   trainerMode: 'standard' | 'inverse';
   randomAuf: boolean;
+  colorTheme?: 'light' | 'dark';
 }
 
 export const DEFAULT_PRACTICE_SETTINGS: PracticeSettings = {
@@ -20,6 +21,7 @@ function validSettings(raw: unknown): Partial<PracticeSettings> {
     ...(value.aufDisplay === 'cube' || value.aufDisplay === 'prefix' ? { aufDisplay: value.aufDisplay } : {}),
     ...(value.trainerMode === 'standard' || value.trainerMode === 'inverse' ? { trainerMode: value.trainerMode } : {}),
     ...(typeof value.randomAuf === 'boolean' ? { randomAuf: value.randomAuf } : {}),
+    ...(value.colorTheme === 'light' || value.colorTheme === 'dark' ? { colorTheme: value.colorTheme } : {}),
   };
 }
 
@@ -59,6 +61,6 @@ export function update(patch: Partial<PracticeSettings>): void {
   store.mutate((prev) => {
     const next = { ...prev, ...patch };
     return next.aufDisplay === prev.aufDisplay && next.trainerMode === prev.trainerMode &&
-      next.randomAuf === prev.randomAuf ? prev : next;
+      next.randomAuf === prev.randomAuf && next.colorTheme === prev.colorTheme ? prev : next;
   });
 }

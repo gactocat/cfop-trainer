@@ -5,6 +5,7 @@ import { useT } from '@/hooks/useT';
 import { startAccountSession } from '@/lib/account-session';
 import { reloadAccount, retryAccountSave } from '@/lib/persistence';
 import { openAccountDialog } from '@/lib/app-dialog';
+import { usePathname } from 'next/navigation';
 
 export function AccountSession() {
   useEffect(() => { void startAccountSession(); }, []);
@@ -43,9 +44,12 @@ export function WritableArea({ children }: { children: ReactNode }) {
   }}>{children}</fieldset>;
 }
 export function AccountBoundary({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   const state = usePersistence();
   const { t } = useT();
   const ready = state.mode === 'guest' || state.mode === 'account';
+  // Help and privacy must remain available even when account access fails.
+  if (['/privacy', '/privacy/', '/support', '/support/'].includes(pathname)) return children;
   return <>
     <StorageStatus />
     <Fragment key={state.generation}>

@@ -8,6 +8,9 @@ import { finishRecovery, getCallbackError, getRecoveryServerSnapshot, getRecover
 import { initializeAccount, reloadAccount } from '@/lib/persistence';
 import { StorageStatus } from './AccountBoundary';
 import { authRedirectUrl } from '@/lib/native';
+import { AccountDeletionError, deleteCurrentAccount } from '@/lib/delete-account';
+import { PublicLinks } from './PublicLinks';
+import { closeAppDialog } from '@/lib/app-dialog';
 
 type Mode = 'signIn' | 'signUp' | 'reset';
 const button = 'inline-flex items-center justify-center rounded-md bg-zinc-100 px-2.5 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 disabled:opacity-50 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700';
@@ -33,6 +36,16 @@ export function AccountPanel() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<MessageKey | null>(null);
   const [error, setError] = useState<MessageKey | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const confirmDelete = async (event: FormEvent) => {
+    event.preventDefault();
+    if (busy || !state.userId || !state.online) return;
+    setBusy(true); setError(null); setNotice(null);
+    try { await deleteCurrentAccount(deletePassword, state.userId); }
+    catch (error) { setError(error instanceof AccountDeletionError ? error.messageKey : 'account.deleteFailed'); }
+    finally { setBusy(false); setDeletePassword(''); }
+  };
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     const client = getSupabase();
@@ -86,10 +99,24 @@ export function AccountPanel() {
             <button className={button} disabled={busy || state.saving || state.dirty || !state.online} onClick={() => { void initializeAccount(false); }}>{t('account.startFresh')}</button>
           </div>
         </section>}
-        {state.mode === 'account' && <button className={textAction} disabled={!state.online || state.saving} onClick={() => {
+        {state.mode === 'account' && <button className={textAction} disabled={busy || !state.online || state.saving} onClick={() => {
           if (!state.dirty || window.confirm(t('account.discardWarning'))) void reloadAccount();
         }}>{t('account.reload')}</button>}
         <div><button className={button} disabled={busy || state.saving} onClick={() => { void signOut(); }}>{t('account.signOut')}</button></div>
+        <section className="border-t border-zinc-200 pt-3 dark:border-zinc-800">
+          {deleting ? <form onSubmit={(event) => { void confirmDelete(event); }} className="space-y-3">
+            <h3 className="text-sm font-medium">{t('account.delete')}</h3>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('account.deleteWarning')}</p>
+            <label className="block text-sm font-medium">{t('account.deletePassword')}
+              <input type="password" autoComplete="current-password" required maxLength={1024} disabled={busy}
+                value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} className={input} />
+            </label>
+            <div className="flex flex-wrap gap-3">
+              <button type="submit" disabled={busy || !state.online || !deletePassword} className="rounded-md bg-red-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50 dark:bg-red-700 dark:hover:bg-red-600">{t(busy ? 'common.loading' : 'account.deleteConfirm')}</button>
+              <button type="button" className={textAction} disabled={busy} onClick={() => { setDeleting(false); setDeletePassword(''); setError(null); }}>{t('common.cancel')}</button>
+            </div>
+          </form> : <button type="button" disabled={busy || !state.online} className="text-xs text-red-600 hover:underline disabled:opacity-50 dark:text-red-400" onClick={() => { setDeleting(true); setError(null); setNotice(null); }}>{t('account.delete')}</button>}
+        </section>
       </div> : <>
         {(recovery || mode !== 'signIn') && <h3 className="text-sm font-medium">{t(recovery ? 'account.newPassword' : `account.${mode}`)}</h3>}
         <form onSubmit={(event) => { void submit(event); }} className="space-y-3">
@@ -117,5 +144,6 @@ export function AccountPanel() {
       {notice && <p role="status" className="text-xs text-emerald-600 dark:text-emerald-400">{t(notice)}</p>}
       {(error || callbackError) && <p role="alert" className="text-xs text-red-600 dark:text-red-400">{t(error ?? 'account.authFailed')}</p>}
     </>}
+    <PublicLinks onNavigate={closeAppDialog} />
   </div>;
 }

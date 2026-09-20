@@ -42,6 +42,8 @@ const scenarios: { name: string; stored: Record<string, string>; expected: Pract
     expected: defaults,
   },
   { name: 'invalid shared fields use defaults', stored: { [sharedKey]: '{"aufDisplay":7,"randomAuf":"false"}' }, expected: defaults },
+  { name: 'explicit dark theme survives practice edits', stored: { [sharedKey]: '{"colorTheme":"dark"}' }, expected: { ...defaults, colorTheme: 'dark' } },
+  { name: 'invalid theme follows system default', stored: { [sharedKey]: '{"colorTheme":"invalid"}' }, expected: defaults },
 ];
 
 let moduleId = 0;

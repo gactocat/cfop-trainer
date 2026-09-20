@@ -25,5 +25,8 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
+      - run: node scripts/verify-account-deletion.mts
+      - run: node --import ./scripts/register-src-alias.mjs scripts/verify-account-storage.mts
+      - run: node --import ./scripts/register-src-alias.mjs scripts/verify-practice-settings.mts
       - run: npm run build
       - run: npm run build:ios:web

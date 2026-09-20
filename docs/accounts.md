@@ -230,3 +230,28 @@ Before enabling production sign-in, verify with a configured test project:
 References: [password authentication](https://supabase.com/docs/guides/auth/passwords),
 [custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp),
 [row-level security](https://supabase.com/docs/guides/database/postgres/row-level-security).
+
+## Account deletion
+
+`delete-account` runs as a Supabase Edge Function so both static iOS builds and
+the website can use it. Deploy with the authenticated Supabase CLI:
+
+```sh
+npx supabase@latest functions deploy delete-account --project-ref lwlsbgcksljmonggtiex --use-api
+```
+
+`supabase/config.toml` configures only this function; do not push it as a full
+remote Auth configuration. Gateway JWT verification is disabled because the
+handler validates the bearer token using Auth's user endpoint, supporting
+asymmetric keys and rejecting deleted users. It rechecks the current password,
+never accepts a target user ID, and hard-deletes the authenticated user through
+the server-only admin API. The database foreign key cascades account_data.
+The service-role key is supplied by the Edge Function environment, never clients.
+CORS allows the production web origin, local port 3000 and the native iOS origin.
+Add explicit origins if the production domain changes.
+
+Run `node scripts/verify-account-deletion.mts` for local authentication, isolation,
+CORS and failure-path checks. Live verification uses disposable confirmed test
+accounts without sending email; never run deletion checks against real users.
+
+See [release preparation](release.md) for the remaining SMTP and distribution steps.

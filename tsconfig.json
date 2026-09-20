@@ -30,5 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "ios", "out"]
+  "exclude": ["node_modules", "ios", "out", "supabase/functions/delete-account/index.ts"]
 }

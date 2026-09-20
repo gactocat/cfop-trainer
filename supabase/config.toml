@@ -1,0 +1,6 @@
+project_id = "cfop-trainer"
+
+[functions.delete-account]
+# The handler validates the bearer token against Auth, including deleted users.
+# This also supports the project's asymmetric signing keys.
+verify_jwt = false
