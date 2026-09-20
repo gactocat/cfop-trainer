@@ -48,8 +48,8 @@ export function AccountBoundary({ children }: { children: ReactNode }) {
   const state = usePersistence();
   const { t } = useT();
   const ready = state.mode === 'guest' || state.mode === 'account';
-  // Help and privacy must remain available even when account access fails.
-  if (['/privacy', '/privacy/', '/support', '/support/'].includes(pathname)) return children;
+  // Public pages remain available even when account access fails.
+  if (['/', '/privacy', '/privacy/', '/support', '/support/'].includes(pathname)) return children;
   return <>
     <StorageStatus />
     <Fragment key={state.generation}>

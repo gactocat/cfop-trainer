@@ -12,10 +12,11 @@ const TABS: ReadonlyArray<{ practice: Practice; label: string; href: string }> =
   { practice: 'pll', label: 'PLL', href: '/pll' },
 ];
 
-function activeFor(pathname: string | null): Practice {
+function activeFor(pathname: string | null): Practice | null {
   if (pathname?.startsWith('/oll')) return 'oll';
   if (pathname?.startsWith('/f2l')) return 'f2l';
-  return 'pll';
+  if (pathname?.startsWith('/pll') || pathname === '/random') return 'pll';
+  return null;
 }
 
 export function PracticeTabs() {
