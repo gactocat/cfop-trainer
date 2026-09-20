@@ -68,6 +68,7 @@ Never commit that account's password. Register the app under the intended Apple
 Developer team, increment the build number, Archive, and distribute through
 TestFlight before submitting to the App Store.
 
-The paid Apple team is configured. Version 1.0 (build 2) has been uploaded and
-processed successfully in App Store Connect. See [App Store release](app-store/README.md)
+The paid Apple team is configured. Version 1.0 (build 4) was submitted on
+September 20, 2026 and is waiting for App Review. Release is automatic after
+approval. See [App Store release](app-store/README.md)
 for registration, metadata, screenshots, validation and submission status.

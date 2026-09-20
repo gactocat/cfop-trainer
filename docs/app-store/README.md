@@ -62,9 +62,15 @@ transitions and offline operation is still useful before wider distribution.
 
 ## Submission status
 
-The owner reports publishing the App Privacy answers. Submission is paused for
-an icon refinement requested before review. The review draft remains
-`0aadab72-7578-4303-9132-aa5a31f940eb`; no app has been submitted or released.
+Version 1.0 (build 4) was submitted on September 20, 2026 at 12:11 JST
+(03:11 UTC). Apple returned and readback confirmed `WAITING_FOR_REVIEW` for both
+the submission and app version. The selected build is
+`cb8156a1-3052-4b04-b154-25f624d14075`.
+
+The published App Privacy answers passed submission validation. The review
+submission is `0aadab72-7578-4303-9132-aa5a31f940eb`. Release remains
+`AFTER_APPROVAL`, with free pricing and all 175 available territories selected.
+The app is awaiting Apple's review; it is not approved or publicly released yet.
 
 Build 3 replaces the small, unevenly spaced icon with a larger regular grid.
 The 21 tiles retain their original colors and arrangement. At 1024px, each tile
@@ -84,8 +90,8 @@ The icon was visually checked on the iPhone simulator Home Screen. The web
 checks, native Release build, signed archive, export and Apple processing passed.
 The production web icon matches the updated asset.
 Build 2 screenshots and the dedicated review account remain unchanged.
-After the icon update is accepted, add the existing version to the same draft,
-submit it, and read back the review state. Do not create duplicate submissions.
+Monitor the existing submission for review results. Do not create duplicate
+submissions or alter the dedicated review account while review is pending.
 
 ## App Privacy answers
 
