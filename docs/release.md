@@ -13,34 +13,30 @@
   preserving compatibility with existing account document keys. Older app
   versions may drop the appearance choice when saving practice settings.
 
-## Email delivery: external setup required
+## Email delivery: configured, delivery testing pending
 
-General-user registration is not ready until custom SMTP is configured. The
-Supabase built-in sender accepts only organization member recipients. Email
-confirmation must stay enabled.
+Production configuration verified on September 20, 2026:
 
-Suggested setup, checked September 20, 2026:
+- `cfop.app` is registered through the Vercel team `gactocats-projects` and
+  expires September 20, 2027. The current renewal price is USD 15 per year.
+- Resend verified `auth.cfop.app` in the Tokyo region (`ap-northeast-1`).
+  Its DKIM, SPF, return-path MX and CNAME records are configured in Vercel.
+  `_dmarc.auth.cfop.app` has an initial `v=DMARC1; p=none;` policy.
+- Open and click tracking are disabled for authentication emails.
+- Supabase uses `smtp.resend.com`, port 465, user `resend`, and sender
+  `CFOP Trainer <noreply@auth.cfop.app>`.
+- The SMTP API key has sending-only permission scoped to `auth.cfop.app`.
+  It is stored in Supabase, never in the repository or a `NEXT_PUBLIC_` variable.
+- Email confirmation remains enabled. Supabase allows 30 authentication
+  emails per hour; Resend's Free plan also limits delivery to 100 per day and
+  3,000 per month.
+- The app URL and authentication redirects remain unchanged.
 
-- Register `cfop-trainer.com` through the existing Vercel team. The registrar
-  reports availability and USD 11.25 for one year, with USD 11.25 renewal.
-  Availability and prices may change. No domain has been purchased.
-- Use Resend's Free plan for initial transactional email delivery. Its current
-  allowance is 3,000 emails per month, limited to 100 emails per day.
-- Verify `auth.cfop-trainer.com` in Resend by adding its exact DKIM/SPF DNS
-  records in Vercel. Keep any existing DNS records. Do not enable click/open
-  tracking for authentication emails.
-- Set the sender to `CFOP Trainer <noreply@auth.cfop-trainer.com>`.
-- Connect Resend to Supabase through its integration or enter `smtp.resend.com`,
-  port 465, user `resend`, and a sending API key in Supabase's SMTP settings.
-  Never add these credentials to the repository or a `NEXT_PUBLIC_` variable.
-- Keep the app at its existing Vercel URL; buying a sender domain does not
-  require changing the website URL or auth redirects.
-- Test signup/confirmation and password reset with a non-team recipient on
-  web and a physical iPhone. Native links must return to the originating app
-  installation. Also test expired links and cold launches.
-
-The domain registration, Resend account connection and delivery verification
-remain outstanding. A Gmail support address alone does not configure SMTP.
+Domain verification, SMTP authentication over TLS, and Supabase configuration
+readback passed. No test email was sent during setup. Before release, test
+signup/confirmation and password reset with a non-team recipient on web and a
+physical iPhone. Native links must return to the originating app installation.
+Also test expired links and cold launches.
 
 References: [Supabase SMTP](https://supabase.com/docs/guides/auth/auth-smtp),
 [Resend setup](https://resend.com/docs/send-with-supabase-smtp),
