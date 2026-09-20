@@ -7,7 +7,7 @@
 - Bundle ID: `com.gactocat.cfoptrainer`
 - SKU: `cfop-trainer-ios`
 - Primary language: English (US); additional localization: Japanese
-- Version: 1.0 (build 3), iOS 18+, iPhone and iPad
+- Version: 1.0 (build 4), iOS 18+, iPhone and iPad
 - Categories: Education, Utilities
 - Price: free; all 175 available territories selected, including future territories
 - Calculated age rating: 4+; not enrolled in the Kids category
@@ -18,8 +18,8 @@
 
 ## Uploaded material
 
-Version 1.0 (build 3) was uploaded on September 20, 2026 and processed as VALID.
-It replaces build 2 on the initial App Store version. English and Japanese
+Version 1.0 (build 4) was uploaded on September 20, 2026 and processed as VALID.
+It replaces build 3 on the initial App Store version. English and Japanese
 names, subtitles, descriptions, keywords, promotional text, privacy and support
 URLs are registered from `metadata/`. The review contact and dedicated confirmed
 review account are registered with Apple; passwords must never be committed.
@@ -73,7 +73,13 @@ artwork; the separate Android maskable asset retains its circular safe zone.
 Web icons, favicon and launch artwork use the same geometry. The service worker
 cache version is incremented so existing web installations receive new assets.
 
-Build 3 archive and exported IPA are under `ios/App/output/1.0-3/`.
+Build 4 changes only the perimeter colors: top blue, right orange, bottom green,
+left red, with the central nine tiles yellow. Geometry is unchanged. All web and
+native icon variants are regenerated; the service worker cache is version 4.
+Build 4 passed web checks, signed archive/export and Apple processing, and is
+selected for the initial release.
+
+Build 4 archive and exported IPA are under `ios/App/output/1.0-4/`.
 The icon was visually checked on the iPhone simulator Home Screen. The web
 checks, native Release build, signed archive, export and Apple processing passed.
 The production web icon matches the updated asset.
