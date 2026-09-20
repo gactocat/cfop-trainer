@@ -7,7 +7,7 @@
 - Bundle ID: `com.gactocat.cfoptrainer`
 - SKU: `cfop-trainer-ios`
 - Primary language: English (US); additional localization: Japanese
-- Version: 1.0 (build 2), iOS 18+, iPhone and iPad
+- Version: 1.0 (build 3), iOS 18+, iPhone and iPad
 - Categories: Education, Utilities
 - Price: free; all 175 available territories selected, including future territories
 - Calculated age rating: 4+; not enrolled in the Kids category
@@ -62,13 +62,20 @@ transitions and offline operation is still useful before wider distribution.
 
 ## Submission status
 
-Apple's draft submission validation currently reports one remaining required
-item: published App Privacy answers. The public API cannot edit those answers.
-The initial review draft is `0aadab72-7578-4303-9132-aa5a31f940eb`; it contains no
-version until that validation requirement is satisfied. The app has not yet
-been submitted to review or released.
+The owner reports publishing the App Privacy answers. Submission is paused for
+an icon refinement requested before review. The review draft remains
+`0aadab72-7578-4303-9132-aa5a31f940eb`; no app has been submitted or released.
 
-After publishing the privacy answers, add the existing version to this draft,
+Build 3 replaces the small, unevenly spaced icon with a larger regular grid.
+The 21 tiles retain their original colors and arrangement. At 1024px, each tile
+is 160px square with 24px gaps and 64px outer margins. Native icons use the full
+artwork; the separate Android maskable asset retains its circular safe zone.
+Web icons, favicon and launch artwork use the same geometry. The service worker
+cache version is incremented so existing web installations receive new assets.
+
+Build 3 archive and exported IPA are under `ios/App/output/1.0-3/`.
+Build 2 screenshots and the dedicated review account remain unchanged.
+After the icon update is accepted, add the existing version to the same draft,
 submit it, and read back the review state. Do not create duplicate submissions.
 
 ## App Privacy answers
