@@ -65,7 +65,13 @@ for (const [auth, password, id, deletion, status, count] of [
   assert.equal(calls.length, count);
   assert.ok(!(await response.text()).includes('private-test-key'));
 }
-response = await handler(new Request('https://example.test/delete-account', { method: 'OPTIONS', headers: { Origin: 'https://cfop-trainer-ten.vercel.app' } }));
-assert.equal(response.status, 204);
+for (const origin of ['https://cfop.app', 'https://cfop-trainer-ten.vercel.app', 'capacitor://localhost']) {
+  response = await handler(new Request('https://example.test/delete-account', { method: 'OPTIONS', headers: { Origin: origin } }));
+  assert.equal(response.status, 204);
+  assert.equal(response.headers.get('Access-Control-Allow-Origin'), origin);
+}
+response = await handler(new Request('https://example.test/delete-account', { method: 'OPTIONS', headers: { Origin: 'https://cfop.app.attacker.test' } }));
+assert.equal(response.status, 403);
+assert.equal(response.headers.get('Access-Control-Allow-Origin'), null);
 assert.equal((await handler(new Request('https://example.test/delete-account'))).status, 405);
 console.log('Verified deletion authentication, password checks, account isolation, CORS, limits and failure handling.');

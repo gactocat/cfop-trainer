@@ -4,8 +4,8 @@
 
 - Email/password sign-in, password recovery and native email-link handling.
 - Permanent in-app account deletion, protected by a verified session and password.
-- Public privacy policy: https://cfop-trainer-ten.vercel.app/privacy
-- Public support page: https://cfop-trainer-ten.vercel.app/support
+- Public privacy policy: https://cfop.app/privacy
+- Public support page: https://cfop.app/support
 - Support contact: gactocat@gmail.com
 - Guest offline storage and signed-in server storage.
 - Light/dark switch in the gear menu. With no selection, it follows the device.
@@ -30,7 +30,8 @@ Production configuration verified on September 20, 2026:
 - Email confirmation remains enabled. Supabase allows 30 authentication
   emails per hour; Resend's Free plan also limits delivery to 100 per day and
   3,000 per month.
-- The app URL and authentication redirects remain unchanged.
+- The primary web URL is now `https://cfop.app`. Authentication accepts its
+  exact `/account` redirect and retains the old Vercel, localhost and iOS URLs.
 
 Domain verification, SMTP authentication over TLS, and Supabase configuration
 readback passed. The owner confirmed delivery and the web password-reset screen.
@@ -42,6 +43,30 @@ in [App Store release](app-store/README.md).
 References: [Supabase SMTP](https://supabase.com/docs/guides/auth/auth-smtp),
 [Resend setup](https://resend.com/docs/send-with-supabase-smtp),
 [Resend pricing](https://resend.com/pricing).
+
+## Web domain
+
+`https://cfop.app` is connected to the Vercel `cfop-trainer` production project.
+Vercel verified the domain and HTTPS configuration. The existing mail records
+under `auth.cfop.app` remain intact; no registrar transfer or extra service is
+required. Supabase's Site URL is `https://cfop.app` and its redirect allow-list
+includes `https://cfop.app/account`. The deployed deletion function explicitly
+allows the new origin, alongside the old web and native origins.
+
+The previous URL, `https://cfop-trainer-ten.vercel.app`, remains available without
+an automatic redirect. Browser guest data and sessions are origin-specific:
+users can sign in on the old URL and import device data, then sign in on the new
+URL to access the same server records. Guest data is not automatically moved
+between browser origins. An installed web app can be re-added from the new URL.
+
+The new home, account, privacy and support routes are reachable over HTTPS.
+Signup and recovery verification links return to the new `/account` URL; a
+temporary fixture verified this without sending email and was deleted afterward.
+Deletion preflights accept the new, old and native origins and reject lookalikes.
+
+The iOS version already waiting for review keeps its existing support/privacy
+URLs. Those pages continue to work. Update the store metadata URLs in the next
+editable version rather than withdrawing the current review for this change.
 
 ## App Store Connect preparation
 

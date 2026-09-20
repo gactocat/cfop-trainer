@@ -6,7 +6,7 @@ type Configuration = {
 };
 
 const origins = new Set([
-  'https://cfop-trainer-ten.vercel.app', 'capacitor://localhost',
+  'https://cfop.app', 'https://cfop-trainer-ten.vercel.app', 'capacitor://localhost',
   'http://localhost:3000', 'http://127.0.0.1:3000',
 ]);
 

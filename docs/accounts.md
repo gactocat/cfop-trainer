@@ -87,8 +87,9 @@ domain for `cfop-trainer`:
 
 | Setting | Value |
 | ------- | ----- |
-| Site URL | `https://cfop-trainer-ten.vercel.app` |
-| Redirect URL | `https://cfop-trainer-ten.vercel.app/account` |
+| Site URL | `https://cfop.app` |
+| Redirect URL | `https://cfop.app/account` |
+| Legacy web redirect | `https://cfop-trainer-ten.vercel.app/account` |
 | Redirect URL for local testing | `http://localhost:3000/account` |
 | Redirect URL for iOS | `cfoptrainer://auth/callback` |
 

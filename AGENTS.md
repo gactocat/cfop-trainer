@@ -4,7 +4,7 @@ Web app for managing CFOP F2L and PLL algorithms, recording solve times, and
 training recognition with random cases. Guest data lives in `localStorage`.
 Optional Supabase email/password accounts save user data to PostgreSQL through
 Auth and an ownership-checked RPC; account data is held only in client memory.
-There is no Next.js API route. Account deletion uses a Supabase Edge Function. Deployed on Vercel from `main` (https://cfop-trainer-ten.vercel.app), installable as a PWA.
+There is no Next.js API route. Account deletion uses a Supabase Edge Function. Deployed on Vercel from `main` (https://cfop.app), installable as a PWA.
 
 Stack: Next.js (App Router, every route prerendered at build time), React 19,
 TypeScript strict, Tailwind CSS v4, cubing.js for 3D / LL visualisation.

@@ -4,7 +4,7 @@ A small web app for speedcubers working on CFOP. Manage your F2L, OLL and PLL
 algorithms, record solve times per case, and drill recognition with a random
 trainer that surfaces the cases you have practised least recently.
 
-Live: https://cfop-trainer-ten.vercel.app
+Live: https://cfop.app
 
 The interface is available in English and Japanese (switch it in Settings).
 Guests save to the browser's `localStorage` and can work offline. With Supabase
