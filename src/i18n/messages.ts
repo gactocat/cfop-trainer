@@ -247,7 +247,7 @@ const en = {
   "settings.trainerMode.standardHelp": "When you start, a random case appears and the timer begins. The case name appears when you stop.",
   'settings.trainerMode.inverse': 'Inverse setup',
   "settings.trainerMode.inverseTitle": "Show a setup to apply to your own cube before timing",
-  "settings.trainerMode.inverseHelp": "A setup is shown before you start. Apply it to your own cube to create the case, then start the timer and solve it. For F2L, apply a short setup made for the case to a cube with F2L solved. For OLL and PLL, apply the inverse of another algorithm for the case, picked at random from your algorithms and the presets, to a solved cube, so the setup does not give away the case.",
+  "settings.trainerMode.inverseHelp": "A setup is shown before you start. Apply it to your own cube to create the case, then start the timer and solve it.",
   'settings.trainerMode.randomAufLabel': 'Random AUF',
   "settings.trainerMode.randomAuf": "Turns the U layer by a random amount for each case, so you also practice recognizing the AUF. Applies to both modes.",
 
@@ -540,7 +540,7 @@ const ja: Messages = {
   "settings.trainerMode.standardHelp": "スタートすると、ランダムなケースを表示し、同時に計測を始めます。ケース名はストップ後に表示します。",
   'settings.trainerMode.inverse': '逆手順セットアップ',
   "settings.trainerMode.inverseTitle": "計測の前に、自分のキューブに適用するセットアップ手順を表示する",
-  "settings.trainerMode.inverseHelp": "スタート前にセットアップ手順を表示します。自分のキューブに適用してケースを作ってから、スタートして解きます。F2L は、このケース用に作った短い手順を、F2L が揃ったキューブに適用します。OLL と PLL は、そのケースの別の手順 (登録した手順とプリセットからランダムに選択) の逆手順を、完成したキューブに適用します。セットアップ中にケースを推測しにくくなります。",
+  "settings.trainerMode.inverseHelp": "スタート前にセットアップ手順を表示します。自分のキューブに適用してケースを作ってから、スタートして解きます。",
   'settings.trainerMode.randomAufLabel': 'ランダム AUF',
   "settings.trainerMode.randomAuf": "出題のたびに U 面をランダムに回し、AUF の判断も練習できるようにします。どちらのモードにも適用されます。",
 
