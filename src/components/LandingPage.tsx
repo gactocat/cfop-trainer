@@ -30,7 +30,8 @@ function Cube({ stage }: { stage: 'f2l' | 'oll' | 'pll' }) {
       {faces.map(({ transform, color, face }) => (
         <g key={face} transform={transform}>
           {Array.from({ length: 9 }, (_, i) => {
-            const highlighted = stage === 'pll' || (stage === 'oll' ? face === 'top' : face !== 'top' && i >= 3);
+            // Side rows 1-2 are the first two layers; row 0 belongs to the last layer.
+            const highlighted = stage === 'f2l' ? face !== 'top' && i >= 3 : face === 'top' || (stage === 'pll' && i < 3);
             return <rect key={i} x={(i % 3) * 44} y={Math.floor(i / 3) * 44} width="40" height="40" rx="4" className={highlighted ? color : 'fill-zinc-200 dark:fill-zinc-700'} />;
           })}
         </g>
