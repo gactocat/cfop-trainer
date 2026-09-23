@@ -26,7 +26,7 @@ const en = {
   "landing.brandName": "CFOP",
   "landing.brandDescriptor": "Trainer",
   "landing.caseCount": "{count} cases",
-  "landing.f2l.description": "Pair and solve the first two layers.",
+  "landing.f2l.description": "Solve the first two layers.",
   "landing.oll.description": "Orient the last layer.",
   "landing.pll.description": "Permute the last layer.",
 
@@ -326,7 +326,7 @@ const ja: Messages = {
   "landing.brandName": "CFOP",
   "landing.brandDescriptor": "Trainer",
   "landing.caseCount": "{count} ケース",
-  "landing.f2l.description": "コーナーとエッジのペアで最初の 2 層を揃える。",
+  "landing.f2l.description": "最初の 2 層を揃える。",
   "landing.oll.description": "最後の層の向きを揃える。",
   "landing.pll.description": "最後の層の位置を揃える。",
 
