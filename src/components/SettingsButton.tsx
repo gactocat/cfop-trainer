@@ -17,6 +17,7 @@ import { WritableArea } from './AccountBoundary';
 import { useColorTheme } from '@/hooks/useColorTheme';
 import { canWriteData } from '@/lib/persistence';
 import { PublicLinks } from './PublicLinks';
+import { InfoTip } from './InfoTip';
 
 function GearIcon({ size = 20 }: { size?: number }) {
   return (
@@ -39,27 +40,32 @@ function GearIcon({ size = 20 }: { size?: number }) {
 
 function Section({
   title,
+  info,
   children,
 }: {
   title: MessageKey;
+  info?: ReactNode;
   children: ReactNode;
 }) {
   const { t } = useT();
   return (
     <section className="space-y-2">
-      <h3 className="text-sm font-medium">{t(title)}</h3>
+      <h3 className="flex items-center gap-1 text-sm font-medium">
+        {t(title)}
+        {info && <InfoTip>{info}</InfoTip>}
+      </h3>
       {children}
     </section>
   );
 }
 
-// "Label — explanation" help line under a toggle.
+// "Label — explanation" help line inside a section's tooltip.
 function Help({ label, text }: { label: MessageKey; text: MessageKey }) {
   const { t } = useT();
   return (
-    <li>
-      <span className="font-medium text-zinc-700 dark:text-zinc-300">{t(label)}</span> — {t(text)}
-    </li>
+    <span className="block">
+      <span className="font-medium text-zinc-800 dark:text-zinc-100">{t(label)}</span> — {t(text)}
+    </span>
   );
 }
 
@@ -188,31 +194,20 @@ export function SettingsButton() {
 
             <Divider />
 
-            <Section title="settings.aufDisplay.title">
+            <Section title="settings.aufDisplay.title" info={<>
+              <Help label="settings.aufDisplay.onCube" text="settings.aufDisplay.onCubeHelp" />
+              <Help label="settings.aufDisplay.inAlgorithm" text="settings.aufDisplay.inAlgorithmHelp" />
+            </>}>
               <AufModeToggle />
-              <ul className="text-xs text-zinc-500 space-y-1">
-                <Help label="settings.aufDisplay.onCube" text="settings.aufDisplay.onCubeHelp" />
-                <Help
-                  label="settings.aufDisplay.inAlgorithm"
-                  text="settings.aufDisplay.inAlgorithmHelp"
-                />
-              </ul>
             </Section>
 
             <Divider />
 
-            <Section title="settings.trainerMode.title">
+            <Section title="settings.trainerMode.title" info={<>
+              <Help label="settings.trainerMode.standard" text="settings.trainerMode.standardHelp" />
+              <Help label="settings.trainerMode.inverse" text="settings.trainerMode.inverseHelp" />
+            </>}>
               <TrainerModeToggle />
-              <ul className="text-xs text-zinc-500 space-y-1">
-                <Help
-                  label="settings.trainerMode.standard"
-                  text="settings.trainerMode.standardHelp"
-                />
-                <Help
-                  label="settings.trainerMode.inverse"
-                  text="settings.trainerMode.inverseHelp"
-                />
-              </ul>
               <RandomAufToggle />
             </Section>
 

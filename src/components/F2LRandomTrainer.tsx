@@ -268,7 +268,7 @@ export function F2LRandomTrainer() {
   }
 
   const selectedNote = mounted
-    ? ` · ${t('trainer.selectedCount', { count: selected.size, total: F2L_IDS.length })}`
+    ? t('trainer.selectedCount', { count: selected.size, total: F2L_IDS.length })
     : '';
 
   // Inverse mode shows the setup scramble right on the start button, so the
@@ -290,10 +290,7 @@ export function F2LRandomTrainer() {
         <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
           {t('trainer.tapOrSpaceToStart')}
         </div>
-        <div className="text-xs opacity-75">
-          {t('trainer.hint.varied')} — {t('trainer.hint.f2lSolvedEnough')}
-          {selectedNote}
-        </div>
+        <div className="text-xs opacity-75">{selectedNote}</div>
       </button>
     );
   }
@@ -311,10 +308,7 @@ export function F2LRandomTrainer() {
       <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
         {t('trainer.tapOrSpaceToStart')}
       </div>
-      <div className="text-xs opacity-75">
-        {t('trainer.f2l.hidden')}
-        {selectedNote}
-      </div>
+      <div className="text-xs opacity-75">{selectedNote}</div>
     </button>
   );
 }

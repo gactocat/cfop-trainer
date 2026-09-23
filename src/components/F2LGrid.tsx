@@ -16,6 +16,7 @@ import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import { F2L3DPlayer } from './F2L3DPlayer';
 import { SelectionPresetsBar } from './SelectionPresetsBar';
 import { F2L_IDS, type F2LCategory, type F2LId } from '@/types/f2l';
+import { InfoTip } from './InfoTip';
 
 const CARD_CLASS =
   'group flex flex-col h-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors';
@@ -85,15 +86,15 @@ export function F2LGrid() {
 
   const heading = (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight">{t('f2l.grid.title')}</h1>
-      <p className="text-sm text-zinc-500 mt-1">
-        {t('f2l.grid.description')}
-        {algReady && (
-          <span className="ml-2 text-xs">
-            · {tn('common.algorithmsSaved', allAlgorithms.length)}
-          </span>
-        )}
-      </p>
+      <h1 className="flex items-center gap-1.5 text-2xl font-semibold tracking-tight">
+        {t('f2l.grid.title')}
+        <InfoTip>{t('f2l.grid.description')}</InfoTip>
+      </h1>
+      {algReady && (
+        <p className="text-xs text-zinc-500 mt-1">
+          {tn('common.algorithmsSaved', allAlgorithms.length)}
+        </p>
+      )}
     </>
   );
 

@@ -227,8 +227,7 @@ export function LastLayerRandomTrainer<Id extends string>({
           {t('trainer.tapOrSpaceToStart')}
         </div>
         <div className="text-xs opacity-75">
-          {t('trainer.hint.lastLayerSolved')}
-          {mounted && ` · ${t('trainer.selectedCount', { count: selected.size, total: ids.length })}`}
+          {mounted && t('trainer.selectedCount', { count: selected.size, total: ids.length })}
         </div>
       </button>
     );
@@ -248,9 +247,7 @@ export function LastLayerRandomTrainer<Id extends string>({
         {t('trainer.tapOrSpaceToStart')}
       </div>
       <div className="text-xs opacity-75">
-        {t(practice === 'oll' ? 'trainer.oll.hidden' : 'trainer.pll.hidden')}
-        {mounted &&
-          ` · ${t('trainer.selectedCount', { count: selected.size, total: ids.length })}`}
+        {mounted && t('trainer.selectedCount', { count: selected.size, total: ids.length })}
       </div>
     </button>
   );

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { useT } from '@/hooks/useT';
 import { FullScreenModal } from './FullScreenModal';
 import { PllGrid } from './PllGrid';
@@ -10,6 +11,7 @@ import { ShuffleIcon } from './ShuffleIcon';
 export function Home() {
   const [training, setTraining] = useState(false);
   const { t } = useT();
+  const { settings: { trainerMode: mode } } = usePracticeSettings();
 
   return (
     <div className="space-y-6">
@@ -29,6 +31,7 @@ export function Home() {
       <FullScreenModal
         open={training}
         onClose={() => setTraining(false)}
+        info={t(mode === 'inverse' ? 'trainer.hint.lastLayerSolved' : 'trainer.pll.hidden')}
         title={t('trainer.pllTitle')}
       >
         <RandomTrainer />

@@ -126,6 +126,7 @@ const en = {
   'common.lastRecordedDate': 'Last recorded date',
   'common.settings': 'Settings',
   'common.menu': 'Menu',
+  'common.moreInfo': 'More information',
   'common.data': 'Data',
   'common.practice': 'Practice',
   'common.randomTraining': 'Random Training',
@@ -249,6 +250,7 @@ const en = {
     'Show a setup scramble first so you can bring your own cube into the case, then START to time',
   'settings.trainerMode.inverseHelp':
     'apply the displayed setup before timing. For F2L, start with F2L solved; a varied setup is used. For OLL and PLL, start with a fully solved cube; the starred algorithm (or first preset) is inverted.',
+  'settings.trainerMode.randomAufLabel': 'Random AUF',
   'settings.trainerMode.randomAuf':
     'Show each case in a random U-layer orientation, so the AUF has to be recognised too (both modes)',
 
@@ -428,6 +430,7 @@ const ja: Messages = {
   'common.lastRecordedDate': '最後に記録した日',
   'common.settings': '設定',
   'common.menu': 'メニュー',
+  'common.moreInfo': '説明を表示',
   'common.data': 'データ',
   'common.practice': '練習',
   'common.randomTraining': 'ランダム練習',
@@ -543,6 +546,7 @@ const ja: Messages = {
     '先にセットアップ手順を表示し、自分のキューブをケースの状態にしてから START で計測する',
   'settings.trainerMode.inverseHelp':
     '表示されたセットアップを適用してから計測します。F2L は F2L 完成状態から複数のセットアップ手順で準備します。OLL・PLL は完全な完成状態からスター付き手順（未登録なら最初のプリセット）の逆手順を適用します。',
+  'settings.trainerMode.randomAufLabel': 'ランダム AUF',
   'settings.trainerMode.randomAuf':
     'ケースの U 面の向きを毎回ランダムにして、AUF の判断も練習する (両モード共通)',
 

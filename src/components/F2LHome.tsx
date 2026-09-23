@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { useT } from '@/hooks/useT';
 import { F2LGrid } from './F2LGrid';
 import { F2LRandomTrainer } from './F2LRandomTrainer';
@@ -10,6 +11,7 @@ import { ShuffleIcon } from './ShuffleIcon';
 export function F2LHome() {
   const [training, setTraining] = useState(false);
   const { t } = useT();
+  const { settings: { trainerMode: mode } } = usePracticeSettings();
 
   return (
     <div className="space-y-6">
@@ -29,6 +31,9 @@ export function F2LHome() {
       <FullScreenModal
         open={training}
         onClose={() => setTraining(false)}
+        info={mode === 'inverse'
+          ? `${t('trainer.hint.varied')} — ${t('trainer.hint.f2lSolvedEnough')}`
+          : t('trainer.f2l.hidden')}
         title={t('trainer.f2lTitle')}
       >
         <F2LRandomTrainer />

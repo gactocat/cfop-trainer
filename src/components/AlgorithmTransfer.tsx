@@ -11,6 +11,7 @@ import { exportOLLAlgorithms, importOLLAlgorithms } from '@/lib/oll-storage';
 import { ImportError } from '@/lib/import-error';
 import { getPersistenceSnapshot } from '@/lib/persistence';
 import { exportJsonFile } from '@/lib/export-file';
+import { InfoTip } from './InfoTip';
 
 type Kind = 'pll' | 'f2l' | 'oll';
 
@@ -117,8 +118,10 @@ export function AlgorithmTransfer() {
   return (
     <section className="space-y-3">
       <div>
-        <h3 className="text-sm font-medium">{t('transfer.title')}</h3>
-        <p className="text-xs text-zinc-500">{t('transfer.description')}</p>
+        <h3 className="flex items-center gap-1 text-sm font-medium">
+          {t('transfer.title')}
+          <InfoTip>{t('transfer.description')}</InfoTip>
+        </h3>
       </div>
 
       <div className="space-y-2">
