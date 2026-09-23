@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useT } from '@/hooks/useT';
 import type { LastLayerPractice } from '@/types/practice';
+import { loadRecolouredTwisty, recolour3DPlayer } from '@/lib/cube-colors';
 import { OLL_STICKERING_MASK } from '@/lib/oll-stickering-mask';
 
 interface LastLayerPlayerProps {
@@ -27,7 +28,7 @@ export function LastLayerPlayer({
     let player: import('cubing/twisty').TwistyPlayer | undefined;
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const applyScheme = () => player?.setAttribute('color-scheme', mq.matches ? 'dark' : 'light');
-    void import('cubing/twisty').then(({ TwistyPlayer }) => {
+    void loadRecolouredTwisty().then(({ TwistyPlayer }) => {
       if (cancelled) return;
       player = new TwistyPlayer({
         puzzle: '3x3x3',
@@ -46,6 +47,7 @@ export function LastLayerPlayer({
       applyScheme();
       mq.addEventListener('change', applyScheme);
       host.appendChild(player);
+      if (view === '3d') void recolour3DPlayer(player);
     });
     return () => {
       cancelled = true;

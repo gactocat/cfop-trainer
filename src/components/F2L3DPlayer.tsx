@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { useT } from '@/hooks/useT';
 import { aufToMove, combineAuf, invertAuf, prefixAuf } from '@/lib/f2l-auf';
+import { loadRecolouredTwisty, recolour3DPlayer } from '@/lib/cube-colors';
 import { F2L_STICKERING_MASK } from '@/lib/f2l-stickering-mask';
 import type { Auf } from '@/types/pll';
 
@@ -24,12 +25,6 @@ interface F2L3DPlayerProps {
   interactive?: boolean;
 }
 
-// A single shared import promise so 41+ grid instances share one chunk load.
-let twistyPromise: Promise<unknown> | null = null;
-function loadTwisty(): Promise<unknown> {
-  if (twistyPromise === null) twistyPromise = import('cubing/twisty');
-  return twistyPromise;
-}
 
 export function F2L3DPlayer({
   algorithm,
@@ -67,7 +62,8 @@ export function F2L3DPlayer({
   useEffect(() => {
     if (!inView || ready) return;
     let cancelled = false;
-    loadTwisty().then(() => {
+    // The load is shared, so 41+ grid instances share one chunk load.
+    loadRecolouredTwisty().then(() => {
       if (!cancelled) setReady(true);
     });
     return () => {
@@ -124,6 +120,7 @@ export function F2L3DPlayer({
     player.style.width = '100%';
     player.style.height = '100%';
     host.appendChild(player);
+    void recolour3DPlayer(player as unknown as import('cubing/twisty').TwistyPlayer);
     setMounted(true);
 
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
