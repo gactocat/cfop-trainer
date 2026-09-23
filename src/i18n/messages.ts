@@ -1,6 +1,12 @@
 // UI strings. `en` defines the key set; every other locale must provide the
 // same keys (enforced by the `Messages` type). Placeholders are `{name}`.
 // Plural forms use a `_one` / `_other` suffix pair and are picked by `tn`.
+//
+// Explanations (tooltips, help text) are complete sentences ending in a
+// period: first what the thing is, then what happens when you use it. Use
+// the same vocabulary everywhere: case, algorithm (手順), starred algorithm
+// (スター付き手順), setup (セットアップ手順), time (タイム), random training
+// (ランダム練習), start / stop (スタート / ストップ). Japanese uses です/ます.
 
 export type Locale = 'en' | 'ja';
 
@@ -104,7 +110,7 @@ const en = {
   "account.importGuest": "Import device data",
   "account.startFresh": "Start fresh",
 
-  "trainer.hint.lastLayerSolved": "Start with a fully solved cube. Apply this setup before timing.",
+  "trainer.hint.lastLayerSolved": "Apply the setup shown to a solved cube, then start the timer and solve the case. The case name appears when you stop.",
   "view.lastLayer2d": "{kind} last-layer diagram",
   "view.lastLayer3d": "{kind} 3D algorithm preview",
   // Shared
@@ -141,8 +147,7 @@ const en = {
 
   // Grids
   'pll.grid.title': 'All PLLs',
-  'pll.grid.description':
-    "Pick a PLL to manage algorithms and times for each orientation (U0 / U / U2 / U').",
+  "pll.grid.description": "The 21 PLL cases.",
   'pll.grid.noneSelected': 'No cases selected. Tap “Select cases” to choose which PLLs to show.',
   'pll.grid.includeInRandom': 'Include {name} in random selection',
   'pll.grid.noAlgorithm': 'No algorithm saved',
@@ -150,8 +155,7 @@ const en = {
   'pll.category.cpll': 'Permutations of Corners Only',
   'pll.category.ec-pll': 'Permutations of Edges and Corners',
   'f2l.grid.title': 'All F2Ls',
-  'f2l.grid.description':
-    'The 41 standard F2L cases (Front-Right slot). Pick a case to manage algorithms and times.',
+  "f2l.grid.description": "The 41 standard F2L cases, shown in the front-right slot.",
   'f2l.grid.noneSelected':
     'No cases selected. Tap “Select cases” to choose which F2L cases to show.',
   'f2l.grid.includeInRandom': 'Include F2L {number} in random selection',
@@ -217,15 +221,12 @@ const en = {
   'trainer.noneSelected': 'No cases selected',
   'trainer.pll.tickOne': 'Tick at least one PLL on the list to start the trainer',
   'trainer.f2l.tickOne': 'Tick at least one F2L case on the list to start the trainer',
-  'trainer.pll.hidden': 'A random PLL appears — name hidden until you stop',
-  'trainer.f2l.hidden': 'A random F2L case appears — number hidden until you stop',
+  "trainer.pll.hidden": "When you start, a random PLL appears and the timer begins. The case name appears when you stop.",
+  "trainer.f2l.hidden": "When you start, a random F2L case appears and the timer begins. The case name appears when you stop.",
   'trainer.pll.noStar': 'No star algorithm saved for this PLL',
   'trainer.f2l.noAlgorithm': 'No algorithm saved for this case',
   'trainer.selectedCount': '{count}/{total} selected',
-  'trainer.applyToCube': 'Apply this to your cube',
-  'trainer.hint.varied': 'A short setup for this case, not the inverse of your algorithm',
-  'trainer.hint.f2lSolvedEnough':
-    'apply it to a cube with F2L solved; the last layer does not matter',
+  "trainer.applyToCube": "Apply this setup to your cube",
 
   // Settings
   'settings.title': 'Settings',
@@ -233,34 +234,29 @@ const en = {
   'settings.language.title': 'Language',
   'settings.aufDisplay.title': 'AUF display',
   'settings.aufDisplay.onCube': 'On cube',
-  'settings.aufDisplay.onCubeTitle': 'Show the AUF by rotating the displayed cube',
-  'settings.aufDisplay.onCubeHelp': 'rotate the displayed cube; the algorithm shows just its body.',
+  "settings.aufDisplay.onCubeTitle": "Show the AUF by turning the displayed cube",
+  "settings.aufDisplay.onCubeHelp": "The displayed cube is turned by the AUF, and the algorithm is shown without it.",
   'settings.aufDisplay.inAlgorithm': 'In algorithm',
-  'settings.aufDisplay.inAlgorithmTitle': 'Show the AUF as a leading turn in the algorithm',
-  'settings.aufDisplay.inAlgorithmHelp':
-    "show the raw case; the AUF appears as the algorithm's leading turn.",
+  "settings.aufDisplay.inAlgorithmTitle": "Show the AUF at the start of the algorithm",
+  "settings.aufDisplay.inAlgorithmHelp": "The case is shown without turning, and the AUF is added to the start of the algorithm.",
   'settings.aufDisplay.aria': 'How to show the AUF',
   'settings.trainerMode.title': 'Random trainer mode',
   'settings.trainerMode.aria': 'Random trainer mode',
   'settings.trainerMode.standard': 'Standard',
-  'settings.trainerMode.standardTitle': 'Pick a hidden case and start timing immediately',
-  'settings.trainerMode.standardHelp': 'a hidden case appears and timing starts immediately.',
+  "settings.trainerMode.standardTitle": "Show a random case and start timing at once",
+  "settings.trainerMode.standardHelp": "When you start, a random case appears and the timer begins. The case name appears when you stop.",
   'settings.trainerMode.inverse': 'Inverse setup',
-  'settings.trainerMode.inverseTitle':
-    'Show a setup scramble first so you can bring your own cube into the case, then START to time',
-  'settings.trainerMode.inverseHelp':
-    'apply the displayed setup before timing. For F2L, start with F2L solved; a varied setup is used. For OLL and PLL, start with a fully solved cube; the starred algorithm (or first preset) is inverted.',
+  "settings.trainerMode.inverseTitle": "Show a setup to apply to your own cube before timing",
+  "settings.trainerMode.inverseHelp": "A setup is shown before you start. Apply it to your own cube to create the case, then start the timer and solve it. For F2L, apply a short setup made for the case to a cube with F2L solved. For OLL and PLL, apply the inverse of the starred algorithm (or the first preset) to a solved cube.",
   'settings.trainerMode.randomAufLabel': 'Random AUF',
-  'settings.trainerMode.randomAuf':
-    'Show each case in a random U-layer orientation, so the AUF has to be recognised too (both modes)',
+  "settings.trainerMode.randomAuf": "Turns the U layer by a random amount for each case, so you also practice recognizing the AUF. Applies to both modes.",
 
   // Export / import
   'transfer.title': 'Algorithms',
-  'transfer.description':
-    'Export or import your algorithms as a JSON file. Importing replaces all current algorithms.',
+  "transfer.description": "Export your PLL, OLL or F2L algorithms to a JSON file, or import them from one. Times are not included in the file. Importing replaces all algorithms of that type and deletes the times recorded for them.",
   'transfer.exported': 'Exported {kind} algorithms.',
   'transfer.exportFailed': 'Failed to export {kind} algorithms.',
-  'transfer.confirmImport': 'Replace all current {kind} algorithms with the imported file?',
+  "transfer.confirmImport": "Replace all current {kind} algorithms with the imported file? Times recorded for them will be deleted.",
   'transfer.imported_one': 'Imported {count} {kind} algorithm.',
   'transfer.imported_other': 'Imported {count} {kind} algorithms.',
   'transfer.importFailed': 'Failed to import {kind} algorithms.',
@@ -276,7 +272,7 @@ const en = {
   'view.pllLL': '{id} PLL ({auf})',
 
   'oll.grid.title': 'All OLLs',
-  'oll.grid.description': 'All 57 OLL cases. Choose a case to manage algorithms and times for each starting orientation.',
+  "oll.grid.description": "The 57 OLL cases.",
   'algForm.placeholderOll': "e.g. R U R' U R U2 R'",
   'oll.grid.noneSelected': 'No cases selected. Tap “Select cases” to choose which OLLs to show.',
   'oll.grid.includeInRandom': 'Include {name} in random selection',
@@ -290,7 +286,7 @@ const en = {
   'algRow.starredShownOnOllGrid': 'Starred — shown on the OLL grid',
   'trainer.ollTitle': 'Random OLL Training',
   'trainer.oll.tickOne': 'Tick at least one OLL on the list to start the trainer',
-  'trainer.oll.hidden': 'A random OLL appears — name hidden until you stop',
+  "trainer.oll.hidden": "When you start, a random OLL appears and the timer begins. The case name appears when you stop.",
   'trainer.oll.noStar': 'No star algorithm saved for this OLL',
   'view.oll3d': '3D cube playback',
   'view.oll3dLoading': 'Loading 3D cube',
@@ -311,6 +307,11 @@ const en = {
   'oll.category.line-shapes': "Line Shapes",
   'oll.source': "Preset algorithms: SpeedCubeDB",
 
+  "grid.help": "Open a card to save your algorithms for that case and record times for them. Each algorithm has a starting orientation (AUF). Cards show the starred algorithm with its best time and ao5. Use Select cases to choose which cases appear here and in random training.",
+  "settings.aufDisplay.help": "The AUF is the U-layer turn made before an algorithm. Choose how it is shown.",
+  "settings.trainerMode.help": "Choose how random training shows each case and when timing starts.",
+  "trainer.hint.f2lSetup": "Apply the setup shown to a cube with F2L solved, then start the timer and solve the case. The last layer can be in any state. The setup is a short sequence made for this case, not the inverse of your algorithm. The case name appears when you stop.",
+  "trainer.hint.selection": "Cases are drawn from those selected in the list. Cases you have not timed recently come up more often.",
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -318,14 +319,14 @@ export type Messages = Record<MessageKey, string>;
 
 const ja: Messages = {
   "landing.useCases": "できること",
-  "landing.useCase.algorithms": "ケースごとに、自分のアルゴリズムを管理",
-  "landing.useCase.times": "アルゴリズムごとのタイムを記録",
+  "landing.useCase.algorithms": "ケースごとに自分の手順を管理",
+  "landing.useCase.times": "手順ごとのタイムを記録",
   "landing.useCase.random": "選んだケースをランダムに練習",
 
   "landing.brandName": "CFOP",
   "landing.brandDescriptor": "Trainer",
   "landing.caseCount": "{count} ケース",
-  "landing.f2l.description": "コーナーとエッジで最初の 2 層を。",
+  "landing.f2l.description": "コーナーとエッジのペアで最初の 2 層を揃える。",
   "landing.oll.description": "最後の層の向きを揃える。",
   "landing.pll.description": "最後の層の位置を揃える。",
 
@@ -409,7 +410,7 @@ const ja: Messages = {
   "account.importGuest": "端末のデータを取り込む",
   "account.startFresh": "新しく始める",
 
-  "trainer.hint.lastLayerSolved": "完成状態のキューブに、このセットアップを適用してから計測してください。",
+  "trainer.hint.lastLayerSolved": "表示されたセットアップ手順を完成したキューブに適用してから、スタートして解きます。ケース名はストップ後に表示します。",
   "view.lastLayer2d": "{kind} の上面図",
   "view.lastLayer3d": "{kind} 手順の 3D プレビュー",
   'common.close': '閉じる',
@@ -444,8 +445,7 @@ const ja: Messages = {
   'common.algorithmsSaved_other': '手順 {count} 件',
 
   'pll.grid.title': 'PLL 一覧',
-  'pll.grid.description':
-    'PLL を選ぶと、向き (U0 / U / U2 / U\') ごとに手順とタイムを管理できます。',
+  "pll.grid.description": "PLL の 21 ケースです。",
   'pll.grid.noneSelected': 'ケースが選ばれていません。「ケースを選ぶ」から表示する PLL を選んでください。',
   'pll.grid.includeInRandom': '{name} をランダム練習に含める',
   'pll.grid.noAlgorithm': '手順が未登録',
@@ -453,8 +453,7 @@ const ja: Messages = {
   'pll.category.cpll': 'コーナーのみの入れ替え',
   'pll.category.ec-pll': 'エッジとコーナーの入れ替え',
   'f2l.grid.title': 'F2L 一覧',
-  'f2l.grid.description':
-    '標準的な 41 ケース (前右スロット) です。ケースを選ぶと手順とタイムを管理できます。',
+  "f2l.grid.description": "標準的な F2L の 41 ケースを、前右スロットの状態で表示します。",
   'f2l.grid.noneSelected':
     'ケースが選ばれていません。「ケースを選ぶ」から表示する F2L ケースを選んでください。',
   'f2l.grid.includeInRandom': 'F2L {number} をランダム練習に含める',
@@ -516,46 +515,40 @@ const ja: Messages = {
   'trainer.noneSelected': 'ケースが選ばれていません',
   'trainer.pll.tickOne': '一覧で PLL を 1 つ以上選ぶと開始できます',
   'trainer.f2l.tickOne': '一覧で F2L ケースを 1 つ以上選ぶと開始できます',
-  'trainer.pll.hidden': 'ランダムな PLL が出題されます。名前はストップまで非表示',
-  'trainer.f2l.hidden': 'ランダムな F2L ケースが出題されます。ストップ後に表示',
+  "trainer.pll.hidden": "スタートすると、ランダムな PLL を表示し、同時に計測を始めます。ケース名はストップ後に表示します。",
+  "trainer.f2l.hidden": "スタートすると、ランダムな F2L ケースを表示し、同時に計測を始めます。ケース名はストップ後に表示します。",
   'trainer.pll.noStar': 'この PLL にはスター付きの手順がありません',
   'trainer.f2l.noAlgorithm': 'このケースには手順が登録されていません',
   'trainer.selectedCount': '{count}/{total} 件を選択中',
-  'trainer.applyToCube': 'この手順をキューブに適用',
-  'trainer.hint.varied': 'このケースに至る短いセットアップ手順 (登録手順の逆手順ではありません)',
-  'trainer.hint.f2lSolvedEnough': 'F2L が揃ったキューブに適用してください。LL の状態は問いません',
+  "trainer.applyToCube": "このセットアップ手順をキューブに適用",
 
   'settings.title': '設定',
   'settings.closeAria': '設定を閉じる',
   'settings.language.title': '言語',
   'settings.aufDisplay.title': 'AUF の表示',
   'settings.aufDisplay.onCube': 'キューブに反映',
-  'settings.aufDisplay.onCubeTitle': '表示するキューブを回して AUF を表す',
-  'settings.aufDisplay.onCubeHelp': '表示するキューブを回し、手順は本体だけを表示します。',
+  "settings.aufDisplay.onCubeTitle": "表示するキューブを回して AUF を表す",
+  "settings.aufDisplay.onCubeHelp": "表示するキューブを AUF の分だけ回し、手順は AUF を除いて表示します。",
   'settings.aufDisplay.inAlgorithm': '手順に含める',
-  'settings.aufDisplay.inAlgorithmTitle': 'AUF を手順の先頭の回転として表示する',
-  'settings.aufDisplay.inAlgorithmHelp': 'ケースをそのまま表示し、AUF は手順の先頭の回転として表示します。',
+  "settings.aufDisplay.inAlgorithmTitle": "AUF を手順の先頭に付けて表示する",
+  "settings.aufDisplay.inAlgorithmHelp": "ケースを回さずに表示し、AUF を手順の先頭に付けて表示します。",
   'settings.aufDisplay.aria': 'AUF の表示方法',
   'settings.trainerMode.title': 'ランダム練習のモード',
   'settings.trainerMode.aria': 'ランダム練習のモード',
   'settings.trainerMode.standard': '標準',
-  'settings.trainerMode.standardTitle': 'ケースを伏せたまま出題し、すぐに計測を始める',
-  'settings.trainerMode.standardHelp': 'ケースを伏せたまま出題し、すぐに計測を始めます。',
+  "settings.trainerMode.standardTitle": "ランダムなケースを表示し、同時に計測を始める",
+  "settings.trainerMode.standardHelp": "スタートすると、ランダムなケースを表示し、同時に計測を始めます。ケース名はストップ後に表示します。",
   'settings.trainerMode.inverse': '逆手順セットアップ',
-  'settings.trainerMode.inverseTitle':
-    '先にセットアップ手順を表示し、自分のキューブをケースの状態にしてから START で計測する',
-  'settings.trainerMode.inverseHelp':
-    '表示されたセットアップを適用してから計測します。F2L は F2L 完成状態から複数のセットアップ手順で準備します。OLL・PLL は完全な完成状態からスター付き手順（未登録なら最初のプリセット）の逆手順を適用します。',
+  "settings.trainerMode.inverseTitle": "計測の前に、自分のキューブに適用するセットアップ手順を表示する",
+  "settings.trainerMode.inverseHelp": "スタート前にセットアップ手順を表示します。自分のキューブに適用してケースを作ってから、スタートして解きます。F2L は、このケース用に作った短い手順を、F2L が揃ったキューブに適用します。OLL と PLL は、スター付き手順 (なければ最初のプリセット) の逆手順を、完成したキューブに適用します。",
   'settings.trainerMode.randomAufLabel': 'ランダム AUF',
-  'settings.trainerMode.randomAuf':
-    'ケースの U 面の向きを毎回ランダムにして、AUF の判断も練習する (両モード共通)',
+  "settings.trainerMode.randomAuf": "出題のたびに U 面をランダムに回し、AUF の判断も練習できるようにします。どちらのモードにも適用されます。",
 
   'transfer.title': '手順データ',
-  'transfer.description':
-    '手順を JSON ファイルとしてエクスポート / インポートします。インポートすると現在の手順はすべて置き換わります。',
+  "transfer.description": "PLL・OLL・F2L ごとに、手順を JSON ファイルにエクスポートしたり、ファイルからインポートしたりできます。タイムはファイルに含まれません。インポートすると、その種類の手順はすべて置き換わり、それらの手順に記録したタイムも削除されます。",
   'transfer.exported': '{kind} の手順をエクスポートしました。',
   'transfer.exportFailed': '{kind} の手順のエクスポートに失敗しました。',
-  'transfer.confirmImport': '現在の {kind} の手順をすべてインポートしたファイルの内容で置き換えますか？',
+  "transfer.confirmImport": "現在の {kind} の手順をすべてインポートしたファイルの内容で置き換えますか？それらの手順に記録したタイムも削除されます。",
   'transfer.imported_one': '{kind} の手順を {count} 件インポートしました。',
   'transfer.imported_other': '{kind} の手順を {count} 件インポートしました。',
   'transfer.importFailed': '{kind} の手順のインポートに失敗しました。',
@@ -570,7 +563,7 @@ const ja: Messages = {
   'view.pllLL': '{id} PLL ({auf})',
 
   'oll.grid.title': 'OLL 一覧',
-  'oll.grid.description': 'OLL の全 57 ケースです。ケースを選ぶと、向きごとに手順とタイムを管理できます。',
+  "oll.grid.description": "OLL の 57 ケースです。",
   'algForm.placeholderOll': "例: R U R' U R U2 R'",
   'oll.grid.noneSelected': 'ケースが選ばれていません。「ケースを選ぶ」から表示する OLL を選んでください。',
   'oll.grid.includeInRandom': '{name} をランダム練習に含める',
@@ -584,7 +577,7 @@ const ja: Messages = {
   'algRow.starredShownOnOllGrid': 'スター付き — OLL 一覧に表示されます',
   'trainer.ollTitle': 'OLL ランダム練習',
   'trainer.oll.tickOne': '一覧で OLL を 1 つ以上選ぶと開始できます',
-  'trainer.oll.hidden': 'ランダムな OLL が出題されます。名前はストップまで非表示',
+  "trainer.oll.hidden": "スタートすると、ランダムな OLL を表示し、同時に計測を始めます。ケース名はストップ後に表示します。",
   'trainer.oll.noStar': 'この OLL にはスター付きの手順がありません',
   'view.oll3d': 'キューブの 3D 再生',
   'view.oll3dLoading': '3D キューブを読み込み中',
@@ -605,6 +598,11 @@ const ja: Messages = {
   'oll.category.line-shapes': "ライン",
   'oll.source': "プリセット手順の出典: SpeedCubeDB",
 
+  "grid.help": "カードを開くと、そのケースの手順を登録してタイムを記録できます。手順ごとに開始時の向き (AUF) を設定できます。カードには、スター付き手順とそのベストタイム・ao5 を表示します。「ケースを選ぶ」で、この一覧とランダム練習に使うケースを選べます。",
+  "settings.aufDisplay.help": "AUF は、手順の前に U 面を合わせる回転です。その表示方法を選びます。",
+  "settings.trainerMode.help": "ランダム練習での出題と計測開始の流れを選びます。",
+  "trainer.hint.f2lSetup": "表示されたセットアップ手順を F2L が揃ったキューブに適用してから、スタートして解きます。最後の層の状態は問いません。セットアップ手順はこのケース用に作った短い手順で、登録した手順の逆手順ではありません。ケース名はストップ後に表示します。",
+  "trainer.hint.selection": "一覧で選んだケースから出題します。しばらく計測していないケースほど出やすくなります。",
 };
 
 export const MESSAGES: Record<Locale, Messages> = { en, ja };

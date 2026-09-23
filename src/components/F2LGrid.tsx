@@ -88,7 +88,10 @@ export function F2LGrid() {
     <>
       <h1 className="flex items-center gap-1.5 text-2xl font-semibold tracking-tight">
         {t('f2l.grid.title')}
-        <InfoTip>{t('f2l.grid.description')}</InfoTip>
+        <InfoTip>
+          <span className="block">{t('f2l.grid.description')}</span>
+          <span className="block">{t('grid.help')}</span>
+        </InfoTip>
       </h1>
       {algReady && (
         <p className="text-xs text-zinc-500 mt-1">

@@ -81,7 +81,7 @@ export function InfoTip({ children, className = '' }: { children: ReactNode; cla
       </button>
       {place && (
         <span id={id} role="tooltip" style={place}
-          className="fixed z-[60] block rounded-md border border-zinc-200 bg-white px-3 py-2 text-left text-xs font-normal normal-case leading-relaxed tracking-normal text-zinc-600 shadow-lg dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+          className="fixed z-[60] block space-y-1.5 rounded-md border border-zinc-200 bg-white px-3 py-2 text-left text-xs font-normal normal-case leading-relaxed tracking-normal text-zinc-600 shadow-lg dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
           {children}
         </span>
       )}

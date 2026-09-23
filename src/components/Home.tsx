@@ -31,8 +31,11 @@ export function Home() {
       <FullScreenModal
         open={training}
         onClose={() => setTraining(false)}
-        info={t(mode === 'inverse' ? 'trainer.hint.lastLayerSolved' : 'trainer.pll.hidden')}
         title={t('trainer.pllTitle')}
+        info={<>
+          <span className="block">{t(mode === 'inverse' ? 'trainer.hint.lastLayerSolved' : 'trainer.pll.hidden')}</span>
+          <span className="block">{t('trainer.hint.selection')}</span>
+        </>}
       >
         <RandomTrainer />
       </FullScreenModal>

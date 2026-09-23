@@ -31,10 +31,11 @@ export function F2LHome() {
       <FullScreenModal
         open={training}
         onClose={() => setTraining(false)}
-        info={mode === 'inverse'
-          ? `${t('trainer.hint.varied')} — ${t('trainer.hint.f2lSolvedEnough')}`
-          : t('trainer.f2l.hidden')}
         title={t('trainer.f2lTitle')}
+        info={<>
+          <span className="block">{t(mode === 'inverse' ? 'trainer.hint.f2lSetup' : 'trainer.f2l.hidden')}</span>
+          <span className="block">{t('trainer.hint.selection')}</span>
+        </>}
       >
         <F2LRandomTrainer />
       </FullScreenModal>

@@ -99,7 +99,10 @@ export function OLLGrid() {
     <>
       <h1 className="flex items-center gap-1.5 text-2xl font-semibold tracking-tight">
         {t('oll.grid.title')}
-        <InfoTip>{t('oll.grid.description')}</InfoTip>
+        <InfoTip>
+          <span className="block">{t('oll.grid.description')}</span>
+          <span className="block">{t('grid.help')}</span>
+        </InfoTip>
       </h1>
       {algReady && (
         <p className="text-xs text-zinc-500 mt-1">

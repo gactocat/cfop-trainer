@@ -195,6 +195,7 @@ export function SettingsButton() {
             <Divider />
 
             <Section title="settings.aufDisplay.title" info={<>
+              <span className="block">{t('settings.aufDisplay.help')}</span>
               <Help label="settings.aufDisplay.onCube" text="settings.aufDisplay.onCubeHelp" />
               <Help label="settings.aufDisplay.inAlgorithm" text="settings.aufDisplay.inAlgorithmHelp" />
             </>}>
@@ -204,6 +205,7 @@ export function SettingsButton() {
             <Divider />
 
             <Section title="settings.trainerMode.title" info={<>
+              <span className="block">{t('settings.trainerMode.help')}</span>
               <Help label="settings.trainerMode.standard" text="settings.trainerMode.standardHelp" />
               <Help label="settings.trainerMode.inverse" text="settings.trainerMode.inverseHelp" />
             </>}>

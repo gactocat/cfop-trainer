@@ -31,8 +31,11 @@ export function OLLHome() {
       <FullScreenModal
         open={training}
         onClose={() => setTraining(false)}
-        info={t(mode === 'inverse' ? 'trainer.hint.lastLayerSolved' : 'trainer.oll.hidden')}
         title={t('trainer.ollTitle')}
+        info={<>
+          <span className="block">{t(mode === 'inverse' ? 'trainer.hint.lastLayerSolved' : 'trainer.oll.hidden')}</span>
+          <span className="block">{t('trainer.hint.selection')}</span>
+        </>}
       >
         <OLLRandomTrainer />
       </FullScreenModal>
