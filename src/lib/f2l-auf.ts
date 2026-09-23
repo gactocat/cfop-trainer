@@ -45,3 +45,24 @@ export function aufFromMove(move: string): Auf | undefined {
     ? (move as Auf)
     : undefined;
 }
+
+// Append a U turn, merging it with a trailing U turn so a scramble never ends
+// in something like "U' U2".
+export function appendUTurn(scramble: string, turn: Auf): string {
+  return mergeUTurn(scramble.split(' ').filter(Boolean), turn, 'end').join(' ');
+}
+
+// Prepend a U turn, merging it with a leading U turn.
+export function prependUTurn(scramble: string, turn: Auf): string {
+  return mergeUTurn(scramble.split(' ').filter(Boolean), turn, 'start').join(' ');
+}
+
+function mergeUTurn(tokens: string[], turn: Auf, side: 'start' | 'end'): string[] {
+  if (turn === 'U0') return tokens;
+  const at = side === 'start' ? 0 : tokens.length - 1;
+  const existing = tokens[at] === undefined ? undefined : aufFromMove(tokens[at]);
+  const rest = existing ? tokens.filter((_, i) => i !== at) : tokens;
+  const merged = aufToMove(existing ? combineAuf(existing, turn) : turn);
+  if (!merged) return rest;
+  return side === 'start' ? [merged, ...rest] : [...rest, merged];
+}

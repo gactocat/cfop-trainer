@@ -1,6 +1,6 @@
 import { F2L_SCRAMBLE_POOL } from '@/data/f2l-scramble-pool';
 import { rotationNeutral } from '@/lib/cube-rotation';
-import { aufFromMove, aufToMove, combineAuf, prefixAuf } from '@/lib/f2l-auf';
+import { appendUTurn, prefixAuf } from '@/lib/f2l-auf';
 import { invertAlg } from '@/lib/invert-alg';
 import { normalizeAlg } from '@/lib/normalize-alg';
 import type { F2LId } from '@/types/f2l';
@@ -69,20 +69,4 @@ export function buildF2LSetup(
     candidates.length > 0 ? candidates[Math.floor(random() * candidates.length)] : inverse;
 
   return { scramble: appendUTurn(base, uOffset), uOffset };
-}
-
-// Append a U turn, merging it with a trailing U turn so the scramble never
-// ends in something like "U' U2".
-function appendUTurn(scramble: string, turn: Auf): string {
-  if (turn === 'U0') return scramble;
-  const tokens = scramble.split(' ').filter(Boolean);
-  const last = tokens[tokens.length - 1];
-  const lastAuf = last === undefined ? undefined : aufFromMove(last);
-  if (lastAuf) {
-    tokens.pop();
-    const merged = aufToMove(combineAuf(lastAuf, turn));
-    if (merged) tokens.push(merged);
-    return tokens.join(' ');
-  }
-  return [...tokens, aufToMove(turn)].join(' ');
 }

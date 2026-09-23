@@ -7,12 +7,13 @@ import { useAlgorithms } from '@/hooks/useAlgorithms';
 import { usePllRandomSelection } from '@/hooks/usePllRandomSelection';
 import { useRandomSolves } from '@/hooks/useRandomSolves';
 import { splitAuf } from '@/lib/auf-from-algorithm';
+import { prefixAuf } from '@/lib/f2l-auf';
 import { PLL_IDS, type PllId } from '@/types/pll';
 import { LastLayerRandomTrainer } from './LastLayerRandomTrainer';
 
 export function RandomTrainer() {
   const solves = useRandomSolves();
-  const { starredFor } = useAlgorithms();
+  const { starredFor, forPll } = useAlgorithms();
   const { selected } = usePllRandomSelection();
   const lastRecorded = useMemo(() => {
     const map = new Map<PllId, number>();
@@ -30,6 +31,13 @@ export function RandomTrainer() {
       const { auf, rest } = splitAuf(PRESET_ALGORITHMS[id][0]);
       return { auf, algorithm: rest };
     }}
+    alternativesFor={(id) => [
+      ...forPll(id).map((r) => prefixAuf(r.auf, r.algorithm)),
+      ...PRESET_ALGORITHMS[id].map((preset) => {
+        const { auf, rest } = splitAuf(preset);
+        return prefixAuf(auf, rest);
+      }),
+    ]}
     nameFor={(id) => getPllDefinition(id)?.name ?? id}
     add={solves.add} bestFor={solves.bestFor} ao5For={solves.ao5For} solvesFor={solves.solvesFor}
   />;

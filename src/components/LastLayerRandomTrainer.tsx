@@ -7,6 +7,8 @@ import { useSpacebar } from '@/hooks/useSpacebar';
 import { useNativeTimer } from '@/hooks/useNativeTimer';
 import { useT } from '@/hooks/useT';
 import { usePracticeSettings } from '@/hooks/usePracticeSettings';
+import { useLastLayerSolver } from '@/hooks/useLastLayerSolver';
+import { pickAlternativeSetup } from '@/lib/last-layer-alternatives';
 import { buildLastLayerSetup, type LastLayerAlgorithm, type LastLayerSetup } from '@/lib/last-layer-setup';
 import type { LastLayerPractice } from '@/types/practice';
 import type { PracticeSettings } from '@/lib/practice-settings-store';
@@ -20,12 +22,18 @@ interface Pick<Id> {
   id: Id;
   setup: LastLayerSetup;
   settings: PracticeSettings;
+  // Whether the cube model was available, i.e. the setup could use another
+  // algorithm's inverse. A pick made before it loaded is redrawn once it has.
+  withSolver: boolean;
 }
 interface Props<Id extends string> {
   practice: LastLayerPractice;
   ids: readonly Id[];
   selected: Set<Id>;
   algorithmFor: (id: Id) => LastLayerAlgorithm;
+  // Every known algorithm for the case (with AUF prefix), used to vary the
+  // inverse setup.
+  alternativesFor: (id: Id) => readonly string[];
   nameFor: (id: Id) => string;
   lastRecorded: Map<Id, number>;
   add: (id: Id, seconds: number) => void;
@@ -35,10 +43,11 @@ interface Props<Id extends string> {
 }
 
 export function LastLayerRandomTrainer<Id extends string>({
-  practice, ids, selected, algorithmFor, nameFor, lastRecorded, add, bestFor, ao5For, solvesFor,
+  practice, ids, selected, algorithmFor, alternativesFor, nameFor, lastRecorded, add, bestFor, ao5For, solvesFor,
 }: Props<Id>) {
   const { t, tn } = useT();
   const { settings } = usePracticeSettings();
+  const solver = useLastLayerSolver();
   const [state, setState] = useState<TrainerState>('idle');
   const [current, setCurrent] = useState<Pick<Id> | null>(null);
   const [elapsed, setElapsed] = useState(0);
@@ -52,8 +61,12 @@ export function LastLayerRandomTrainer<Id extends string>({
     const pool = ids.filter((id) => selected.has(id));
     const id = pickStaleWeighted(pool.length ? pool : ids, (id) => lastRecorded.get(id), Date.now());
     const offset = settings.randomAuf ? AUFS[Math.floor(Math.random() * AUFS.length)] : 'U0';
-    return { id, setup: buildLastLayerSetup(algorithmFor(id), settings.aufDisplay, offset), settings };
-  }, [ids, selected, lastRecorded, settings, algorithmFor]);
+    const setup = buildLastLayerSetup(algorithmFor(id), settings.aufDisplay, offset, (inverse) =>
+      settings.trainerMode === 'inverse'
+        ? pickAlternativeSetup(solver, practice, inverse, alternativesFor(id))
+        : inverse);
+    return { id, setup, settings, withSolver: solver !== null };
+  }, [ids, selected, lastRecorded, settings, algorithmFor, alternativesFor, solver, practice]);
 
   const noneSelected = mounted && selected.size === 0;
 
@@ -71,7 +84,8 @@ export function LastLayerRandomTrainer<Id extends string>({
 
   // Refresh only while idle when the selection or settings change.
   if (mounted && state === 'idle' && settings.trainerMode === 'inverse' && !noneSelected &&
-      (!current || !selected.has(current.id) || current.settings !== settings)) {
+      (!current || !selected.has(current.id) || current.settings !== settings ||
+        current.withSolver !== (solver !== null))) {
     setCurrent(pickRandom());
   }
 
