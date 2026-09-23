@@ -21,9 +21,9 @@ function Arrow({ className = '' }: { className?: string }) {
 // Equal tiles on three isometric planes echo the app icon without a WebGL player.
 function Cube({ stage }: { stage: 'f2l' | 'oll' | 'pll' }) {
   const faces = [
-    { transform: 'matrix(.866 .5 -.866 .5 160 24)', color: 'fill-yellow-300 dark:fill-yellow-300', face: 'top' },
-    { transform: 'matrix(.866 .5 0 1 49.15 88)', color: 'fill-blue-500 dark:fill-blue-500', face: 'front' },
-    { transform: 'matrix(.866 -.5 0 1 160 152)', color: 'fill-red-500 dark:fill-red-500', face: 'right' },
+    { transform: 'matrix(.866 .5 -.866 .5 160 24)', color: 'fill-[#f5d83b] dark:fill-[#f5d83b]', face: 'top' },
+    { transform: 'matrix(.866 .5 0 1 49.15 88)', color: 'fill-[#4779e8] dark:fill-[#4779e8]', face: 'front' },
+    { transform: 'matrix(.866 -.5 0 1 160 152)', color: 'fill-[#ee6262] dark:fill-[#ee6262]', face: 'right' },
   ];
   return (
     <svg viewBox="0 0 320 300" fill="none" aria-hidden="true" className="h-full w-full">
