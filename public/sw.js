@@ -3,8 +3,8 @@
 // app loads instantly from cache and the network refresh updates the cache
 // for next time. Account traffic must never enter the offline cache.
 
-const CACHE_NAME = 'pll-manager-v5';
-const APP_SHELL = ['/', '/manifest.webmanifest', '/icon.svg'];
+const CACHE_NAME = 'pll-manager-v6';
+const APP_SHELL = ['/', '/manifest.webmanifest', '/icon.svg', '/logo.svg'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

@@ -67,7 +67,7 @@ export default function RootLayout({
         <header className="pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur sticky top-0 z-10">
           <div className="mx-auto max-w-6xl px-3 sm:px-4 py-3 flex items-center gap-2 sm:gap-4">
             <Link href="/" className="mr-1 sm:mr-2 shrink-0 flex items-center gap-2 whitespace-nowrap font-semibold text-base sm:text-lg tracking-tight">
-              <Image src="/icon.svg" alt="" width={28} height={28} className="size-6 sm:size-7" />
+              <Image src="/logo.svg" alt="" width={27} height={28} className="h-6 w-auto sm:h-7" />
               CFOP Trainer
             </Link>
             <PracticeTabs />
