@@ -18,6 +18,7 @@ import { useColorTheme } from '@/hooks/useColorTheme';
 import { canWriteData } from '@/lib/persistence';
 import { PublicLinks } from './PublicLinks';
 import { InfoTip } from './InfoTip';
+import { SmartCubePanel } from './SmartCubePanel';
 
 function GearIcon({ size = 20 }: { size?: number }) {
   return (
@@ -70,9 +71,16 @@ function Help({ label, text }: { label: MessageKey; text: MessageKey }) {
 }
 
 const Divider = () => <div className="border-t border-zinc-200 dark:border-zinc-800" />;
-const MENU_ITEMS = ['account', 'data', 'settings'] as const;
+const MENU_ITEMS = ['account', 'data', 'settings', 'smartCube'] as const;
 function MenuIcon({ item }: { item: (typeof MENU_ITEMS)[number] }) {
   if (item === 'settings') return <GearIcon size={16} />;
+  if (item === 'smartCube') return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 2 21 7v10l-9 5-9-5V7z" />
+      <path d="M3 7l9 5 9-5M12 12v10" />
+    </svg>
+  );
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
       strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -91,6 +99,7 @@ const DIALOG_TITLES = {
   account: 'account.title',
   settings: 'settings.title',
   data: 'common.data',
+  smartCube: 'smartCube.title',
 } as const satisfies Record<(typeof MENU_ITEMS)[number], MessageKey>;
 
 export function SettingsButton() {
@@ -182,7 +191,7 @@ export function SettingsButton() {
     {dialog && <AppModal key={dialog}
       title={t(DIALOG_TITLES[dialog])}
       onClose={closeAppDialog}>
-      {dialog === 'account' ? <AccountPanel key={state.generation} /> : dialog === 'data' ? (
+      {dialog === 'account' ? <AccountPanel key={state.generation} /> : dialog === 'smartCube' ? <SmartCubePanel /> : dialog === 'data' ? (
         <WritableArea><AlgorithmTransfer key={state.generation} /></WritableArea>
       ) : (
         <>
