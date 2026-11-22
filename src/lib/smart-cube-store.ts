@@ -228,7 +228,8 @@ export async function connectChosen(typedMac = '') {
   if (typed) return connectWith(formatMac(typed));
   const saved = device.name ? settings.getSnapshot().macs[device.name] : undefined;
   if (!typedMac.trim() && saved && parseMac(saved)) return connectWith(saved);
-  update({ status: 'needs-mac', problem: 'invalid-mac' });
+  // Nothing typed and nothing remembered is a request for the MAC, not an error.
+  update({ status: 'needs-mac', problem: typedMac.trim() ? 'invalid-mac' : null });
 }
 
 export function disconnect() {
