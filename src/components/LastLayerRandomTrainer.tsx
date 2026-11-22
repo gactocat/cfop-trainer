@@ -5,6 +5,7 @@ import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useMounted } from '@/hooks/useMounted';
 import { useSpacebar } from '@/hooks/useSpacebar';
 import { useNativeTimer } from '@/hooks/useNativeTimer';
+import { useSmartCubeTrainer } from '@/hooks/useSmartCubeTrainer';
 import { useT } from '@/hooks/useT';
 import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { useLastLayerSolver } from '@/hooks/useLastLayerSolver';
@@ -16,6 +17,7 @@ import { pickStaleWeighted } from '@/lib/stale-weighted-pick';
 import { formatSeconds } from '@/lib/stats';
 import { AUFS } from '@/types/pll';
 import { LastLayerPlayer } from './LastLayerPlayer';
+import { SmartCubeSetupStatus, SmartCubeSetupTokens } from './SmartCubeSetupGuide';
 
 type TrainerState = 'idle' | 'running' | 'stopped';
 interface Pick<Id> {
@@ -102,6 +104,22 @@ export function LastLayerRandomTrainer<Id extends string>({
     setState('stopped');
   }, []);
 
+  // Stop with a time measured elsewhere (the smart cube's clock).
+  const stopWith = useCallback((seconds: number) => {
+    setElapsed(seconds);
+    setState('stopped');
+  }, []);
+
+  // With a smart cube connected, inverse mode follows the setup on the cube
+  // and starts and stops the timer by itself; without one this is null.
+  const smart = useSmartCubeTrainer({
+    practice,
+    scramble: settings.trainerMode === 'inverse' && current ? current.setup.scramble : null,
+    trainerState: state,
+    onStart: start,
+    onStop: (seconds) => (seconds === null ? stop() : stopWith(seconds)),
+  });
+
   useNativeTimer(state === 'running', stop);
 
   const record = useCallback(() => {
@@ -152,6 +170,11 @@ export function LastLayerRandomTrainer<Id extends string>({
                   ao5: formatSeconds(ao5For(current.id)),
                   solves: tn('common.solves', previousSolves),
                 })}
+              </div>
+            )}
+            {smart?.recognitionMs != null && (
+              <div className="mt-1 text-xs font-mono text-amber-700/80 dark:text-amber-300/80">
+                {t('smartCube.trainer.recognition', { seconds: (smart.recognitionMs / 1000).toFixed(2) })}
               </div>
             )}
           </div>
@@ -208,6 +231,7 @@ export function LastLayerRandomTrainer<Id extends string>({
         <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
           {t('trainer.tapOrSpaceToStop')}
         </div>
+        {smart && <div className="text-xs opacity-80">{t('smartCube.trainer.autoStop')}</div>}
       </button>
     );
   }
@@ -228,15 +252,18 @@ export function LastLayerRandomTrainer<Id extends string>({
       <button
         type="button"
         onPointerDown={start}
-        className="w-full flex-1 min-h-[200px] rounded-lg flex flex-col items-center justify-center gap-4 px-6 transition-colors select-none touch-none bg-emerald-500 hover:bg-emerald-600 text-white"
+        className={`w-full flex-1 min-h-[200px] rounded-lg flex flex-col items-center justify-center gap-4 px-6 transition-colors select-none touch-none text-white ${
+          smart?.phase === 'ready' ? 'bg-sky-600 hover:bg-sky-700' : 'bg-emerald-500 hover:bg-emerald-600'
+        }`}
         aria-label={t('trainer.tapToStartAria')}
       >
         <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
-          {t('trainer.applyToCube')}
+          {t(smart ? 'smartCube.trainer.turn' : 'trainer.applyToCube')}
         </div>
         <div className="max-w-2xl w-full text-center font-mono text-3xl sm:text-4xl font-bold break-words leading-snug">
-          {current?.setup.scramble || '…'}
+          {smart ? <SmartCubeSetupTokens view={smart} /> : current?.setup.scramble || '…'}
         </div>
+        {smart && <SmartCubeSetupStatus view={smart} practice={practice} />}
         <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
           {t('trainer.tapOrSpaceToStart')}
         </div>

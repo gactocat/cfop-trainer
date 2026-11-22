@@ -10,6 +10,7 @@ import { useMounted } from '@/hooks/useMounted';
 import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { useSpacebar } from '@/hooks/useSpacebar';
 import { useNativeTimer } from '@/hooks/useNativeTimer';
+import { useSmartCubeTrainer } from '@/hooks/useSmartCubeTrainer';
 import { useT } from '@/hooks/useT';
 import { combineAuf, invertAuf, prefixAuf } from '@/lib/f2l-auf';
 import { buildF2LSetup, seededRandom } from '@/lib/f2l-scramble';
@@ -18,6 +19,7 @@ import { formatSeconds } from '@/lib/stats';
 import { F2L_IDS, type F2LId } from '@/types/f2l';
 import type { Auf } from '@/types/pll';
 import { F2L3DPlayer } from './F2L3DPlayer';
+import { SmartCubeSetupStatus, SmartCubeSetupTokens } from './SmartCubeSetupGuide';
 
 type TrainerState = 'idle' | 'running' | 'stopped';
 
@@ -109,6 +111,12 @@ export function F2LRandomTrainer() {
     setState('stopped');
   }, []);
 
+  // Stop with a time measured elsewhere (the smart cube's clock).
+  const stopWith = useCallback((seconds: number) => {
+    setElapsed(seconds);
+    setState('stopped');
+  }, []);
+
   useNativeTimer(state === 'running', stop);
 
   const record = useCallback(() => {
@@ -150,6 +158,16 @@ export function F2LRandomTrainer() {
     return { def, star, auf, body, setup, effectiveAuf };
   }, [current, starredFor, scrambleSettings, setupSeed]);
 
+  // With a smart cube connected, inverse mode follows the setup on the cube
+  // and starts and stops the timer by itself; without one this is null.
+  const smart = useSmartCubeTrainer({
+    practice: 'f2l',
+    scramble: trainerMode === 'inverse' && shown ? shown.setup.scramble : null,
+    trainerState: state,
+    onStart: start,
+    onStop: (seconds) => (seconds === null ? stop() : stopWith(seconds)),
+  });
+
   const player = (className: string) =>
     shown && (
       <F2L3DPlayer
@@ -186,6 +204,11 @@ export function F2LRandomTrainer() {
                   ao5: formatSeconds(ao5For(current)),
                   solves: tn('common.solves', previousSolves),
                 })}
+              </div>
+            )}
+            {smart?.recognitionMs != null && (
+              <div className="mt-1 text-xs font-mono text-amber-700/80 dark:text-amber-300/80">
+                {t('smartCube.trainer.recognition', { seconds: (smart.recognitionMs / 1000).toFixed(2) })}
               </div>
             )}
           </div>
@@ -252,6 +275,7 @@ export function F2LRandomTrainer() {
         <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
           {t('trainer.tapOrSpaceToStop')}
         </div>
+        {smart && <div className="text-xs opacity-80">{t('smartCube.trainer.autoStop')}</div>}
       </button>
     );
   }
@@ -278,15 +302,18 @@ export function F2LRandomTrainer() {
       <button
         type="button"
         onPointerDown={start}
-        className="w-full flex-1 min-h-[200px] rounded-lg flex flex-col items-center justify-center gap-4 px-6 transition-colors select-none touch-none bg-emerald-500 hover:bg-emerald-600 text-white"
+        className={`w-full flex-1 min-h-[200px] rounded-lg flex flex-col items-center justify-center gap-4 px-6 transition-colors select-none touch-none text-white ${
+          smart?.phase === 'ready' ? 'bg-sky-600 hover:bg-sky-700' : 'bg-emerald-500 hover:bg-emerald-600'
+        }`}
         aria-label={t('trainer.tapToStartAria')}
       >
         <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
-          {t('trainer.applyToCube')}
+          {t(smart ? 'smartCube.trainer.turn' : 'trainer.applyToCube')}
         </div>
         <div className="max-w-2xl w-full text-center font-mono text-3xl sm:text-4xl font-bold break-words leading-snug">
-          {shown?.setup.scramble || '…'}
+          {smart ? <SmartCubeSetupTokens view={smart} /> : shown?.setup.scramble || '…'}
         </div>
+        {smart && <SmartCubeSetupStatus view={smart} practice="f2l" />}
         <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
           {t('trainer.tapOrSpaceToStart')}
         </div>

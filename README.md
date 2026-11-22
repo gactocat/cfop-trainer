@@ -33,6 +33,9 @@ See [iOS development and release](docs/ios.md) for simulator and device setup.
 - AUF display can rotate the preview or include the AUF in the solution,
   consistently across lists, 2D / 3D previews and random training
 - All 57 OLL cases with 285 preset algorithms from [SpeedCubeDB](https://www.speedcubedb.com/a/3x3/OLL), grouped by shape
+- GAN Gen4 smart cubes over Web Bluetooth (Chrome and Edge): in inverse-setup
+  mode the setup is followed turn by turn, and the timer starts with the first
+  turn and stops when the case is solved, timed on the cube's clock
 
 ## Development
 
@@ -46,6 +49,8 @@ node --import ./scripts/register-src-alias.mjs scripts/verify-oll.mts
 node --import ./scripts/register-src-alias.mjs scripts/verify-last-layer-setup.mts
 # Verify migration from per-practice preferences to shared settings:
 node --import ./scripts/register-src-alias.mjs scripts/verify-practice-settings.mts
+# Verify the smart cube model, setup guide and trainer logic (against cubing.js):
+node --import ./scripts/register-src-alias.mjs scripts/verify-smart-cube.mts
 ```
 
 Built with Next.js (App Router), React, TypeScript, Tailwind CSS, and
