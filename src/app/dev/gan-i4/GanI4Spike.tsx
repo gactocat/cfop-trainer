@@ -16,6 +16,7 @@ const MOVE_ROWS = 200;
 
 // The cube names faces by their centre in its own frame (white U, green F).
 // Holding yellow on top with green in front is a z2 rotation of that frame.
+// (The app's 3D views use yellow top with blue front, an x2 rotation.)
 const YELLOW_TOP: Record<string, string> = { U: 'D', D: 'U', R: 'L', L: 'R', F: 'F', B: 'B' };
 const toYellowTop = (move: string) => YELLOW_TOP[move[0]] + move.slice(1);
 
@@ -291,7 +292,7 @@ export function GanI4Spike() {
               <tr>
                 <th className="py-1 pr-3">#</th>
                 <th className="pr-3">Move</th>
-                <th className="pr-3">Yellow top</th>
+                <th className="pr-3">Yellow top, green front</th>
                 <th className="pr-3">Serial</th>
                 <th className="pr-3">Cube ms</th>
                 <th className="pr-3">Δ cube</th>
