@@ -97,7 +97,7 @@ export function watchGanMac(device: BluetoothDevice, timeoutMs = 5000): Promise<
 const toHex = (bytes: Uint8Array) => Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 
 export interface GanTrafficRecord {
-  /** performance.now() in ms. */
+  /** Host time in ms, from the connection's clock (performance.now() by default). */
   t: number;
   op: 'notify' | 'write';
   /** Bytes on the air (encrypted), hex. */
@@ -126,11 +126,18 @@ export interface GanGen4Connection {
 }
 
 /** Connect to a Gen4 cube chosen with requestGanCube(), using its MAC for the keys. */
+export interface GanConnectionOptions {
+  /** Host clock in ms for traffic records and move timestamps; defaults to performance.now(). */
+  now?: () => number;
+}
+
 export async function connectGanGen4(
   device: BluetoothDevice,
   mac: string,
   handlers: GanConnectionHandlers,
+  options: GanConnectionOptions = {},
 ): Promise<GanGen4Connection> {
+  const now = options.now ?? (() => performance.now());
   const macBytes = parseMac(mac);
   if (!macBytes) throw new Error('Enter the MAC as six hex pairs, e.g. AB:12:CD:34:EF:56');
   if (!device.gatt) throw new Error('This device has no GATT server');
@@ -162,7 +169,7 @@ export async function connectGanGen4(
   const write = (plain: Uint8Array): Promise<void> => {
     const run = writeTail.then(async () => {
       const data = cipher.encrypt(plain);
-      const record: GanTrafficRecord = { t: performance.now(), op: 'write', data: toHex(data), plain: toHex(plain) };
+      const record: GanTrafficRecord = { t: now(), op: 'write', data: toHex(data), plain: toHex(plain) };
       try {
         const { write: withResponse, writeWithoutResponse } = commandChar.properties;
         if (writeWithoutResponse && !withResponse) await commandChar.writeValueWithoutResponse(data);
@@ -196,7 +203,7 @@ export async function connectGanGen4(
   };
 
   const onNotification = (event: Event) => {
-    const t = performance.now();
+    const t = now();
     const value = (event.target as BluetoothRemoteGATTCharacteristic).value;
     if (!value) return;
     const raw = new Uint8Array(value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength));

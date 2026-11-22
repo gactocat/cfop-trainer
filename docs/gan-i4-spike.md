@@ -30,6 +30,12 @@ moves recovered from the cube's history, packets that failed validation, and
 link drops. Markers label parts of a session. "Save log as JSON" downloads
 everything, including the raw encrypted and decrypted packets.
 
+The log is also written to IndexedDB about once a second, so reloading the
+page restores it (the Bluetooth link itself ends with the page; choose the cube
+again). The browser asks before leaving while a cube is connected or records
+are not in a saved JSON. "Clear log" starts a new session. "Forget saved MAC"
+removes remembered addresses so the next connection reads the MAC again.
+
 ## Files
 
 - `src/lib/smart-cube/aes128.ts`: AES-128 block cipher.
@@ -37,7 +43,7 @@ everything, including the raw encrypted and decrypted packets.
   [smartcube-web-bluetooth](https://github.com/poliva/smartcube-web-bluetooth)
   (MIT, see `LICENSE-smartcube-web-bluetooth.txt`). csTimer (GPL) is not used.
 - `src/lib/smart-cube/gan-web-bluetooth.ts`: Web Bluetooth transport.
-- `src/app/dev/gan-i4/`: the page and its session store.
+- `src/app/dev/gan-i4/`: the page, its session store and IndexedDB persistence.
 - `scripts/verify-gan-gen4.mts`: checks without a cube.
 
 ## Verify without a cube

@@ -114,7 +114,7 @@ export function GanI4Spike() {
   const [markerInput, setMarkerInput] = useState('');
 
   const connected = s.status === 'connected';
-  const busy = s.status === 'choosing' || s.status === 'reading-mac' || s.status === 'connecting';
+  const busy = !s.ready || s.status === 'choosing' || s.status === 'reading-mac' || s.status === 'connecting';
   const canContinue = (s.status === 'needs-mac' || s.status === 'disconnected' || s.status === 'error') && session.hasChosenDevice();
 
   const setupMarker = [...s.markers].reverse().find((m) => m.label === 'Setup');
@@ -162,6 +162,7 @@ export function GanI4Spike() {
             {s.status === 'needs-mac' ? 'Continue with this MAC' : 'Reconnect same cube'}
           </button>
           <button type="button" className={button} disabled={!connected} onClick={session.disconnect}>Disconnect</button>
+          <button type="button" className={button} disabled={busy} onClick={session.forgetSavedMacs}>Forget saved MAC</button>
         </div>
         <div className="mt-3">
           <Row label="Status">{s.status}</Row>
@@ -169,6 +170,7 @@ export function GanI4Spike() {
           <Row label="Device">{s.deviceName ?? '-'}</Row>
           <Row label="MAC">{s.mac ? `${s.mac} (${s.macSource})` : '-'}</Row>
           <Row label="Connected for">{s.connectedAt !== null ? clock(s.now - s.connectedAt) : '-'}</Row>
+          <Row label="Last notification">{s.lastNotificationAt !== null ? `${seconds(s.now - s.lastNotificationAt)} s ago` : '-'}</Row>
           <Row label="Connections / drops">{`${s.connections} / ${s.disconnects.length}`}</Row>
           {s.disconnects.map((d, i) => (
             <Row key={i} label={`Drop ${i + 1}`}>{`${d.connectedMs === null ? '-' : clock(d.connectedMs)} after connecting: ${d.reason}`}</Row>
@@ -329,8 +331,14 @@ export function GanI4Spike() {
       </Card>
 
       <div className="flex flex-wrap gap-2">
-        <button type="button" className={primaryButton} onClick={download}>Save log as JSON</button>
-        <button type="button" className={button} onClick={() => { if (window.confirm('Clear the recorded log?')) session.clearLog(); }}>Clear log</button>
+        <button type="button" className={primaryButton} disabled={!s.ready} onClick={download}>Save log as JSON</button>
+        <button type="button" className={button} disabled={!s.ready} onClick={() => { if (window.confirm('Clear the recorded log?')) session.clearLog(); }}>Clear log</button>
+        <span className="self-center text-sm text-zinc-500 dark:text-zinc-400">
+          {`${s.recordCount} records kept across reloads, ${s.unsavedRecords} not in a saved JSON${s.exportedAt ? ` (last saved ${new Date(s.exportedAt).toLocaleTimeString()})` : ''}`}
+        </span>
+        {s.persistError && (
+          <p className="w-full rounded bg-rose-50 dark:bg-rose-950/40 px-2 py-1 text-sm text-rose-800 dark:text-rose-200">{`Not kept across reloads: ${s.persistError}`}</p>
+        )}
       </div>
     </div>
   );
