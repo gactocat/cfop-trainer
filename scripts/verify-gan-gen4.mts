@@ -8,6 +8,7 @@
 import { createCipheriv, randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { decryptBlock128, encryptBlock128, expandKey128 } from '@/lib/smart-cube/aes128';
+import { applyTurn, stateEquals, stateFromArrays, type CubeState, type Face } from '@/lib/smart-cube/cube-state';
 import {
   GanGen4Cipher,
   GanGen4Driver,
@@ -163,6 +164,24 @@ if (capturePath) {
     check('hardware events match', pick(overlap, 'HARDWARE') === pick(recorded, 'HARDWARE'), pick(overlap, 'HARDWARE'));
     check('gyro events match', pick(overlap, 'GYRO') === pick(recorded, 'GYRO'), `${count(overlap).GYRO} vs ${count(recorded).GYRO}`);
     check('our command encryption reproduces recorded writes', writes.some((w) => !w.startsWith('other:')));
+    // Track the cube state from the moves, resyncing on nothing: every later
+    // FACELETS event must match the state the moves produce.
+    let tracked: CubeState | null = null;
+    let lastSerial = -1;
+    let compared = 0, mismatched = 0;
+    for (const e of decoded) {
+      if (e.type === 'FACELETS') {
+        const reported = stateFromArrays(e.state.CP, e.state.CO, e.state.EP, e.state.EO);
+        if (!tracked || !reported) { tracked = reported; lastSerial = e.serial; continue; }
+        if (e.serial !== lastSerial) continue; // moves still in flight
+        compared++;
+        if (!stateEquals(tracked, reported)) mismatched++;
+      } else if (e.type === 'MOVE' && tracked) {
+        tracked = applyTurn(tracked, 'URFDLB'[e.face] as Face, e.direction ? 3 : 1);
+        lastSerial = e.serial;
+      }
+    }
+    check('state tracked from moves matches every FACELETS event', compared > 0 && mismatched === 0, `${compared} compared, ${mismatched} mismatched`);
     console.log(`     driver stats ${JSON.stringify(driver.stats)}, history requests sent ${sent.length}`);
   }
 }
