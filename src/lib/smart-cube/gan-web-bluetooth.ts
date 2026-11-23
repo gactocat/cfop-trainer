@@ -1,6 +1,6 @@
 /// <reference types="web-bluetooth" />
-// Web Bluetooth transport for GAN Gen4 cubes. The protocol itself lives in
-// gan-gen4.ts so a native (Capacitor) transport can reuse it later.
+// Web Bluetooth transport for GAN Gen4 cubes. The protocol lives in gan-gen4.ts
+// and gan-gen4-session.ts, shared with the iOS app's transport.
 //
 // Flow: requestGanCube() from a click handler, then resolve the MAC (typed in,
 // or watchGanMac() where Chrome exposes advertisements), then connectGanGen4().
@@ -10,16 +10,18 @@ import {
   GAN_GEN4_COMMAND_CHARACTERISTIC,
   GAN_GEN4_SERVICE,
   GAN_GEN4_STATE_CHARACTERISTIC,
-  GanGen4Cipher,
-  GanGen4Driver,
-  isValidGanGen4Packet,
   macFromManufacturerData,
   parseMac,
-  type GanCubeCommand,
-  type GanCubeEvent,
-  type GanDriverLink,
-  type GanGen4Stats,
 } from '@/lib/smart-cube/gan-gen4';
+import {
+  MAC_FORMAT_ERROR,
+  NOT_GEN4_ERROR,
+  startGanGen4Session,
+  type GanConnectionHandlers,
+  type GanConnectionOptions,
+  type GanGen4Connection,
+  type GanTrafficRecord,
+} from '@/lib/smart-cube/gan-gen4-session';
 
 export interface WebBluetoothSupport {
   secureContext: boolean;
@@ -94,52 +96,16 @@ export function watchGanMac(device: BluetoothDevice, timeoutMs = 5000): Promise<
   });
 }
 
-const toHex = (bytes: Uint8Array) => Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
-
-export interface GanTrafficRecord {
-  /** Host time in ms, from the connection's clock (performance.now() by default). */
-  t: number;
-  op: 'notify' | 'write';
-  /** Bytes on the air (encrypted), hex. */
-  data: string;
-  /** Decrypted bytes, hex. */
-  plain: string;
-  /** For notifications: whether the decrypted packet passed the structural check. */
-  valid?: boolean;
-  /** For writes: the error message when the write failed. */
-  error?: string;
-}
-
-export interface GanConnectionHandlers {
-  onEvent(event: GanCubeEvent): void;
-  onTraffic?(record: GanTrafficRecord): void;
-  /** Called once when the link closes, for whatever reason. */
-  onDisconnect(reason: string): void;
-}
-
-export interface GanGen4Connection {
-  readonly deviceName: string;
-  readonly mac: string;
-  readonly stats: GanGen4Stats;
-  sendCommand(command: GanCubeCommand): Promise<void>;
-  disconnect(): void;
-}
+export type { GanConnectionHandlers, GanConnectionOptions, GanGen4Connection, GanTrafficRecord };
 
 /** Connect to a Gen4 cube chosen with requestGanCube(), using its MAC for the keys. */
-export interface GanConnectionOptions {
-  /** Host clock in ms for traffic records and move timestamps; defaults to performance.now(). */
-  now?: () => number;
-}
-
 export async function connectGanGen4(
   device: BluetoothDevice,
   mac: string,
   handlers: GanConnectionHandlers,
   options: GanConnectionOptions = {},
 ): Promise<GanGen4Connection> {
-  const now = options.now ?? (() => performance.now());
-  const macBytes = parseMac(mac);
-  if (!macBytes) throw new Error('Enter the MAC as six hex pairs, e.g. AB:12:CD:34:EF:56');
+  if (!parseMac(mac)) throw new Error(MAC_FORMAT_ERROR);
   if (!device.gatt) throw new Error('This device has no GATT server');
 
   const server = await device.gatt.connect();
@@ -150,7 +116,7 @@ export async function connectGanGen4(
     try {
       service = await server.getPrimaryService(GAN_GEN4_SERVICE);
     } catch {
-      throw new Error('The GAN Gen4 service was not found; this cube may use another protocol generation');
+      throw new Error(NOT_GEN4_ERROR);
     }
     commandChar = await service.getCharacteristic(GAN_GEN4_COMMAND_CHARACTERISTIC);
     stateChar = await service.getCharacteristic(GAN_GEN4_STATE_CHARACTERISTIC);
@@ -160,90 +126,35 @@ export async function connectGanGen4(
     throw error;
   }
 
-  const cipher = new GanGen4Cipher(macBytes);
-  const driver = new GanGen4Driver();
-  let closed = false;
-
-  // One GATT operation at a time; overlapping writes fail on common stacks.
-  let writeTail: Promise<void> = Promise.resolve();
-  const write = (plain: Uint8Array): Promise<void> => {
-    const run = writeTail.then(async () => {
-      const data = cipher.encrypt(plain);
-      const record: GanTrafficRecord = { t: now(), op: 'write', data: toHex(data), plain: toHex(plain) };
-      try {
-        const { write: withResponse, writeWithoutResponse } = commandChar.properties;
-        if (writeWithoutResponse && !withResponse) await commandChar.writeValueWithoutResponse(data);
-        else await commandChar.writeValueWithResponse(data);
-      } catch (error) {
-        record.error = error instanceof Error ? error.message : String(error);
-        throw error;
-      } finally {
-        handlers.onTraffic?.(record);
-      }
-    });
-    writeTail = run.catch(() => {});
-    return run;
-  };
-
-  const close = (reason: string) => {
-    if (closed) return;
-    closed = true;
-    device.removeEventListener('gattserverdisconnected', onGattDisconnected);
-    stateChar.removeEventListener('characteristicvaluechanged', onNotification);
-    if (device.gatt?.connected) {
-      stateChar.stopNotifications().catch(() => {});
-      device.gatt.disconnect();
-    }
-    handlers.onDisconnect(reason);
-  };
-
-  const link: GanDriverLink = {
-    send: (message) => { if (!closed) write(message).catch(() => {}); },
-    disconnect: close,
-  };
-
   const onNotification = (event: Event) => {
-    const t = now();
     const value = (event.target as BluetoothRemoteGATTCharacteristic).value;
-    if (!value) return;
-    const raw = new Uint8Array(value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength));
-    if (raw.length < 16) {
-      handlers.onTraffic?.({ t, op: 'notify', data: toHex(raw), plain: '', valid: false });
-      return;
-    }
-    const plain = cipher.decrypt(raw);
-    const valid = isValidGanGen4Packet(plain);
-    handlers.onTraffic?.({ t, op: 'notify', data: toHex(raw), plain: toHex(plain), valid });
-    if (!valid) return;
-    let events: GanCubeEvent[];
-    try {
-      events = driver.handleStateEvent(link, plain, t);
-    } catch {
-      // A corrupt packet that passed the structural check; it stays in the traffic log.
-      return;
-    }
-    events.forEach((e) => handlers.onEvent(e));
+    if (value) session.receive(new Uint8Array(value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength)));
   };
+  const onGattDisconnected = () => session.close('the Bluetooth link dropped (gattserverdisconnected)');
 
-  const onGattDisconnected = () => close('the Bluetooth link dropped (gattserverdisconnected)');
+  const session = startGanGen4Session(device.name ?? 'GAN', mac, handlers, {
+    write: async (data) => {
+      const { write: withResponse, writeWithoutResponse } = commandChar.properties;
+      if (writeWithoutResponse && !withResponse) await commandChar.writeValueWithoutResponse(data);
+      else await commandChar.writeValueWithResponse(data);
+    },
+    close: () => {
+      device.removeEventListener('gattserverdisconnected', onGattDisconnected);
+      stateChar.removeEventListener('characteristicvaluechanged', onNotification);
+      if (device.gatt?.connected) {
+        stateChar.stopNotifications().catch(() => {});
+        device.gatt.disconnect();
+      }
+    },
+  }, options);
 
   device.addEventListener('gattserverdisconnected', onGattDisconnected);
   stateChar.addEventListener('characteristicvaluechanged', onNotification);
   try {
     await stateChar.startNotifications();
   } catch (error) {
-    closed = true;
-    device.removeEventListener('gattserverdisconnected', onGattDisconnected);
-    stateChar.removeEventListener('characteristicvaluechanged', onNotification);
-    server.disconnect();
+    session.close('notifications could not start', false);
     throw error;
   }
-
-  return {
-    deviceName: device.name ?? 'GAN',
-    mac,
-    stats: driver.stats,
-    sendCommand: (command) => write(driver.createCommandMessage(command)),
-    disconnect: () => close('disconnected from the page'),
-  };
+  return session.connection;
 }

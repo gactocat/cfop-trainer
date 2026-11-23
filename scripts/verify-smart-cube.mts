@@ -16,7 +16,8 @@ import {
   SOLVED, applyFaceTurns, applyTurn, isF2LSolved, isLastLayerOriented, isSolvedUpToLastLayerTurn, stateEquals,
   type Amount, type CubeState, type Face,
 } from '@/lib/smart-cube/cube-state';
-import { toKociembaFacelets } from '@/lib/smart-cube/gan-gen4';
+import { GanGen4Cipher, createCommandMessage, parseMac, toKociembaFacelets, type GanCubeEvent } from '@/lib/smart-cube/gan-gen4';
+import { MAC_FORMAT_ERROR, startGanGen4Session, type GanTrafficRecord } from '@/lib/smart-cube/gan-gen4-session';
 import { CUBE_HOLDINGS, lastLayerFace, userNotation, holdingFrame, type CubeHolding } from '@/lib/smart-cube/holding';
 import { advanceGuide, applyPlan, guideView, planSetup, GUIDE_START, type SetupPlan } from '@/lib/smart-cube/setup-guide';
 import { manualStart, sessionMove, startSession, type TrainerSession } from '@/lib/smart-cube/trainer-session';
@@ -353,6 +354,85 @@ eq(manualStart(startSession('pll', 'D', planSetup(TPERM, 'yellow-blue')!, SOLVED
     const mask = ollStickeringMask(ll) as Mask;
     ok(Object.values(mask.orbits).every(({ pieces }) => pieces.every((p) => p!.facelets.slice(1).every((f) => f === 'ignored'))), `OLL ${ll}: only the top colour facelet shows`);
   }
+}
+
+// --- the GAN Gen4 session shared by the browser and iOS transports
+{
+  const MAC = '0C:3D:5E:BD:A2:6E';
+  const cipher = new GanGen4Cipher(parseMac(MAC)!);
+  // A plaintext packet from big-endian bit fields, as the cube sends them.
+  const packet = (fields: [number, number][], littleEndian: number[] = []) => {
+    let bits = '';
+    fields.forEach(([length, value], i) => {
+      let word = value.toString(2).padStart(length, '0');
+      if (littleEndian.includes(i)) word = (word.match(/.{8}/g) ?? []).reverse().join('');
+      bits += word;
+    });
+    return new Uint8Array((bits.padEnd(160, '0').match(/.{8}/g) ?? []).map((b) => parseInt(b, 2)));
+  };
+  const solvedFacelets = cipher.encrypt(packet(
+    [[8, 0xed], [8, 0x0e], [16, 7], ...[0, 1, 2, 3, 4, 5, 6].map((c): [number, number] => [3, c]),
+      ...Array.from({ length: 8 }, (): [number, number] => [2, 0]), ...Array.from({ length: 11 }, (_v, e): [number, number] => [4, e])],
+    [2],
+  ));
+
+  const events: GanCubeEvent[] = [];
+  const traffic: GanTrafficRecord[] = [];
+  const reasons: string[] = [];
+  const written: Uint8Array[] = [];
+  let closes = 0;
+  let releaseFirst: () => void = () => {};
+  let clock = 1000;
+  const session = startGanGen4Session('GANi4_A26E', MAC, {
+    onEvent: (e) => events.push(e),
+    onTraffic: (r) => traffic.push(r),
+    onDisconnect: (reason) => reasons.push(reason),
+  }, {
+    // The first write is held, to show that the next one waits for it.
+    write: (data) => {
+      written.push(data);
+      return written.length === 1 ? new Promise<void>((resolve) => { releaseFirst = resolve; }) : Promise.resolve();
+    },
+    close: () => { closes++; },
+  }, { now: () => clock++ });
+
+  let threw = '';
+  try {
+    startGanGen4Session('GAN', 'not a mac', { onEvent() {}, onDisconnect() {} }, { write: async () => {}, close() {} });
+  } catch (error) {
+    threw = (error as Error).message;
+  }
+  eq(threw, MAC_FORMAT_ERROR, 'a session needs a valid MAC');
+  eq(session.connection.deviceName, 'GANi4_A26E', 'the session keeps the device name');
+
+  session.receive(solvedFacelets);
+  const facelets = events.find((e) => e.type === 'FACELETS');
+  ok(facelets?.type === 'FACELETS' && facelets.serial === 7, 'a notification decrypts into the cube state event');
+  ok(traffic.some((r) => r.op === 'notify' && r.valid === true && r.t >= 1000), 'notifications are logged with the session clock');
+  session.receive(new Uint8Array(8));
+  ok(traffic.at(-1)?.valid === false && events.length === 1, 'a short notification is logged as invalid and ignored');
+
+  const first = session.connection.sendCommand({ type: 'REQUEST_BATTERY' });
+  const second = session.connection.sendCommand({ type: 'REQUEST_HARDWARE' });
+  await Promise.resolve();
+  eq(written.length, 1, 'a write waits for the one before it');
+  releaseFirst();
+  await Promise.all([first, second]);
+  eq(written.length, 2, 'the queued write goes after the first finishes');
+  eq(Buffer.from(written[0]).toString('hex'), Buffer.from(cipher.encrypt(createCommandMessage({ type: 'REQUEST_BATTERY' }))).toString('hex'), 'commands are encrypted with the MAC');
+  ok(traffic.filter((r) => r.op === 'write').length === 2, 'writes are logged');
+
+  session.close('test');
+  session.close('again');
+  session.receive(solvedFacelets);
+  eq([closes, reasons], [1, ['test']], 'closing is done once and reported once');
+  eq(events.filter((e) => e.type === 'FACELETS').length, 1, 'nothing is handled after closing');
+
+  let silentReasons = 0;
+  const failed = startGanGen4Session('GAN', MAC, { onEvent() {}, onDisconnect: () => { silentReasons++; } }, { write: async () => {}, close() {} });
+  failed.close('setup failed', false);
+  eq(silentReasons, 0, 'a failed setup closes without reporting a disconnect');
+
 }
 
 // --- support detection
