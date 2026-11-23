@@ -16,9 +16,10 @@ const TONES: Record<TrainerState, string> = {
 
 const smallButton = 'rounded-md border border-current/40 px-3 py-1.5 text-sm font-medium hover:bg-white/15';
 
-// No-scramble screen for every trainer state. The virtual cube is the first
-// child in all of them, so React keeps the same player (and WebGL context)
-// while the start, timing and result screens swap the content beside it.
+// No-scramble screen for every trainer state: the virtual cube in the middle,
+// the state's text and buttons below it. The cube is the first child in all
+// of them, so React keeps the same player (and WebGL context) while the
+// start, timing and result screens swap the content under it.
 export function NoScrambleStage({ state, view, connected, elapsed, selectedNote, onStop, onReset, result }: {
   state: TrainerState;
   view: NoScrambleView | null;
@@ -32,31 +33,35 @@ export function NoScrambleStage({ state, view, connected, elapsed, selectedNote,
 }) {
   const { t } = useT();
   return (
-    <div className={`w-full flex-1 min-h-[280px] rounded-lg p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 select-none transition-colors ${TONES[state]}`}>
-      {/* A plain backdrop in every state keeps the floating hidden faces readable. */}
-      <div className="shrink-0 rounded-md p-2 w-[220px] h-[220px] sm:w-[280px] sm:h-[280px] bg-zinc-100 dark:bg-zinc-900">
-        {view && (
-          <VirtualCube
-            practice={view.practice}
-            holding={view.holding}
-            setupAlg={view.setupAlg}
-            moves={view.moves}
-            resetKey={view.resetKey}
-            className="w-full h-full"
-          />
-        )}
+    <div className={`w-full flex-1 min-h-[280px] rounded-lg p-4 sm:p-6 flex flex-col items-center justify-center gap-5 select-none transition-colors ${TONES[state]}`}>
+      <div className="flex flex-col items-center gap-1.5">
+        {/* A plain backdrop in every state keeps the floating hidden faces readable. */}
+        <div className="shrink-0 rounded-md p-2 w-[220px] h-[220px] sm:w-[280px] sm:h-[280px] bg-zinc-100 dark:bg-zinc-900">
+          {view && (
+            <VirtualCube
+              practice={view.practice}
+              holding={view.holding}
+              setupAlg={view.setupAlg}
+              moves={view.moves}
+              resetKey={view.resetKey}
+              className="w-full h-full"
+            />
+          )}
+        </div>
+        {/* Always laid out, so the cube does not move when the note goes. */}
+        <p className={`text-xs opacity-75 ${state === 'idle' && view && connected ? '' : 'invisible'}`}>{t('trainer.noScramble.anyState')}</p>
       </div>
-      <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-4 text-center">
+      {/* Tall enough for the timer, so the cube stays put on the first turn. */}
+      <div className="flex w-full min-h-[160px] sm:min-h-[200px] flex-col items-center justify-start gap-3 text-center">
         {state === 'idle' && (connected ? (
           <>
-            <div className="text-sm font-medium uppercase tracking-wider opacity-90">{t('trainer.noScramble.solve')}</div>
-            <p className="max-w-sm text-sm opacity-90">{t('trainer.noScramble.firstTurn')}</p>
+            <div className="text-sm font-medium uppercase tracking-wider opacity-90">{t('trainer.noScramble.firstTurn')}</div>
             <button type="button" className={smallButton} onClick={onReset}>{t('trainer.noScramble.reset')}</button>
             <div className="text-xs opacity-75">{selectedNote}</div>
           </>
         ) : (
           <>
-            <p className="max-w-sm text-sm font-medium">{t('trainer.noScramble.connect')}</p>
+            <p className="text-sm font-medium">{t('trainer.noScramble.connect')}</p>
             <button
               type="button"
               onClick={() => openAppDialog('smartCube')}
@@ -77,8 +82,7 @@ export function NoScrambleStage({ state, view, connected, elapsed, selectedNote,
               <span className="font-mono text-6xl sm:text-8xl font-bold tabular-nums leading-none" aria-live="polite">
                 {elapsed.toFixed(3)}
               </span>
-              <span className="text-sm font-medium uppercase tracking-wider opacity-90">{t('trainer.tapOrSpaceToStop')}</span>
-              <span className="text-xs opacity-80">{t('smartCube.trainer.autoStop')}</span>
+              <span className="text-sm font-medium uppercase tracking-wider opacity-90">{t('smartCube.trainer.autoStop')}</span>
             </button>
             <button type="button" className={smallButton} onClick={onReset}>{t('trainer.noScramble.reset')}</button>
           </>
