@@ -377,6 +377,17 @@ const en = {
   'smartCube.records.count_other': '{count} solves kept',
   'smartCube.records.clear': 'Delete all recorded solves',
   "smartCube.records.confirmClear": "Delete every smart cube solve kept on this device?",
+  'settings.trainerMode.noScramble': 'No scramble',
+  "settings.trainerMode.noScrambleTitle": "Solve the case on a virtual cube with your smart cube",
+  "settings.trainerMode.noScrambleHelp": "The case appears on a virtual cube that your smart cube's turns move, so no setup is needed. The timer starts with your first turn and stops when the case is solved. Needs a connected smart cube; this choice is kept on this device.",
+  "settings.trainerMode.noScrambleUnavailable": "Needs a browser that can connect a smart cube.",
+  "trainer.hint.noScramble": "The case is shown on a virtual cube that follows your smart cube's turns, so no setup is needed. Your cube does not have to match it. The case name appears when you stop.",
+  "trainer.noScramble.connect": "No scramble mode uses a smart cube. Connect one to start.",
+  'trainer.noScramble.connectButton': 'Connect a smart cube',
+  'trainer.noScramble.solve': 'Solve this case with your cube',
+  "trainer.noScramble.firstTurn": "Your first turn starts the timer. Your cube does not need to match the virtual one.",
+  'trainer.noScramble.reset': 'Back to the case',
+  'smartCube.history.noScramble': 'No scramble',
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -733,6 +744,17 @@ const ja: Messages = {
   'smartCube.records.count_other': '{count} 件',
   'smartCube.records.clear': '手順の記録をすべて消す',
   "smartCube.records.confirmClear": "この端末のスマートキューブの記録をすべて消しますか？",
+  'settings.trainerMode.noScramble': 'ノースクランブル',
+  "settings.trainerMode.noScrambleTitle": "スマートキューブで、仮想キューブのケースを解く",
+  "settings.trainerMode.noScrambleHelp": "ケースを仮想キューブに表示し、手元のスマートキューブの回転で動かすので、セットアップは要りません。最初の回転でスタートし、ケースが解けるとストップします。スマートキューブをつないで使います。この選択はこの端末に保存します。",
+  "settings.trainerMode.noScrambleUnavailable": "スマートキューブをつなげるブラウザで使えます。",
+  "trainer.hint.noScramble": "ケースを仮想キューブに表示し、スマートキューブの回転で動かすので、セットアップは要りません。手元のキューブの状態は問いません。ケース名はストップ後に表示します。",
+  "trainer.noScramble.connect": "ノースクランブルはスマートキューブで使います。つないでから始めてください。",
+  'trainer.noScramble.connectButton': 'スマートキューブをつなぐ',
+  'trainer.noScramble.solve': 'このケースを手元のキューブで解く',
+  "trainer.noScramble.firstTurn": "最初の回転でスタートします。手元のキューブの状態は、仮想キューブと違っていても構いません。",
+  'trainer.noScramble.reset': 'ケースの状態に戻す',
+  'smartCube.history.noScramble': 'ノースクランブル',
 };
 
 export const MESSAGES: Record<Locale, Messages> = { en, ja };

@@ -59,6 +59,11 @@ export function SmartSolveHistory({ practice, caseId }: { practice: TrainerPract
           <li key={record.id} className="rounded-lg border border-zinc-200 bg-white p-3 text-sm dark:border-zinc-800 dark:bg-zinc-900">
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <span className="font-mono font-semibold tabular-nums">{(record.executionMs / 1000).toFixed(3)}</span>
+              {record.mode === 'no-scramble' && (
+                <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                  {t('smartCube.history.noScramble')}
+                </span>
+              )}
               <span className="font-mono text-xs text-zinc-500 dark:text-zinc-400">
                 {t('smartCube.solve.summary', { moves: record.moveCount, tps: record.tps.toFixed(2) })}
               </span>

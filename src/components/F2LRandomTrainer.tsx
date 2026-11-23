@@ -11,6 +11,8 @@ import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { useSpacebar } from '@/hooks/useSpacebar';
 import { useNativeTimer } from '@/hooks/useNativeTimer';
 import { recordSmartSolve, useSmartCubeTrainer, type SmartSolve } from '@/hooks/useSmartCubeTrainer';
+import { useNoScrambleTrainer } from '@/hooks/useNoScrambleTrainer';
+import { useTrainerMode } from '@/hooks/useTrainerMode';
 import { useT } from '@/hooks/useT';
 import { combineAuf, invertAuf, prefixAuf } from '@/lib/f2l-auf';
 import { buildF2LSetup, seededRandom } from '@/lib/f2l-scramble';
@@ -21,6 +23,7 @@ import type { Auf } from '@/types/pll';
 import { F2L3DPlayer } from './F2L3DPlayer';
 import { SmartCubeSetupStatus, SmartCubeSetupTokens } from './SmartCubeSetupGuide';
 import { SmartSolveSummary } from './SmartSolveHistory';
+import { NoScrambleStage } from './NoScrambleStage';
 
 type TrainerState = 'idle' | 'running' | 'stopped';
 
@@ -31,6 +34,11 @@ export function F2LRandomTrainer() {
   const { selected } = useF2LRandomSelection();
   const { settings: scrambleSettings } = usePracticeSettings();
   const { aufDisplay: aufMode, trainerMode } = scrambleSettings;
+  // No-scramble is a device-local mode on top of the synced trainer mode.
+  const noScramble = useTrainerMode() === 'no-scramble';
+  const inverse = trainerMode === 'inverse' && !noScramble;
+  // Both inverse and no-scramble show the case before timing, so draw it ahead.
+  const drawAhead = inverse || noScramble;
   const [state, setState] = useState<TrainerState>('idle');
   const [current, setCurrent] = useState<F2LId | null>(null);
   const [elapsed, setElapsed] = useState(0);
@@ -43,6 +51,8 @@ export function F2LRandomTrainer() {
   const rafRef = useRef<number | null>(null);
   // The solve the smart cube timed, if any; read when the time is recorded.
   const smartSolveRef = useRef<SmartSolve | null>(null);
+  // No-scramble without a connected cube has nothing to solve, so Space waits.
+  const startBlockedRef = useRef(false);
 
   // Epoch ms of each case's most recent solve, driving the staleness-weighted
   // draw below — cases timed longest ago (or never) surface more often.
@@ -88,7 +98,7 @@ export function F2LRandomTrainer() {
   // solve, or when the mode is switched); standard mode draws on start. This is
   // the "adjust state during render" pattern: React re-renders immediately with
   // the new state. Gated on `mounted` so the server markup stays deterministic.
-  if (mounted && state === 'idle' && trainerMode === 'inverse' && current === null && !noneSelected) {
+  if (mounted && state === 'idle' && drawAhead && current === null && !noneSelected) {
     const next = pickRandom();
     setCurrent(next.id);
     setSetupSeed(next.seed);
@@ -97,7 +107,7 @@ export function F2LRandomTrainer() {
   const start = useCallback(() => {
     // Inverse mode times the case already shown on the start screen; standard
     // mode draws one now.
-    if (trainerMode === 'inverse' && current) {
+    if (drawAhead && current) {
       setCurrent(current);
     } else {
       const next = pickRandom();
@@ -107,7 +117,7 @@ export function F2LRandomTrainer() {
     startRef.current = Date.now();
     setElapsed(0);
     setState('running');
-  }, [pickRandom, trainerMode, current]);
+  }, [pickRandom, drawAhead, current]);
 
   const stop = useCallback(() => {
     setElapsed((Date.now() - startRef.current) / 1000);
@@ -138,11 +148,17 @@ export function F2LRandomTrainer() {
     setCurrent(null);
   }, []);
 
+  // Abandon the attempt but keep the case (no-scramble reset while timing).
+  const abort = useCallback(() => {
+    setState('idle');
+    setElapsed(0);
+  }, []);
+
   // Keyboard: Space mirrors the tap action (idle → start, running → stop) and
   // records on the result screen; Escape discards there.
   const onSpace = useCallback(() => {
     if (state === 'idle') {
-      if (!noneSelected) start();
+      if (!noneSelected && !startBlockedRef.current) start();
     } else if (state === 'running') stop();
     else record();
   }, [state, start, stop, record, noneSelected]);
@@ -168,12 +184,27 @@ export function F2LRandomTrainer() {
   // and starts and stops the timer by itself; without one this is null.
   const smart = useSmartCubeTrainer({
     practice: 'f2l',
-    scramble: trainerMode === 'inverse' && shown ? shown.setup.scramble : null,
+    scramble: inverse && shown ? shown.setup.scramble : null,
     trainerState: state,
     onStart: start,
     onStop: (seconds) => (seconds === null ? stop() : stopWith(seconds)),
   });
-  useEffect(() => { smartSolveRef.current = smart?.solve ?? null; });
+  // No-scramble: the case on a virtual cube, moved by the smart cube's turns.
+  const virtual = useNoScrambleTrainer({
+    active: noScramble,
+    practice: 'f2l',
+    scramble: shown ? shown.setup.scramble : null,
+    trainerState: state,
+    onStart: start,
+    onStop: (seconds) => (seconds === null ? stop() : stopWith(seconds)),
+    onAbort: abort,
+  });
+  const solve = smart?.solve ?? virtual.view?.solve ?? null;
+  const recognitionMs = smart?.recognitionMs ?? virtual.view?.recognitionMs ?? null;
+  useEffect(() => {
+    smartSolveRef.current = solve;
+    startBlockedRef.current = noScramble && !virtual.connected;
+  });
 
   const player = (className: string) =>
     shown && (
@@ -187,78 +218,106 @@ export function F2LRandomTrainer() {
       />
     );
 
+  // The result screen's content, shared by the standard/inverse layout and
+  // the no-scramble one.
+  const previousSolves = current ? solvesFor(current).length : 0;
+  const resultInfo = shown && current && (
+    <div className="text-center sm:text-left">
+      <div className="text-sm uppercase tracking-wider text-amber-700 dark:text-amber-300">
+        {shown.def ? t('common.f2lCase', { number: shown.def.number }) : current}
+      </div>
+      <div className="font-mono text-6xl sm:text-7xl font-bold tabular-nums text-amber-700 dark:text-amber-300">
+        {elapsed.toFixed(3)}
+      </div>
+      {previousSolves > 0 && (
+        <div className="mt-1 text-xs font-mono text-amber-700/80 dark:text-amber-300/80">
+          {t('detail.randomStats', {
+            best: formatSeconds(bestFor(current)),
+            ao5: formatSeconds(ao5For(current)),
+            solves: tn('common.solves', previousSolves),
+          })}
+        </div>
+      )}
+      {recognitionMs != null && (
+        <div className="mt-1 text-xs font-mono text-amber-700/80 dark:text-amber-300/80">
+          {t('smartCube.trainer.recognition', { seconds: (recognitionMs / 1000).toFixed(2) })}
+        </div>
+      )}
+    </div>
+  );
+  const resultRest = shown && current && (
+    <>
+      <div className="max-w-2xl w-full text-center font-mono text-sm break-words text-zinc-700 dark:text-zinc-300">
+        {shown.star ? (
+          aufMode === 'cube' ? (
+            <p>
+              <span className="inline-block min-w-[2.5em] mr-2 px-1.5 py-0.5 text-[10px] rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 align-middle">
+                {shown.effectiveAuf}
+              </span>
+              {shown.star.algorithm}
+            </p>
+          ) : (
+            <p>{prefixAuf(shown.effectiveAuf, shown.star.algorithm)}</p>
+          )
+        ) : shown.def ? (
+          <p className="text-zinc-500">
+            {prefixAuf(invertAuf(shown.setup.uOffset), shown.def.primaryAlg)}
+          </p>
+        ) : (
+          <p className="italic text-zinc-500">{t('trainer.f2l.noAlgorithm')}</p>
+        )}
+      </div>
+      {solve && <SmartSolveSummary solve={solve} />}
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={record}
+          className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 font-semibold"
+        >
+          ✓ {t('common.record')}
+          <kbd className="hidden sm:inline ml-2 text-[10px] font-mono font-normal opacity-70">Space</kbd>
+        </button>
+        <button
+          type="button"
+          onClick={discard}
+          className="rounded-md border border-zinc-300 dark:border-zinc-700 px-6 py-2.5 font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800"
+        >
+          ✗ {t('common.discard')}
+          <kbd className="hidden sm:inline ml-2 text-[10px] font-mono font-normal opacity-70">Esc</kbd>
+        </button>
+      </div>
+    </>
+  );
+
+  const selectedNote = mounted
+    ? t('trainer.selectedCount', { count: selected.size, total: F2L_IDS.length })
+    : '';
+
+  if (noScramble && !noneSelected) {
+    return (
+      <NoScrambleStage
+        state={state}
+        view={virtual.view}
+        connected={virtual.connected}
+        elapsed={elapsed}
+        selectedNote={selectedNote}
+        onStop={stop}
+        onReset={virtual.reset}
+        result={<div className="flex flex-col items-center gap-4">{resultInfo}{resultRest}</div>}
+      />
+    );
+  }
+
   if (state === 'stopped' && shown && current) {
-    // Random-trainer history for this case so far (the time on screen is not
-    // recorded yet).
-    const previousSolves = solvesFor(current).length;
     return (
       <div className="w-full flex-1 rounded-lg border border-amber-400 dark:border-amber-500 bg-amber-50 dark:bg-amber-950/30 p-6 flex flex-col items-center justify-center gap-6 select-none">
         <div className="flex flex-col sm:flex-row items-center gap-6">
           <div className="rounded-md p-2 bg-zinc-100 dark:bg-zinc-900 w-[200px] h-[200px] sm:w-[260px] sm:h-[260px]">
             {player('w-full h-full')}
           </div>
-          <div className="text-center sm:text-left">
-            <div className="text-sm uppercase tracking-wider text-amber-700 dark:text-amber-300">
-              {shown.def ? t('common.f2lCase', { number: shown.def.number }) : current}
-            </div>
-            <div className="font-mono text-6xl sm:text-7xl font-bold tabular-nums text-amber-700 dark:text-amber-300">
-              {elapsed.toFixed(3)}
-            </div>
-            {previousSolves > 0 && (
-              <div className="mt-1 text-xs font-mono text-amber-700/80 dark:text-amber-300/80">
-                {t('detail.randomStats', {
-                  best: formatSeconds(bestFor(current)),
-                  ao5: formatSeconds(ao5For(current)),
-                  solves: tn('common.solves', previousSolves),
-                })}
-              </div>
-            )}
-            {smart?.recognitionMs != null && (
-              <div className="mt-1 text-xs font-mono text-amber-700/80 dark:text-amber-300/80">
-                {t('smartCube.trainer.recognition', { seconds: (smart.recognitionMs / 1000).toFixed(2) })}
-              </div>
-            )}
-          </div>
+          {resultInfo}
         </div>
-        <div className="max-w-2xl w-full text-center font-mono text-sm break-words text-zinc-700 dark:text-zinc-300">
-          {shown.star ? (
-            aufMode === 'cube' ? (
-              <p>
-                <span className="inline-block min-w-[2.5em] mr-2 px-1.5 py-0.5 text-[10px] rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 align-middle">
-                  {shown.effectiveAuf}
-                </span>
-                {shown.star.algorithm}
-              </p>
-            ) : (
-              <p>{prefixAuf(shown.effectiveAuf, shown.star.algorithm)}</p>
-            )
-          ) : shown.def ? (
-            <p className="text-zinc-500">
-              {prefixAuf(invertAuf(shown.setup.uOffset), shown.def.primaryAlg)}
-            </p>
-          ) : (
-            <p className="italic text-zinc-500">{t('trainer.f2l.noAlgorithm')}</p>
-          )}
-        </div>
-        {smart?.solve && <SmartSolveSummary solve={smart.solve} />}
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={record}
-            className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 font-semibold"
-          >
-            ✓ {t('common.record')}
-            <kbd className="hidden sm:inline ml-2 text-[10px] font-mono font-normal opacity-70">Space</kbd>
-          </button>
-          <button
-            type="button"
-            onClick={discard}
-            className="rounded-md border border-zinc-300 dark:border-zinc-700 px-6 py-2.5 font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800"
-          >
-            ✗ {t('common.discard')}
-            <kbd className="hidden sm:inline ml-2 text-[10px] font-mono font-normal opacity-70">Esc</kbd>
-          </button>
-        </div>
+        {resultRest}
       </div>
     );
   }
@@ -299,13 +358,9 @@ export function F2LRandomTrainer() {
     );
   }
 
-  const selectedNote = mounted
-    ? t('trainer.selectedCount', { count: selected.size, total: F2L_IDS.length })
-    : '';
-
   // Inverse mode shows the setup scramble right on the start button, so the
   // user can bring their cube into the case before timing.
-  if (trainerMode === 'inverse') {
+  if (inverse) {
     return (
       <button
         type="button"

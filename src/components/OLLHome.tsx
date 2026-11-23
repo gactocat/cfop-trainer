@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { usePracticeSettings } from '@/hooks/usePracticeSettings';
+import { useTrainerMode } from '@/hooks/useTrainerMode';
 import { useT } from '@/hooks/useT';
 import { FullScreenModal } from './FullScreenModal';
 import { OLLGrid } from './OLLGrid';
@@ -11,7 +11,7 @@ import { ShuffleIcon } from './ShuffleIcon';
 export function OLLHome() {
   const [training, setTraining] = useState(false);
   const { t } = useT();
-  const { settings: { trainerMode: mode } } = usePracticeSettings();
+  const mode = useTrainerMode();
 
   return (
     <div className="space-y-6">
@@ -33,7 +33,7 @@ export function OLLHome() {
         onClose={() => setTraining(false)}
         title={t('trainer.ollTitle')}
         info={<>
-          <span className="block">{t(mode === 'inverse' ? 'trainer.hint.lastLayerSolved' : 'trainer.oll.hidden')}</span>
+          <span className="block">{t(mode === 'no-scramble' ? 'trainer.hint.noScramble' : mode === 'inverse' ? 'trainer.hint.lastLayerSolved' : 'trainer.oll.hidden')}</span>
           <span className="block">{t('trainer.hint.selection')}</span>
         </>}
       >

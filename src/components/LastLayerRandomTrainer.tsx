@@ -6,6 +6,8 @@ import { useMounted } from '@/hooks/useMounted';
 import { useSpacebar } from '@/hooks/useSpacebar';
 import { useNativeTimer } from '@/hooks/useNativeTimer';
 import { recordSmartSolve, useSmartCubeTrainer } from '@/hooks/useSmartCubeTrainer';
+import { useNoScrambleTrainer } from '@/hooks/useNoScrambleTrainer';
+import { useTrainerMode } from '@/hooks/useTrainerMode';
 import { useT } from '@/hooks/useT';
 import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { useLastLayerSolver } from '@/hooks/useLastLayerSolver';
@@ -19,6 +21,7 @@ import { AUFS } from '@/types/pll';
 import { LastLayerPlayer } from './LastLayerPlayer';
 import { SmartCubeSetupStatus, SmartCubeSetupTokens } from './SmartCubeSetupGuide';
 import { SmartSolveSummary } from './SmartSolveHistory';
+import { NoScrambleStage } from './NoScrambleStage';
 
 type TrainerState = 'idle' | 'running' | 'stopped';
 interface Pick<Id> {
@@ -28,6 +31,8 @@ interface Pick<Id> {
   // Whether the cube model was available, i.e. the setup could use another
   // algorithm's inverse. A pick made before it loaded is redrawn once it has.
   withSolver: boolean;
+  // Drawn for inverse mode (varied setups) rather than no-scramble.
+  inverse: boolean;
 }
 interface Props<Id extends string> {
   practice: LastLayerPractice;
@@ -50,6 +55,11 @@ export function LastLayerRandomTrainer<Id extends string>({
 }: Props<Id>) {
   const { t, tn } = useT();
   const { settings } = usePracticeSettings();
+  // No-scramble is a device-local mode on top of the synced trainer mode.
+  const noScramble = useTrainerMode() === 'no-scramble';
+  const inverse = settings.trainerMode === 'inverse' && !noScramble;
+  // Both inverse and no-scramble show the case before timing, so draw it ahead.
+  const drawAhead = inverse || noScramble;
   const solver = useLastLayerSolver();
   const [state, setState] = useState<TrainerState>('idle');
   const [current, setCurrent] = useState<Pick<Id> | null>(null);
@@ -57,6 +67,8 @@ export function LastLayerRandomTrainer<Id extends string>({
   const mounted = useMounted();
   const startRef = useRef(0);
   const rafRef = useRef<number | null>(null);
+  // No-scramble without a connected cube has nothing to solve, so Space waits.
+  const startBlockedRef = useRef(false);
 
   // Snapshot the solution, settings and random offset together. The scramble
   // remains identical from the setup screen through recording the solve.
@@ -64,12 +76,12 @@ export function LastLayerRandomTrainer<Id extends string>({
     const pool = ids.filter((id) => selected.has(id));
     const id = pickStaleWeighted(pool.length ? pool : ids, (id) => lastRecorded.get(id), Date.now());
     const offset = settings.randomAuf ? AUFS[Math.floor(Math.random() * AUFS.length)] : 'U0';
-    const setup = buildLastLayerSetup(algorithmFor(id), settings.aufDisplay, offset, (inverse) =>
-      settings.trainerMode === 'inverse'
-        ? pickAlternativeSetup(solver, practice, inverse, alternativesFor(id))
-        : inverse);
-    return { id, setup, settings, withSolver: solver !== null };
-  }, [ids, selected, lastRecorded, settings, algorithmFor, alternativesFor, solver, practice]);
+    const setup = buildLastLayerSetup(algorithmFor(id), settings.aufDisplay, offset, (plain) =>
+      inverse
+        ? pickAlternativeSetup(solver, practice, plain, alternativesFor(id))
+        : plain);
+    return { id, setup, settings, withSolver: solver !== null, inverse };
+  }, [ids, selected, lastRecorded, settings, algorithmFor, alternativesFor, solver, practice, inverse]);
 
   const noneSelected = mounted && selected.size === 0;
 
@@ -86,19 +98,19 @@ export function LastLayerRandomTrainer<Id extends string>({
   }, [state]);
 
   // Refresh only while idle when the selection or settings change.
-  if (mounted && state === 'idle' && settings.trainerMode === 'inverse' && !noneSelected &&
+  if (mounted && state === 'idle' && drawAhead && !noneSelected &&
       (!current || !selected.has(current.id) || current.settings !== settings ||
-        current.withSolver !== (solver !== null))) {
+        current.withSolver !== (solver !== null) || current.inverse !== inverse)) {
     setCurrent(pickRandom());
   }
 
   const start = useCallback(() => {
     if (!mounted || noneSelected) return;
-    if (settings.trainerMode !== 'inverse' || !current) setCurrent(pickRandom());
+    if (!drawAhead || !current) setCurrent(pickRandom());
     startRef.current = Date.now();
     setElapsed(0);
     setState('running');
-  }, [pickRandom, mounted, noneSelected, settings.trainerMode, current]);
+  }, [pickRandom, mounted, noneSelected, drawAhead, current]);
 
   const stop = useCallback(() => {
     setElapsed((Date.now() - startRef.current) / 1000);
@@ -111,19 +123,37 @@ export function LastLayerRandomTrainer<Id extends string>({
     setState('stopped');
   }, []);
 
+  // Abandon the attempt but keep the case (no-scramble reset while timing).
+  const abort = useCallback(() => {
+    setState('idle');
+    setElapsed(0);
+  }, []);
+
   // With a smart cube connected, inverse mode follows the setup on the cube
   // and starts and stops the timer by itself; without one this is null.
   const smart = useSmartCubeTrainer({
     practice,
-    scramble: settings.trainerMode === 'inverse' && current ? current.setup.scramble : null,
+    scramble: inverse && current ? current.setup.scramble : null,
     trainerState: state,
     onStart: start,
     onStop: (seconds) => (seconds === null ? stop() : stopWith(seconds)),
   });
+  // No-scramble: the case on a virtual cube, moved by the smart cube's turns.
+  const virtual = useNoScrambleTrainer({
+    active: noScramble,
+    practice,
+    scramble: current ? current.setup.scramble : null,
+    trainerState: state,
+    onStart: start,
+    onStop: (seconds) => (seconds === null ? stop() : stopWith(seconds)),
+    onAbort: abort,
+  });
+  useEffect(() => { startBlockedRef.current = noScramble && !virtual.connected; });
 
   useNativeTimer(state === 'running', stop);
 
-  const smartSolve = smart?.solve ?? null;
+  const smartSolve = smart?.solve ?? virtual.view?.solve ?? null;
+  const recognitionMs = smart?.recognitionMs ?? virtual.view?.recognitionMs ?? null;
   const record = useCallback(() => {
     if (current && elapsed > 0) {
       add(current.id, elapsed);
@@ -144,75 +174,99 @@ export function LastLayerRandomTrainer<Id extends string>({
   // records on the result screen; Escape discards there.
   const onSpace = useCallback(() => {
     if (state === 'idle') {
-      if (!noneSelected) start();
+      if (!noneSelected && !startBlockedRef.current) start();
     } else if (state === 'running') stop();
     else record();
   }, [state, start, stop, record, noneSelected]);
   useSpacebar(onSpace);
   useEscapeKey(discard, state === 'stopped');
 
+  // The result screen's content, shared by the standard/inverse layout and
+  // the no-scramble one.
+  const previousSolves = current ? solvesFor(current.id).length : 0;
+  const resultInfo = current && (
+    <div className="text-center sm:text-left">
+      <div className="text-sm uppercase tracking-wider text-amber-700 dark:text-amber-300">
+        {nameFor(current.id)}
+      </div>
+      <div className="font-mono text-6xl sm:text-7xl font-bold tabular-nums text-amber-700 dark:text-amber-300">
+        {elapsed.toFixed(3)}
+      </div>
+      {previousSolves > 0 && (
+        <div className="mt-1 text-xs font-mono text-amber-700/80 dark:text-amber-300/80">
+          {t('detail.randomStats', {
+            best: formatSeconds(bestFor(current.id)),
+            ao5: formatSeconds(ao5For(current.id)),
+            solves: tn('common.solves', previousSolves),
+          })}
+        </div>
+      )}
+      {recognitionMs != null && (
+        <div className="mt-1 text-xs font-mono text-amber-700/80 dark:text-amber-300/80">
+          {t('smartCube.trainer.recognition', { seconds: (recognitionMs / 1000).toFixed(2) })}
+        </div>
+      )}
+    </div>
+  );
+  const resultRest = current && (
+    <>
+      <div className="max-w-2xl w-full text-center font-mono text-sm break-words text-zinc-700 dark:text-zinc-300">
+        <p>
+          {current.settings.aufDisplay === 'prefix' ? current.setup.solution : <>
+            <span className="inline-block min-w-[2.5em] mr-2 px-1.5 py-0.5 text-[10px] rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 align-middle">
+              {current.setup.effectiveAuf}
+            </span>
+            {current.setup.body}
+          </>}
+        </p>
+      </div>
+      {smartSolve && <SmartSolveSummary solve={smartSolve} />}
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={record}
+          className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 font-semibold"
+        >
+          ✓ {t('common.record')}
+          <kbd className="hidden sm:inline ml-2 text-[10px] font-mono font-normal opacity-70">Space</kbd>
+        </button>
+        <button
+          type="button"
+          onClick={discard}
+          className="rounded-md border border-zinc-300 dark:border-zinc-700 px-6 py-2.5 font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800"
+        >
+          ✗ {t('common.discard')}
+          <kbd className="hidden sm:inline ml-2 text-[10px] font-mono font-normal opacity-70">Esc</kbd>
+        </button>
+      </div>
+    </>
+  );
+
+  if (noScramble && !noneSelected) {
+    return (
+      <NoScrambleStage
+        state={state}
+        view={virtual.view}
+        connected={virtual.connected}
+        elapsed={elapsed}
+        selectedNote={mounted ? t('trainer.selectedCount', { count: selected.size, total: ids.length }) : ''}
+        onStop={stop}
+        onReset={virtual.reset}
+        result={<div className="flex flex-col items-center gap-4">{resultInfo}{resultRest}</div>}
+      />
+    );
+  }
+
   if (state === 'stopped' && current) {
-    // Random-trainer history for this case so far (the time on screen is not
-    // recorded yet).
-    const previousSolves = solvesFor(current.id).length;
     return (
       <div className="w-full flex-1 rounded-lg border border-amber-400 dark:border-amber-500 bg-amber-50 dark:bg-amber-950/30 p-6 flex flex-col items-center justify-center gap-6 select-none">
         <div className="flex flex-col sm:flex-row items-center gap-6">
           <div className="rounded-md p-2 bg-zinc-100 dark:bg-zinc-900">
             <LastLayerPlayer practice={practice} setupAlg={current.setup.scramble} size={220} />
           </div>
-          <div className="text-center sm:text-left">
-            <div className="text-sm uppercase tracking-wider text-amber-700 dark:text-amber-300">
-              {nameFor(current.id)}
-            </div>
-            <div className="font-mono text-6xl sm:text-7xl font-bold tabular-nums text-amber-700 dark:text-amber-300">
-              {elapsed.toFixed(3)}
-            </div>
-            {previousSolves > 0 && (
-              <div className="mt-1 text-xs font-mono text-amber-700/80 dark:text-amber-300/80">
-                {t('detail.randomStats', {
-                  best: formatSeconds(bestFor(current.id)),
-                  ao5: formatSeconds(ao5For(current.id)),
-                  solves: tn('common.solves', previousSolves),
-                })}
-              </div>
-            )}
-            {smart?.recognitionMs != null && (
-              <div className="mt-1 text-xs font-mono text-amber-700/80 dark:text-amber-300/80">
-                {t('smartCube.trainer.recognition', { seconds: (smart.recognitionMs / 1000).toFixed(2) })}
-              </div>
-            )}
-          </div>
+          {resultInfo}
         </div>
-        <div className="max-w-2xl w-full text-center font-mono text-sm break-words text-zinc-700 dark:text-zinc-300">
-          <p>
-            {current.settings.aufDisplay === 'prefix' ? current.setup.solution : <>
-              <span className="inline-block min-w-[2.5em] mr-2 px-1.5 py-0.5 text-[10px] rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 align-middle">
-                {current.setup.effectiveAuf}
-              </span>
-              {current.setup.body}
-            </>}
-          </p>
-        </div>
-        {smart?.solve && <SmartSolveSummary solve={smart.solve} />}
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={record}
-            className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 font-semibold"
-          >
-            ✓ {t('common.record')}
-            <kbd className="hidden sm:inline ml-2 text-[10px] font-mono font-normal opacity-70">Space</kbd>
-          </button>
-          <button
-            type="button"
-            onClick={discard}
-            className="rounded-md border border-zinc-300 dark:border-zinc-700 px-6 py-2.5 font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800"
-          >
-            ✗ {t('common.discard')}
-            <kbd className="hidden sm:inline ml-2 text-[10px] font-mono font-normal opacity-70">Esc</kbd>
-          </button>
-        </div>
+        {resultRest}
       </div>
     );
   }
@@ -253,7 +307,7 @@ export function LastLayerRandomTrainer<Id extends string>({
     );
   }
 
-  if (settings.trainerMode === 'inverse') {
+  if (inverse) {
     return (
       <button
         type="button"

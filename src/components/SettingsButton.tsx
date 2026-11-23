@@ -217,6 +217,7 @@ export function SettingsButton() {
               <span className="block">{t('settings.trainerMode.help')}</span>
               <Help label="settings.trainerMode.standard" text="settings.trainerMode.standardHelp" />
               <Help label="settings.trainerMode.inverse" text="settings.trainerMode.inverseHelp" />
+              <Help label="settings.trainerMode.noScramble" text="settings.trainerMode.noScrambleHelp" />
             </>}>
               <TrainerModeToggle />
               <RandomAufToggle />
