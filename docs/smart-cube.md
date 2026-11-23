@@ -35,6 +35,20 @@ and PLL:
 Tap and Space still start and stop the timer. Without a connected cube nothing
 changes, and standard mode ignores the cube.
 
+## Recorded solves
+
+The result screen of a cube-timed solve shows the turns in the chosen
+holding's notation, the move count (consecutive turns of one face merged,
+cancellations dropped), TPS and recognition time. Recording the time also
+keeps that solve in IndexedDB (`cfop-smart-cube`, store `solves`) on this
+device: turns with cube times, recognition, execution, move count, TPS, the
+setup and the holding. Discarded attempts and hand-started timers are not
+kept. Each case's page lists its solves, newest first, with delete buttons;
+the settings panel shows the total and can delete everything. Beyond 2000
+solves the oldest are removed. None of this touches the persistence layer:
+the account document, its allow-list and the `RandomSolve` records are
+unchanged, so older app versions are unaffected.
+
 ## Code
 
 - `src/lib/smart-cube/gan-gen4.ts`, `aes128.ts`: Gen4 protocol, ported from
@@ -53,6 +67,8 @@ changes, and standard mode ignores the cube.
   second) resync the tracked state when no turn is in flight; three seconds
   without any notification counts as a lost link.
 - `src/hooks/useSmartCubeTrainer.ts`: connects a trainer to the session.
+- `src/lib/smart-cube/solve-record.ts`, `src/lib/smart-solve-store.ts`: the
+  recorded solve and its IndexedDB store; `SmartSolveHistory.tsx` lists them.
 
 ## Checks
 

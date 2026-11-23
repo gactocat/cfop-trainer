@@ -21,6 +21,7 @@ import { CUBE_HOLDINGS, lastLayerFace, userNotation, holdingFrame, type CubeHold
 import { advanceGuide, applyPlan, guideView, planSetup, GUIDE_START, type SetupPlan } from '@/lib/smart-cube/setup-guide';
 import { manualStart, sessionMove, startSession, type TrainerSession } from '@/lib/smart-cube/trainer-session';
 import { smartCubeUnsupported } from '@/lib/smart-cube/support';
+import { buildSmartSolve, mergeTurns, solveNotation, turnsPerSecond } from '@/lib/smart-cube/solve-record';
 
 let checks = 0;
 const ok = (value: unknown, label: string) => { assert.ok(value, label); checks++; };
@@ -158,7 +159,7 @@ const f2lPlan = planSetup("R U R'", 'yellow-blue')!;
 let session: TrainerSession = startSession('f2l', 'D', f2lPlan, applyFaceTurns(SOLVED, 'D'));
 eq(session.phase, 'setup', 'F2L solved with any last layer is a base');
 let state = session.base!;
-const turn = (face: Face, amount: Amount, t: number) => {
+const turn = (face: Face, amount: 1 | 3, t: number) => {
   state = applyTurn(state, face, amount);
   const r = sessionMove(session, { face, amount, cubeTime: t, state });
   session = r.session;
@@ -173,6 +174,13 @@ eq(session.recognitionMs, 1000, 'recognition is ready to first turn');
 eq(turn('D', 3, 1700), null, 'not solved yet');
 eq(turn('R', 3, 2100), 'stop', 'F2L solved stops');
 eq(session.elapsedMs, 800, 'elapsed is first turn to last turn on the cube clock');
+eq(session.solveTurns.map((x) => `${x.face}${x.amount === 3 ? "'" : ''}@${x.cubeTime}`), ['R@1300', "D'@1700", "R'@2100"], 'solving turns are kept with cube times');
+const record = buildSmartSolve({
+  id: 'x', recordedAt: '2026-11-23T00:00:00.000Z', practice: 'f2l', caseId: 'F2L-1', holding: 'yellow-blue', scramble: "R U R'",
+  turns: session.solveTurns, recognitionMs: session.recognitionMs, executionMs: session.elapsedMs!,
+});
+eq([record.moveCount, record.tps, record.turns.map((x) => x.t), record.startCubeTime], [3, 3.75, [0, 400, 800], 1300], 'record counts, TPS and relative times');
+eq(solveNotation(record.turns, record.holding), "R U' R'", 'the record reads in the holding it was made with');
 
 // Wrong turns, then re-solving F2L by other means, restarts the setup.
 session = startSession('f2l', 'D', f2lPlan, SOLVED);
@@ -182,7 +190,8 @@ eq(session.progress.wrong.length, 1, 'a wrong turn is tracked');
 turn('F', 3, 20);
 eq([session.phase, session.progress.wrong.length], ['setup', 0], 'taking it back clears it');
 // A last-layer pre-turn before starting is absorbed into the base.
-turn('D', 2, 30);
+turn('D', 1, 30);
+turn('D', 1, 40); // a half turn arrives as two quarter turns
 eq([session.phase, session.progress.step], ['setup', 0], 'a pre-AUF restarts the setup from the new base');
 ok(stateEquals(session.base!, applyFaceTurns(SOLVED, 'D2')), 'the base includes the pre-AUF');
 
@@ -218,7 +227,7 @@ function attempt(practice: 'f2l' | 'oll' | 'pll', holding: CubeHolding, scramble
     for (const step of p.steps) {
       for (const [face, n] of Object.entries(step.turns) as [Face, Amount][]) {
         // A half turn arrives as two quarter turns.
-        for (const amount of (n === 2 ? [1, 1] : [n]) as Amount[]) {
+        for (const amount of (n === 2 ? [1, 1] : [n]) as (1 | 3)[]) {
           cube = applyTurn(cube, face, amount);
           const r = sessionMove(st, { face, amount, cubeTime: (time += 100), state: cube });
           st = r.session;
@@ -232,6 +241,7 @@ function attempt(practice: 'f2l' | 'oll' | 'pll', holding: CubeHolding, scramble
   feed(solvePlan);
   assert.equal(st.phase, 'done', `${label}: solving stops the timer (${events.join(',')})`);
   assert.ok(st.elapsedMs !== null && st.elapsedMs >= 0, `${label}: elapsed on the cube clock`);
+  assert.equal(st.solveTurns[st.solveTurns.length - 1].cubeTime - st.solveTurns[0].cubeTime, st.elapsedMs, `${label}: kept turns span the elapsed time`);
   checks++;
 }
 let attempts = 0;
@@ -261,6 +271,15 @@ for (const holding of CUBE_HOLDINGS) {
   }
 }
 console.log(`  ${attempts} trainer attempts reach ready and stop in every holding.`);
+
+// --- solve records
+eq(mergeTurns([{ face: 'R', amount: 1 }, { face: 'R', amount: 1 }]), [{ face: 'R', amount: 2 }], 'R R is R2');
+eq(mergeTurns([{ face: 'R', amount: 1 }, { face: 'R', amount: 3 }, { face: 'U', amount: 1 }]), [{ face: 'U', amount: 1 }], "R R' cancels");
+eq(mergeTurns([{ face: 'R', amount: 1 }, { face: 'L', amount: 3 }]).length, 2, 'a slice counts as two outer turns');
+eq(solveNotation([{ face: 'D', amount: 1 }, { face: 'D', amount: 1 }, { face: 'B', amount: 3 }], 'yellow-blue'), "U2 F'", 'notation follows the holding');
+eq(solveNotation([{ face: 'D', amount: 3 }], 'white-green'), "D'", 'white-green keeps cube faces');
+eq([turnsPerSecond(12, 2000), turnsPerSecond(5, 0)], [6, 0], 'TPS, and zero for no time');
+eq(manualStart(startSession('pll', 'D', planSetup(TPERM, 'yellow-blue')!, SOLVED)).solveTurns, [], 'a hand-started attempt keeps no turns');
 
 // --- support detection
 const env = { hasBluetooth: false, secureContext: true, maxTouchPoints: 0, nativeApp: false };

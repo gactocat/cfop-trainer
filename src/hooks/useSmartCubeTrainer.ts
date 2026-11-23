@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useSmartCube, useSmartCubeSettings } from '@/hooks/useSmartCube';
 import { canWriteData } from '@/lib/persistence';
-import { lastLayerFace } from '@/lib/smart-cube/holding';
+import { lastLayerFace, type CubeHolding } from '@/lib/smart-cube/holding';
+import { buildSmartSolve } from '@/lib/smart-cube/solve-record';
 import { guideView, planSetup, type SetupPlan } from '@/lib/smart-cube/setup-guide';
 import {
   manualStart,
@@ -11,10 +12,12 @@ import {
   sessionMove,
   startSession,
   type SessionPhase,
+  type SolveTurn,
   type TrainerPractice,
   type TrainerSession,
 } from '@/lib/smart-cube/trainer-session';
 import { getSnapshot as getCubeSnapshot, subscribeTurns } from '@/lib/smart-cube-store';
+import { addSmartSolve } from '@/lib/smart-solve-store';
 
 type TrainerState = 'idle' | 'running' | 'stopped';
 
@@ -29,11 +32,33 @@ export interface SmartTrainerView {
   undo: string;
   /** Ready to first turn, ms on the cube clock. */
   recognitionMs: number | null;
+  /** The attempt the cube timed from first turn to goal, once stopped. */
+  solve: SmartSolve | null;
+}
+
+export interface SmartSolve {
+  practice: TrainerPractice;
+  holding: CubeHolding;
+  scramble: string;
+  turns: SolveTurn[];
+  recognitionMs: number | null;
+  executionMs: number;
+}
+
+/** Keep a cube-timed solve on this device (when the user records the time). */
+export function recordSmartSolve(solve: SmartSolve, caseId: string) {
+  const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  addSmartSolve(buildSmartSolve({ ...solve, id, caseId, recordedAt: new Date().toISOString() })).catch(() => {
+    // Storage unavailable or full: the time itself is still recorded.
+  });
 }
 
 // Per-trainer holder for the current attempt, read with useSyncExternalStore.
 class SessionHolder {
   session: TrainerSession | null = null;
+  holding: CubeHolding = 'yellow-blue';
   private view: SmartTrainerView | null = null;
   private listeners = new Set<() => void>();
   subscribe = (listener: () => void) => {
@@ -41,10 +66,26 @@ class SessionHolder {
     return () => { this.listeners.delete(listener); };
   };
   getSnapshot = () => this.view;
-  set(session: TrainerSession | null) {
-    if (session === this.session) return;
+  set(session: TrainerSession | null, holding = this.holding) {
+    if (session === this.session && holding === this.holding) return;
     this.session = session;
-    this.view = session && { phase: session.phase, plan: session.plan, recognitionMs: session.recognitionMs, ...guideView(session.plan, session.progress) };
+    this.holding = holding;
+    this.view = session && {
+      phase: session.phase,
+      plan: session.plan,
+      recognitionMs: session.recognitionMs,
+      ...guideView(session.plan, session.progress),
+      solve: session.phase === 'done' && session.elapsedMs !== null && session.solveTurns.length > 0
+        ? {
+          practice: session.practice,
+          holding: this.holding,
+          scramble: session.plan.tokens.join(' '),
+          turns: session.solveTurns,
+          recognitionMs: session.recognitionMs,
+          executionMs: session.elapsedMs,
+        }
+        : null,
+    };
     this.listeners.forEach((l) => l());
   }
 }
@@ -80,10 +121,10 @@ export function useSmartCubeTrainer({ practice, scramble, trainerState, onStart,
   // A new attempt begins with each case, holding or connection; the trainer's
   // own start and stop (tap, Space) are mirrored into the session.
   useEffect(() => {
-    if (!plan) holder.set(null);
-    else if (trainerState === 'idle') holder.set(startSession(practice, ll, plan, getCubeSnapshot().state));
-    else if (holder.session) holder.set(trainerState === 'running' ? manualStart(holder.session) : manualStop(holder.session));
-  }, [holder, plan, practice, ll, trainerState, synced]);
+    if (!plan) holder.set(null, holding);
+    else if (trainerState === 'idle') holder.set(startSession(practice, ll, plan, getCubeSnapshot().state), holding);
+    else if (holder.session) holder.set(trainerState === 'running' ? manualStart(holder.session) : manualStop(holder.session), holding);
+  }, [holder, plan, practice, ll, holding, trainerState, synced]);
 
   useEffect(() => {
     if (!plan) return;

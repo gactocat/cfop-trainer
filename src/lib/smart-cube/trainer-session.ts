@@ -10,7 +10,6 @@ import {
   isLastLayerOriented,
   isSolvedUpToLastLayerTurn,
   stateEquals,
-  type Amount,
   type CubeState,
   type Face,
   type LastLayerFace,
@@ -40,11 +39,21 @@ export interface TrainerSession {
   startAt: number | null;
   recognitionMs: number | null;
   elapsedMs: number | null;
+  /** Turns from the first solving turn to the one that reached the goal. */
+  solveTurns: SolveTurn[];
+}
+
+export interface SolveTurn {
+  face: Face;
+  amount: 1 | 3;
+  /** Cube clock, ms. */
+  cubeTime: number;
 }
 
 export interface SessionMove {
   face: Face;
-  amount: Amount;
+  /** A reported turn is a quarter turn: 1 clockwise, 3 counter-clockwise. */
+  amount: 1 | 3;
   /** Cube clock, ms. */
   cubeTime: number;
   /** State after the turn. */
@@ -65,7 +74,7 @@ export function startSession(
 ): TrainerSession {
   const session: TrainerSession = {
     practice, ll, plan, phase: 'need-base', progress: GUIDE_START, base: null, target: null,
-    readyAt: null, startAt: null, recognitionMs: null, elapsedMs: null,
+    readyAt: null, startAt: null, recognitionMs: null, elapsedMs: null, solveTurns: [],
   };
   return state && isPracticeGoal(practice, state, ll) ? withBase(session, state) : session;
 }
@@ -92,23 +101,33 @@ export function sessionMove(session: TrainerSession, move: SessionMove): { sessi
     }
     case 'ready':
       return {
-        session: { ...session, phase: 'running', startAt: move.cubeTime, recognitionMs: move.cubeTime - (session.readyAt ?? move.cubeTime) },
+        session: {
+          ...session,
+          phase: 'running',
+          startAt: move.cubeTime,
+          recognitionMs: move.cubeTime - (session.readyAt ?? move.cubeTime),
+          solveTurns: [turnOf(move)],
+        },
         event: 'start',
       };
-    case 'running':
-      if (!goal) return { session, event: null };
+    case 'running': {
+      const solveTurns = [...session.solveTurns, turnOf(move)];
+      if (!goal) return { session: { ...session, solveTurns }, event: null };
       return {
-        session: { ...session, phase: 'done', elapsedMs: session.startAt === null ? null : move.cubeTime - session.startAt },
+        session: { ...session, phase: 'done', solveTurns, elapsedMs: session.startAt === null ? null : move.cubeTime - session.startAt },
         event: 'stop',
       };
+    }
     case 'done':
       return { session, event: null };
   }
 }
 
+const turnOf = (move: SessionMove): SolveTurn => ({ face: move.face, amount: move.amount, cubeTime: move.cubeTime });
+
 /** The timer was started without a cube turn (tap or Space). */
 export function manualStart(session: TrainerSession): TrainerSession {
-  return session.phase === 'running' || session.phase === 'done' ? session : { ...session, phase: 'running', startAt: null, recognitionMs: null };
+  return session.phase === 'running' || session.phase === 'done' ? session : { ...session, phase: 'running', startAt: null, recognitionMs: null, solveTurns: [] };
 }
 
 /** The timer was stopped by hand. */

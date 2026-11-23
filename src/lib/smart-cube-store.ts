@@ -4,7 +4,7 @@
 // so a trainer can follow them one by one.
 
 import { isNativeApp } from '@/lib/native';
-import { applyTurn, stateFromArrays, type Amount, type CubeState, type Face } from '@/lib/smart-cube/cube-state';
+import { applyTurn, stateFromArrays, type CubeState, type Face } from '@/lib/smart-cube/cube-state';
 import { formatMac, parseMac, type GanCubeEvent } from '@/lib/smart-cube/gan-gen4';
 import {
   connectGanGen4,
@@ -33,7 +33,8 @@ export interface SmartCubeSnapshot {
 
 export interface SmartCubeTurn {
   face: Face;
-  amount: Amount;
+  /** 1 clockwise, 3 counter-clockwise: the cube reports quarter turns. */
+  amount: 1 | 3;
   /** Cube clock, ms. */
   cubeTime: number;
   /** State after the turn. */
@@ -120,7 +121,7 @@ function onEvent(event: GanCubeEvent) {
       lastMoveSerial = event.serial;
       if (!current) break;
       const face = 'URFDLB'[event.face] as Face;
-      const amount: Amount = event.direction ? 3 : 1;
+      const amount = event.direction ? 3 : 1;
       const state = applyTurn(current, face, amount);
       if (event.cubeTimestamp !== null && event.localTimestamp !== null) clockOffset = event.cubeTimestamp - event.localTimestamp;
       const cubeTime = event.cubeTimestamp ?? event.timestamp + (clockOffset ?? 0);
