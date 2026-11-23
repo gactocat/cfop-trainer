@@ -42,30 +42,19 @@ const IGN_CENTER: PieceMask = {
   facelets: ['ignored', 'ignored', 'ignored', 'ignored'],
 };
 
-export const F2L_STICKERING_MASK: StickeringMask = {
-  orbits: {
-    CORNERS: {
-      pieces: [
-        REG_CORNER, REG_CORNER, REG_CORNER, REG_CORNER,
-        IGN_CORNER, IGN_CORNER, IGN_CORNER, IGN_CORNER,
-      ],
+/**
+ * Ignore the last layer's pieces, given which layer of cubing.js's puzzle
+ * they are: D (yellow) when yellow is on top, U (white) when white is.
+ */
+export function f2lStickeringMask(lastLayer: 'U' | 'D'): StickeringMask {
+  const inLastLayer = (i: number) => (lastLayer === 'D' ? i >= 4 && i < 8 : i < 4);
+  return {
+    orbits: {
+      CORNERS: { pieces: Array.from({ length: 8 }, (_, i) => (inLastLayer(i) ? IGN_CORNER : REG_CORNER)) },
+      EDGES: { pieces: Array.from({ length: 12 }, (_, i) => (inLastLayer(i) ? IGN_EDGE : REG_EDGE)) },
+      CENTERS: { pieces: Array.from({ length: 6 }, (_, i) => (i === (lastLayer === 'D' ? 5 : 0) ? IGN_CENTER : REG_CENTER)) },
     },
-    EDGES: {
-      pieces: [
-        REG_EDGE, REG_EDGE, REG_EDGE, REG_EDGE,
-        IGN_EDGE, IGN_EDGE, IGN_EDGE, IGN_EDGE,
-        REG_EDGE, REG_EDGE, REG_EDGE, REG_EDGE,
-      ],
-    },
-    CENTERS: {
-      pieces: [
-        REG_CENTER,
-        REG_CENTER,
-        REG_CENTER,
-        REG_CENTER,
-        REG_CENTER,
-        IGN_CENTER,
-      ],
-    },
-  },
-};
+  };
+}
+
+export const F2L_STICKERING_MASK: StickeringMask = f2lStickeringMask('D');

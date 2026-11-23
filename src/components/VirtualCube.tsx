@@ -1,21 +1,43 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { loadRecolouredTwisty, recolour3DPlayer } from '@/lib/cube-colors';
+import { f2lStickeringMask } from '@/lib/f2l-stickering-mask';
+import { ollStickeringMask } from '@/lib/oll-stickering-mask';
+import { lastLayerFace, type CubeHolding } from '@/lib/smart-cube/holding';
+import type { TrainerPractice } from '@/lib/smart-cube/trainer-session';
 
-type PlayerElement = HTMLElement & { experimentalAddMove(move: string): void };
+type PlayerElement = HTMLElement & {
+  experimentalAddMove(move: string): void;
+  experimentalStickeringMaskOrbits: unknown;
+};
+
+// Assigning undefined would not clear a mask, so "no mask" is an empty one.
+function applyMask(element: PlayerElement, mask: object | null) {
+  element.experimentalStickeringMaskOrbits = mask ?? { orbits: {} };
+}
 
 // The no-scramble virtual cube: one twisty-player (one WebGL context) that
 // stays mounted while the trainer moves between its screens. A new case or a
 // reset (`resetKey`) jumps to `setupAlg + moves`; otherwise each new move is
-// appended so the player animates it.
-export function VirtualCube({ setupAlg, moves, resetKey, className }: {
+// appended so the player animates it. Like the case views, it shows the
+// hidden faces as floating stickers and greys what the practice ignores:
+// the last layer for F2L, all but the top colour for OLL, nothing for PLL.
+export function VirtualCube({ practice, holding, setupAlg, moves, resetKey, className }: {
+  practice: TrainerPractice;
+  holding: CubeHolding;
   setupAlg: string;
   moves: string[];
   resetKey: number;
   className?: string;
 }) {
   const hostRef = useRef<HTMLDivElement | null>(null);
+  // Stickering follows pieces: the last layer is cubing.js's D layer with
+  // yellow on top and its U layer with white on top.
+  const mask = useMemo(() => {
+    const ll = lastLayerFace(holding);
+    return practice === 'f2l' ? f2lStickeringMask(ll) : practice === 'oll' ? ollStickeringMask(ll) : null;
+  }, [practice, holding]);
   const [player, setPlayer] = useState<PlayerElement | null>(null);
   const applied = useRef<{ key: number; setup: string; count: number } | null>(null);
 
@@ -33,7 +55,6 @@ export function VirtualCube({ setupAlg, moves, resetKey, className }: {
       element.setAttribute('background', 'none');
       element.setAttribute('control-panel', 'none');
       element.setAttribute('back-view', 'none');
-      element.setAttribute('hint-facelets', 'none');
       element.style.width = '100%';
       element.style.height = '100%';
       applyScheme(mq.matches);
@@ -49,6 +70,10 @@ export function VirtualCube({ setupAlg, moves, resetKey, className }: {
       element?.remove();
     };
   }, []);
+
+  useEffect(() => {
+    if (player) applyMask(player, mask);
+  }, [player, mask]);
 
   useEffect(() => {
     if (!player) return;

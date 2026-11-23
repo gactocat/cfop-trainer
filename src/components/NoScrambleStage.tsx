@@ -33,8 +33,18 @@ export function NoScrambleStage({ state, view, connected, elapsed, selectedNote,
   const { t } = useT();
   return (
     <div className={`w-full flex-1 min-h-[280px] rounded-lg p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 select-none transition-colors ${TONES[state]}`}>
-      <div className={`shrink-0 rounded-md p-2 w-[220px] h-[220px] sm:w-[280px] sm:h-[280px] ${state === 'stopped' ? 'bg-zinc-100 dark:bg-zinc-900' : 'bg-white/15'}`}>
-        {view && <VirtualCube setupAlg={view.setupAlg} moves={view.moves} resetKey={view.resetKey} className="w-full h-full" />}
+      {/* A plain backdrop in every state keeps the floating hidden faces readable. */}
+      <div className="shrink-0 rounded-md p-2 w-[220px] h-[220px] sm:w-[280px] sm:h-[280px] bg-zinc-100 dark:bg-zinc-900">
+        {view && (
+          <VirtualCube
+            practice={view.practice}
+            holding={view.holding}
+            setupAlg={view.setupAlg}
+            moves={view.moves}
+            resetKey={view.resetKey}
+            className="w-full h-full"
+          />
+        )}
       </div>
       <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-4 text-center">
         {state === 'idle' && (connected ? (

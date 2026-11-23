@@ -24,6 +24,8 @@ import { smartCubeUnsupported } from '@/lib/smart-cube/support';
 import { buildSmartSolve, mergeTurns, solveNotation, turnsPerSecond } from '@/lib/smart-cube/solve-record';
 import { manualStartVirtual, resetVirtual, startVirtual, virtualMove, virtualNotation, type VirtualSession } from '@/lib/smart-cube/virtual-session';
 import { displayRotation } from '@/lib/smart-cube/holding';
+import { F2L_STICKERING_MASK, f2lStickeringMask } from '@/lib/f2l-stickering-mask';
+import { OLL_STICKERING_MASK, ollStickeringMask } from '@/lib/oll-stickering-mask';
 
 let checks = 0;
 const ok = (value: unknown, label: string) => { assert.ok(value, label); checks++; };
@@ -332,6 +334,25 @@ eq(manualStart(startSession('pll', 'D', planSetup(TPERM, 'yellow-blue')!, SOLVED
   const byHand = manualStartVirtual(tperm);
   eq([byHand.phase, byHand.startAt], ['running', null], 'a hand-started virtual attempt has no cube start');
   eq(startVirtual('pll', 'yellow-blue', 'R Q', 0), null, 'an unplannable setup gives no virtual case');
+}
+
+// --- stickering masks for the virtual cube
+{
+  type Mask = { orbits: Record<string, { pieces: ({ facelets: string[] } | null)[] }> };
+  // Which pieces show any colour, per orbit.
+  const shown = (mask: Mask) => Object.fromEntries(Object.entries(mask.orbits).map(([orbit, { pieces }]) => [
+    orbit, pieces.flatMap((p, i) => (p?.facelets.some((f) => f === 'regular') ? [i] : [])),
+  ]));
+  eq(f2lStickeringMask('D'), F2L_STICKERING_MASK, 'the F2L view keeps its mask');
+  eq(ollStickeringMask('D'), OLL_STICKERING_MASK, 'the OLL view keeps its mask');
+  eq(shown(f2lStickeringMask('D')), { CORNERS: [0, 1, 2, 3], EDGES: [0, 1, 2, 3, 8, 9, 10, 11], CENTERS: [0, 1, 2, 3, 4] }, 'F2L, yellow top: the yellow layer is grey');
+  eq(shown(f2lStickeringMask('U')), { CORNERS: [4, 5, 6, 7], EDGES: [4, 5, 6, 7, 8, 9, 10, 11], CENTERS: [1, 2, 3, 4, 5] }, 'F2L, white top: the white layer is grey');
+  eq(shown(ollStickeringMask('D')), { CORNERS: [4, 5, 6, 7], EDGES: [4, 5, 6, 7], CENTERS: [5] }, 'OLL, yellow top: only the yellow layer');
+  eq(shown(ollStickeringMask('U')), { CORNERS: [0, 1, 2, 3], EDGES: [0, 1, 2, 3], CENTERS: [0] }, 'OLL, white top: only the white layer');
+  for (const ll of ['U', 'D'] as const) {
+    const mask = ollStickeringMask(ll) as Mask;
+    ok(Object.values(mask.orbits).every(({ pieces }) => pieces.every((p) => p!.facelets.slice(1).every((f) => f === 'ignored'))), `OLL ${ll}: only the top colour facelet shows`);
+  }
 }
 
 // --- support detection

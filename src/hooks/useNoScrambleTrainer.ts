@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useSmartCube, useSmartCubeSettings } from '@/hooks/useSmartCube';
 import type { SmartSolve } from '@/hooks/useSmartCubeTrainer';
 import { canWriteData } from '@/lib/persistence';
-import { displayRotation } from '@/lib/smart-cube/holding';
+import { displayRotation, type CubeHolding } from '@/lib/smart-cube/holding';
 import type { TrainerPractice } from '@/lib/smart-cube/trainer-session';
 import {
   manualStartVirtual,
@@ -21,6 +21,8 @@ import { subscribeTurns } from '@/lib/smart-cube-store';
 type TrainerState = 'idle' | 'running' | 'stopped';
 
 export interface NoScrambleView {
+  practice: TrainerPractice;
+  holding: CubeHolding;
   phase: VirtualPhase;
   /** cubing.js setup that shows the case in the chosen holding. */
   setupAlg: string;
@@ -48,6 +50,8 @@ class VirtualHolder {
     if (jumped) this.resets++;
     this.session = session;
     this.view = session && {
+      practice: session.practice,
+      holding: session.holding,
       phase: session.phase,
       setupAlg: `${displayRotation(session.holding)} ${session.plan.tokens.join(' ')}`.trim(),
       moves: virtualNotation(session),

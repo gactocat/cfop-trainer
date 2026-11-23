@@ -44,7 +44,11 @@ turns move the virtual cube, while the physical cube's own state (FACELETS)
 is ignored. The first turn starts the timer and the same goals as inverse
 mode stop it, on the cube clock; recognition is case shown to first turn on
 the host clock, since the case appears on screen. "Back to the case" resets
-the virtual cube, and abandons the attempt if it was being timed.
+the virtual cube, and abandons the attempt if it was being timed. Like the
+case views, the player shows the hidden faces as floating stickers and greys
+what the practice ignores (the last layer for F2L, all but its top colour for
+OLL, nothing for PLL), using the masks of the F2L and OLL views built for the
+holding's last layer.
 
 The choice is device-local (`noScramble` in `cfop:smart-cube:v1`) and layered
 over the synced trainer mode, which keeps only standard and inverse, so older
