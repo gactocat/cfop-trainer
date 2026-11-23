@@ -6,6 +6,7 @@ import { useT } from '@/hooks/useT';
 import { F2LGrid } from './F2LGrid';
 import { F2LRandomTrainer } from './F2LRandomTrainer';
 import { FullScreenModal } from './FullScreenModal';
+import { RandomPractice } from './RandomPractice';
 import { ShuffleIcon } from './ShuffleIcon';
 
 export function F2LHome() {
@@ -37,7 +38,9 @@ export function F2LHome() {
           <span className="block">{t('trainer.hint.selection')}</span>
         </>}
       >
-        <F2LRandomTrainer />
+        <RandomPractice>
+          <F2LRandomTrainer />
+        </RandomPractice>
       </FullScreenModal>
     </div>
   );

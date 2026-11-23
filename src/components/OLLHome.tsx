@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTrainerMode } from '@/hooks/useTrainerMode';
 import { useT } from '@/hooks/useT';
 import { FullScreenModal } from './FullScreenModal';
+import { RandomPractice } from './RandomPractice';
 import { OLLGrid } from './OLLGrid';
 import { OLLRandomTrainer } from './OLLRandomTrainer';
 import { ShuffleIcon } from './ShuffleIcon';
@@ -37,7 +38,9 @@ export function OLLHome() {
           <span className="block">{t('trainer.hint.selection')}</span>
         </>}
       >
-        <OLLRandomTrainer />
+        <RandomPractice>
+          <OLLRandomTrainer />
+        </RandomPractice>
       </FullScreenModal>
     </div>
   );

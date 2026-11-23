@@ -73,16 +73,20 @@ The practice runs from the cube alone, so its screen is not the standard
 mode's full-colour tap target. The virtual cube stays in one place; its frame
 shows the state (green waiting, red timing, amber solved), with the timer or
 the result beside it and this session's solves (count, mean, ao5, best and the
-latest cases) in a panel. A solve is recorded as soon as the goal stops it,
-Undo (or Escape) takes it back, and the next case comes once the cube has
-been still for 1.5 seconds, so a final AUF or setting the cube down does not
-start it; Next (or Space) skips the wait. Turning one face the same way four
+latest cases) in a panel. A solve is recorded as soon as the goal stops it
+and Undo (or Escape) takes it back. Next (or Space) brings the next case;
+with "Next case by itself" (`autoAdvance`, off by default) it also comes once
+the cube has been still for 1.5 seconds, so a final AUF or setting the cube
+down does not start it. Turning one face the same way four
 times in a row (within 2.5 seconds) starts the case again, as "Back to the
 case" does. Stopping by hand records the host-timed attempt the same way, and
 leaving the iOS app abandons the attempt. The app keeps the screen on while a
 cube is connected in this mode.
 
-The choice is device-local (`noScramble` in `cfop:smart-cube:v1`) and layered
+Random practice asks for its mode, random AUF and, for no-scramble, the
+automatic next case each time it opens, starting from the last choices; the
+settings dialog no longer has them. The choice is device-local (`noScramble`
+and `autoAdvance` in `cfop:smart-cube:v1`) and layered
 over the synced trainer mode, which keeps only standard and inverse, so older
 app versions and other devices are unaffected. It is offered only where a cube can
 connect; without a connected cube the trainer asks to connect one.

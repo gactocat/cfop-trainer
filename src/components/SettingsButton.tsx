@@ -10,8 +10,6 @@ import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
 import { AlgorithmTransfer } from './AlgorithmTransfer';
 import { AufModeToggle } from './AufModeToggle';
-import { RandomAufToggle } from './RandomAufToggle';
-import { TrainerModeToggle } from './TrainerModeToggle';
 import { LocaleToggle } from './LocaleToggle';
 import { WritableArea } from './AccountBoundary';
 import { useColorTheme } from '@/hooks/useColorTheme';
@@ -209,18 +207,6 @@ export function SettingsButton() {
               <Help label="settings.aufDisplay.inAlgorithm" text="settings.aufDisplay.inAlgorithmHelp" />
             </>}>
               <AufModeToggle />
-            </Section>
-
-            <Divider />
-
-            <Section title="settings.trainerMode.title" info={<>
-              <span className="block">{t('settings.trainerMode.help')}</span>
-              <Help label="settings.trainerMode.standard" text="settings.trainerMode.standardHelp" />
-              <Help label="settings.trainerMode.inverse" text="settings.trainerMode.inverseHelp" />
-              <Help label="settings.trainerMode.noScramble" text="settings.trainerMode.noScrambleHelp" />
-            </>}>
-              <TrainerModeToggle />
-              <RandomAufToggle />
             </Section>
 
           </div>

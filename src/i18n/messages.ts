@@ -249,7 +249,7 @@ const en = {
   "settings.trainerMode.inverseTitle": "Show a setup to apply to your own cube before timing",
   "settings.trainerMode.inverseHelp": "A setup is shown before you start. Apply it to your own cube to create the case, then start the timer and solve it.",
   'settings.trainerMode.randomAufLabel': 'Random AUF',
-  "settings.trainerMode.randomAuf": "Turns the U layer by a random amount for each case, so you also practice recognizing the AUF. Applies to both modes.",
+  "settings.trainerMode.randomAuf": "Turns the U layer by a random amount for each case, so you also practice recognizing the AUF. Applies to every mode.",
 
   // Export / import
   'transfer.title': 'Algorithms',
@@ -309,7 +309,6 @@ const en = {
 
   "grid.help": "Open a card to save your algorithms for that case and record times for them. Each algorithm has a starting orientation (AUF). Cards show the starred algorithm with its best time and ao5. Use Select cases to choose which cases appear here and in random training.",
   "settings.aufDisplay.help": "The AUF is the U-layer turn made before an algorithm. Choose how it is shown.",
-  "settings.trainerMode.help": "Choose how random training shows each case and when timing starts.",
   "trainer.hint.f2lSetup": "Apply the setup shown to a cube with F2L solved, then start the timer and solve the case. The last layer can be in any state. The setup is a short sequence made for this case, not the inverse of your algorithm. The case name appears when you stop.",
   "trainer.hint.selection": "Cases are drawn from those selected in the list. Cases you have not timed recently come up more often.",
   'smartCube.title': 'Smart cube',
@@ -391,7 +390,7 @@ const en = {
   "settings.trainerMode.noScrambleTitle": "Solve the case on a virtual cube with your smart cube",
   "settings.trainerMode.noScrambleHelp": "Solve the case on a virtual cube that your smart cube's turns move, with no setup. Your first turn starts the timer and solving stops it. Kept on this device only.",
   "settings.trainerMode.noScrambleUnavailable": "Needs a browser that can connect a smart cube.",
-  "trainer.hint.noScramble": "Solve the case on a virtual cube that follows your smart cube, with no setup. Each solve is recorded when it stops (Undo takes it back), and the next case comes once the cube is still.",
+  "trainer.hint.noScramble": "Solve the case on a virtual cube that follows your smart cube, with no setup. Each solve is recorded when it stops (Undo takes it back); Next, or the cube resting when that option is on, brings the next case.",
   "trainer.noScramble.connect": "Needs a smart cube.",
   'trainer.noScramble.connectButton': 'Connect a smart cube',
   'trainer.noScramble.firstTurn': 'First turn starts',
@@ -407,6 +406,12 @@ const en = {
   'trainer.noScramble.ao5': 'ao5',
   'trainer.noScramble.best': 'Best',
   'trainer.noScramble.empty': 'Solved cases show up here.',
+  'trainer.setup.title': 'Practice options',
+  'trainer.setup.start': 'Start',
+  'trainer.setup.change': 'Options',
+  'trainer.setup.fixedAuf': 'No random AUF',
+  'trainer.setup.autoAdvance': 'Next case by itself',
+  "trainer.setup.autoAdvanceHelp": "After a solve, the next case comes once the cube has been still for 1.5 seconds. When off, press Next (or Space).",
   'trainer.noScramble.reset': 'Back to the case',
   'smartCube.history.noScramble': 'No scramble',
 } as const;
@@ -639,7 +644,7 @@ const ja: Messages = {
   "settings.trainerMode.inverseTitle": "計測の前に、自分のキューブに適用するセットアップ手順を表示する",
   "settings.trainerMode.inverseHelp": "スタート前にセットアップ手順を表示します。自分のキューブに適用してケースを作ってから、スタートして解きます。",
   'settings.trainerMode.randomAufLabel': 'ランダム AUF',
-  "settings.trainerMode.randomAuf": "出題のたびに U 面をランダムに回し、AUF の判断も練習できるようにします。どちらのモードにも適用されます。",
+  "settings.trainerMode.randomAuf": "出題のたびに U 面をランダムに回し、AUF の判断も練習できるようにします。どのモードにも適用されます。",
 
   'transfer.title': '手順データ',
   "transfer.description": "PLL・OLL・F2L ごとに、手順を JSON ファイルにエクスポートしたり、ファイルからインポートしたりできます。タイムはファイルに含まれません。インポートすると、その種類の手順はすべて置き換わり、それらの手順に記録したタイムも削除されます。",
@@ -697,7 +702,6 @@ const ja: Messages = {
 
   "grid.help": "カードを開くと、そのケースの手順を登録してタイムを記録できます。手順ごとに開始時の向き (AUF) を設定できます。カードには、スター付き手順とそのベストタイム・ao5 を表示します。「ケースを選ぶ」で、この一覧とランダム練習に使うケースを選べます。",
   "settings.aufDisplay.help": "AUF は、手順の前に U 面を合わせる回転です。その表示方法を選びます。",
-  "settings.trainerMode.help": "ランダム練習での出題と計測開始の流れを選びます。",
   "trainer.hint.f2lSetup": "表示されたセットアップ手順を F2L が揃ったキューブに適用してから、スタートして解きます。最後の層の状態は問いません。セットアップ手順はこのケース用に作った短い手順で、登録した手順の逆手順ではありません。ケース名はストップ後に表示します。",
   "trainer.hint.selection": "一覧で選んだケースから出題します。しばらく計測していないケースほど出やすくなります。",
   'smartCube.title': 'スマートキューブ',
@@ -779,7 +783,7 @@ const ja: Messages = {
   "settings.trainerMode.noScrambleTitle": "スマートキューブで、仮想キューブのケースを解く",
   "settings.trainerMode.noScrambleHelp": "スマートキューブの回転で、仮想キューブに出したケースを解きます。セットアップは要りません。最初の回転でスタートし、解けるとストップします。この選択はこの端末だけに保存します。",
   "settings.trainerMode.noScrambleUnavailable": "スマートキューブをつなげるブラウザで使えます。",
-  "trainer.hint.noScramble": "スマートキューブの回転で、仮想キューブに出したケースを解きます。セットアップは要りません。解けると自動で記録し (取り消せます)、キューブを止めると次のケースが出ます。",
+  "trainer.hint.noScramble": "スマートキューブの回転で、仮想キューブに出したケースを解きます。セットアップは要りません。解けると自動で記録し (取り消せます)、「次へ」で次のケースが出ます (設定で、キューブを止めると自動で進むようにもできます)。",
   "trainer.noScramble.connect": "スマートキューブが必要です。",
   'trainer.noScramble.connectButton': 'スマートキューブをつなぐ',
   'trainer.noScramble.firstTurn': '最初の回転でスタート',
@@ -795,6 +799,12 @@ const ja: Messages = {
   'trainer.noScramble.ao5': 'ao5',
   'trainer.noScramble.best': 'ベスト',
   'trainer.noScramble.empty': '解いたケースがここに並びます',
+  'trainer.setup.title': '練習の設定',
+  'trainer.setup.start': '始める',
+  'trainer.setup.change': '練習の設定',
+  'trainer.setup.fixedAuf': 'AUF はそのまま',
+  'trainer.setup.autoAdvance': '時間で次のケースへ',
+  "trainer.setup.autoAdvanceHelp": "そろった後、キューブを 1.5 秒止めておくと次のケースが出ます。オフのときは「次へ」(Space) で進みます。",
   'trainer.noScramble.reset': 'ケースの状態に戻す',
   'smartCube.history.noScramble': 'ノースクランブル',
 };

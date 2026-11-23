@@ -12,6 +12,7 @@ import { useSpacebar } from '@/hooks/useSpacebar';
 import { useNativeTimer } from '@/hooks/useNativeTimer';
 import { recordSmartSolve, useSmartCubeTrainer, type SmartSolve } from '@/hooks/useSmartCubeTrainer';
 import { useNoScrambleTrainer } from '@/hooks/useNoScrambleTrainer';
+import { useSmartCubeSettings } from '@/hooks/useSmartCube';
 import { useTrainerMode } from '@/hooks/useTrainerMode';
 import { useT } from '@/hooks/useT';
 import { combineAuf, invertAuf, prefixAuf } from '@/lib/f2l-auf';
@@ -179,9 +180,12 @@ export function F2LRandomTrainer() {
     onStop: (seconds) => (seconds === null ? stop() : stopWith(seconds)),
   });
   // No-scramble: the case on a virtual cube, moved by the smart cube's turns.
-  // Solves are recorded as they stop and the next case follows by itself.
+  // Solves are recorded as they stop; the next case follows on Next, or by
+  // itself once the cube rests when auto-advance is on.
+  const { autoAdvance } = useSmartCubeSettings();
   const virtual = useNoScrambleTrainer({
     active: noScramble,
+    autoAdvance,
     practice: 'f2l',
     scramble: shown ? shown.setup.scramble : null,
     trainerState: state,

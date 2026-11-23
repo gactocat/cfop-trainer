@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTrainerMode } from '@/hooks/useTrainerMode';
 import { useT } from '@/hooks/useT';
 import { FullScreenModal } from './FullScreenModal';
+import { RandomPractice } from './RandomPractice';
 import { PllGrid } from './PllGrid';
 import { RandomTrainer } from './RandomTrainer';
 import { ShuffleIcon } from './ShuffleIcon';
@@ -37,7 +38,9 @@ export function Home() {
           <span className="block">{t('trainer.hint.selection')}</span>
         </>}
       >
-        <RandomTrainer />
+        <RandomPractice>
+          <RandomTrainer />
+        </RandomPractice>
       </FullScreenModal>
     </div>
   );
