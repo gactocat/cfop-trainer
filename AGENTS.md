@@ -56,10 +56,13 @@ CI (`.github/workflows/ci.yml`) runs the same three steps on every PR.
   instead of copying the module. Pure helpers (`invert-alg`, `f2l-auf`,
   `stale-weighted-pick`, `stats`) have no React dependency.
 - `src/lib/smart-cube/` — GAN Gen4 smart cube support: protocol ported from
-  smartcube-web-bluetooth (MIT, license kept beside it), Web Bluetooth
-  transport, cubie model, holdings, setup guide and the trainer state machine,
-  all pure except the transport. `smart-cube-store.ts` holds the connection;
-  `smart-cube-settings-store.ts` keeps holding and MACs in localStorage only
+  smartcube-web-bluetooth (MIT, license kept beside it), a session shared by
+  the Web Bluetooth transport and the iOS app's transport
+  (`@capacitor-community/bluetooth-le`, loaded only in the app), cubie model,
+  holdings, setup guide and the trainer state machine, all pure except the
+  transports. `smart-cube-store.ts` holds the connection;
+  `smart-cube-settings-store.ts` keeps holding, MACs and the app's last cube
+  in localStorage only
   (never the account); `smart-solve-store.ts` keeps cube-timed solves in
   IndexedDB, also device-only. See `docs/smart-cube.md`.
 - `src/data/` — static case definitions and preset algorithms.

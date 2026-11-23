@@ -1,10 +1,10 @@
 # Smart cube
 
-The web app can connect a GAN smart cube that uses the Gen4 protocol (GAN i4,
-GAN12 ui Maglev, GAN14, GAN16) over Web Bluetooth, in Chrome and Edge on
-desktop and Android. iOS browsers, Safari and Firefox have no Web Bluetooth;
-the settings panel says so instead of offering a connection. The iOS app will
-need a native transport.
+The app can connect a GAN smart cube that uses the Gen4 protocol (GAN i4,
+GAN12 ui Maglev, GAN14, GAN16): over Web Bluetooth in Chrome and Edge on
+desktop and Android, and through the Bluetooth plugin in the iOS app. iOS
+browsers, Safari and Firefox have no Web Bluetooth; the settings panel says so
+instead of offering a connection.
 
 ## Using it
 
@@ -34,6 +34,25 @@ and PLL:
 
 Tap and Space still start and stop the timer. Without a connected cube nothing
 changes, and standard mode ignores the cube.
+
+## iOS app
+
+The app's WKWebView has no Web Bluetooth, so it uses
+`@capacitor-community/bluetooth-le` (MIT, installed through SPM like the other
+plugins). There is no browser dialog either: "Find cubes" scans for 15 seconds
+and lists the cubes whose name starts with GAN; picking one connects it. The
+MAC is read from the scan's manufacturer data (its last six bytes, reversed),
+so it is usually not typed; when a cube does not include it, the panel asks for
+it as in the browser. Once a connection works, the cube's CoreBluetooth
+identifier and name are kept as `lastCube` in `cfop:smart-cube:v1`, and
+"Connect <name>" connects it again without a scan. If iOS no longer knows that
+identifier, or no MAC is remembered for it, it falls back to a scan.
+
+The first scan shows iOS's Bluetooth permission prompt
+(`NSBluetoothAlwaysUsageDescription`, English in `Info.plist`, both languages in
+`en.lproj` / `ja.lproj/InfoPlist.strings`). When it is declined the panel
+offers a link to the app's page in Settings; when Bluetooth is off it says so.
+The simulator has no Bluetooth, so only builds can be checked there.
 
 ## No scramble
 
@@ -74,7 +93,12 @@ unchanged, so older app versions are unaffected.
 
 - `src/lib/smart-cube/gan-gen4.ts`, `aes128.ts`: Gen4 protocol, ported from
   smartcube-web-bluetooth (MIT, `LICENSE-smartcube-web-bluetooth.txt`).
-- `gan-web-bluetooth.ts`: Web Bluetooth transport, separate from the protocol.
+- `gan-gen4-session.ts`: one connection's protocol work (encryption, driver,
+  one write at a time, traffic log), shared by both transports.
+- `gan-web-bluetooth.ts`: Web Bluetooth transport.
+- `gan-native-bluetooth.ts`: the iOS app's transport over the Bluetooth plugin:
+  scan, reconnect by identifier, connect. The store imports it only in the app,
+  so web bundles do not include the plugin.
 - `cube-state.ts`: cubie model in the cube's frame (white U, green F) and the
   goal checks.
 - `holding.ts`: user frames. Yellow top with blue front (the app's 3D views,
@@ -85,7 +109,8 @@ unchanged, so older app versions are unaffected.
 - `trainer-session.ts`: the need-base, setup, ready, running, done state machine.
 - `virtual-session.ts`: the no-scramble attempt (`useNoScrambleTrainer`,
   `NoScrambleStage`, `VirtualCube`).
-- `support.ts`: why Web Bluetooth is unavailable, from the user agent.
+- `support.ts`: why a cube cannot connect here, from the user agent (the iOS
+  app always can).
 - `src/lib/smart-cube-store.ts`: the connection. FACELETS events (about once a
   second) resync the tracked state when no turn is in flight; three seconds
   without any notification counts as a lost link.

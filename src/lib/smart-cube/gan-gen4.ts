@@ -65,6 +65,18 @@ export function macFromManufacturerData(data: DataView): string | null {
   return formatMac(mac);
 }
 
+/**
+ * The MAC from manufacturer data keyed by company identifier, as the iOS
+ * Bluetooth plugin reports a scan result (the identifier already removed).
+ */
+export function macFromCompanyData(data: Readonly<Record<string, DataView>> | undefined): string | null {
+  for (const value of Object.values(data ?? {})) {
+    const mac = macFromManufacturerData(value);
+    if (mac) return mac;
+  }
+  return null;
+}
+
 /** AES-128-CBC with a fixed IV applied to the first and the last 16 bytes of each message. */
 export class GanGen4Cipher {
   private readonly roundKeys: Uint8Array;

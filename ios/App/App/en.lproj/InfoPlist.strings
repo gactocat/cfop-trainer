@@ -1,0 +1,2 @@
+/* Shown when the app first asks to use Bluetooth. */
+"NSBluetoothAlwaysUsageDescription" = "CFOP Trainer uses Bluetooth to connect your smart cube and read its turns.";

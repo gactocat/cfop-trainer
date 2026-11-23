@@ -56,6 +56,10 @@ plugin and asset changes, including Swift Package resolution files.
 - Safe-area insets protect the header, full-screen trainer and dialogs.
 - Native builds do not register a service worker. The custom native router
   serves each exported Next.js route, including direct detail-page loads.
+- Smart cubes connect through `@capacitor-community/bluetooth-le`: the app
+  scans and lists GAN cubes, reads the MAC from the scan and reconnects the last
+  cube without a scan. The first scan asks for Bluetooth permission. See
+  [smart cube](smart-cube.md#ios-app). The simulator has no Bluetooth; test on a device.
 
 ## Email links
 

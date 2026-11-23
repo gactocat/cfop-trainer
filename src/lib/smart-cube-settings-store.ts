@@ -16,9 +16,14 @@ export interface SmartCubeSettings {
    * app versions only know standard and inverse.
    */
   noScramble: boolean;
+  /**
+   * The cube last connected in the iOS app, so it can connect again without a
+   * scan. `id` is CoreBluetooth's identifier, which only this installation knows.
+   */
+  lastCube: Readonly<{ id: string; name: string }> | null;
 }
 
-const DEFAULTS: SmartCubeSettings = { holding: DEFAULT_HOLDING, macs: {}, noScramble: false };
+const DEFAULTS: SmartCubeSettings = { holding: DEFAULT_HOLDING, macs: {}, noScramble: false, lastCube: null };
 
 function decode(raw: unknown): SmartCubeSettings {
   if (typeof raw !== 'object' || raw === null) return DEFAULTS;
@@ -27,10 +32,12 @@ function decode(raw: unknown): SmartCubeSettings {
   if (typeof value.macs === 'object' && value.macs !== null) {
     for (const [name, mac] of Object.entries(value.macs)) if (typeof mac === 'string') macs[name] = mac;
   }
+  const last = value.lastCube as { id?: unknown; name?: unknown } | null | undefined;
   return {
     holding: CUBE_HOLDINGS.includes(value.holding as CubeHolding) ? (value.holding as CubeHolding) : DEFAULT_HOLDING,
     macs,
     noScramble: value.noScramble === true,
+    lastCube: typeof last?.id === 'string' && typeof last.name === 'string' ? { id: last.id, name: last.name } : null,
   };
 }
 
@@ -88,6 +95,17 @@ export function rememberMac(deviceName: string, mac: string) {
   const current = getSnapshot();
   if (current.macs[deviceName] === mac) return;
   write({ ...current, macs: { ...current.macs, [deviceName]: mac } });
+}
+
+export function rememberLastCube(id: string, name: string) {
+  const current = getSnapshot();
+  if (current.lastCube?.id === id && current.lastCube.name === name) return;
+  write({ ...current, lastCube: { id, name } });
+}
+
+export function forgetLastCube() {
+  if (getSnapshot().lastCube === null) return;
+  write({ ...getSnapshot(), lastCube: null });
 }
 
 /** Forget one device's MAC, or every remembered MAC. */

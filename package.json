@@ -17,6 +17,7 @@
     "ios:build": "npm run ios:sync && xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath ios/DerivedData build"
   },
   "dependencies": {
+    "@capacitor-community/bluetooth-le": "^8.4.0",
     "@capacitor/app": "^8.1.1",
     "@capacitor/core": "^8.5.2",
     "@capacitor/filesystem": "^8.1.3",

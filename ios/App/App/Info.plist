@@ -37,6 +37,8 @@
         </dict>
     </array>
     <key>ITSAppUsesNonExemptEncryption</key><false/>
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>CFOP Trainer uses Bluetooth to connect your smart cube and read its turns.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -16,7 +16,7 @@ import {
   SOLVED, applyFaceTurns, applyTurn, isF2LSolved, isLastLayerOriented, isSolvedUpToLastLayerTurn, stateEquals,
   type Amount, type CubeState, type Face,
 } from '@/lib/smart-cube/cube-state';
-import { GanGen4Cipher, createCommandMessage, parseMac, toKociembaFacelets, type GanCubeEvent } from '@/lib/smart-cube/gan-gen4';
+import { GanGen4Cipher, createCommandMessage, macFromCompanyData, parseMac, toKociembaFacelets, type GanCubeEvent } from '@/lib/smart-cube/gan-gen4';
 import { MAC_FORMAT_ERROR, startGanGen4Session, type GanTrafficRecord } from '@/lib/smart-cube/gan-gen4-session';
 import { CUBE_HOLDINGS, lastLayerFace, userNotation, holdingFrame, type CubeHolding } from '@/lib/smart-cube/holding';
 import { advanceGuide, applyPlan, guideView, planSetup, GUIDE_START, type SetupPlan } from '@/lib/smart-cube/setup-guide';
@@ -433,6 +433,11 @@ eq(manualStart(startSession('pll', 'D', planSetup(TPERM, 'yellow-blue')!, SOLVED
   failed.close('setup failed', false);
   eq(silentReasons, 0, 'a failed setup closes without reporting a disconnect');
 
+  // iOS reports manufacturer data keyed by company id, without the id itself.
+  const advertised = new Uint8Array([0x00, 0x00, 0x00, 0x6e, 0xa2, 0xbd, 0x5e, 0x3d, 0x0c]);
+  eq(macFromCompanyData({ '257': new DataView(advertised.buffer) }), MAC, 'the MAC comes from the end of the manufacturer data');
+  eq(macFromCompanyData({ '257': new DataView(new Uint8Array(3).buffer) }), null, 'too little manufacturer data gives no MAC');
+  eq(macFromCompanyData(undefined), null, 'no manufacturer data gives no MAC');
 }
 
 // --- support detection
@@ -444,6 +449,6 @@ eq(smartCubeUnsupported({ ...env, maxTouchPoints: 5, userAgent: 'Mozilla/5.0 (Ma
 eq(smartCubeUnsupported({ ...env, userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15' }), 'safari', 'Safari on a Mac');
 eq(smartCubeUnsupported({ ...env, userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14.0; rv:140.0) Gecko/20100101 Firefox/140.0' }), 'firefox', 'Firefox');
 eq(smartCubeUnsupported({ ...env, hasBluetooth: true, secureContext: false, userAgent: CHROME }), 'insecure', 'http');
-eq(smartCubeUnsupported({ ...env, nativeApp: true, hasBluetooth: false, userAgent: CHROME }), 'native-app', 'iOS app');
+eq(smartCubeUnsupported({ ...env, nativeApp: true, hasBluetooth: false, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148' }), null, 'the iOS app connects through its plugin');
 
 console.log(`All ${checks} smart cube checks passed.`);
