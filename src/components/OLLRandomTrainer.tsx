@@ -39,6 +39,6 @@ export function OLLRandomTrainer() {
       }),
     ]}
     nameFor={(id) => getOLLDefinition(id)?.name ?? id}
-    add={solves.add} bestFor={solves.bestFor} ao5For={solves.ao5For} solvesFor={solves.solvesFor}
+    add={solves.add} remove={solves.remove} bestFor={solves.bestFor} ao5For={solves.ao5For} solvesFor={solves.solvesFor}
   />;
 }

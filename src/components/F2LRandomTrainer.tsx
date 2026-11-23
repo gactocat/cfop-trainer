@@ -17,6 +17,7 @@ import { useT } from '@/hooks/useT';
 import { combineAuf, invertAuf, prefixAuf } from '@/lib/f2l-auf';
 import { buildF2LSetup, seededRandom } from '@/lib/f2l-scramble';
 import { pickStaleWeighted } from '@/lib/stale-weighted-pick';
+import { deleteSmartSolve } from '@/lib/smart-solve-store';
 import { formatSeconds } from '@/lib/stats';
 import { F2L_IDS, type F2LId } from '@/types/f2l';
 import type { Auf } from '@/types/pll';
@@ -29,7 +30,7 @@ type TrainerState = 'idle' | 'running' | 'stopped';
 
 export function F2LRandomTrainer() {
   const { t, tn } = useT();
-  const { add, all, bestFor, ao5For, solvesFor } = useF2LRandomSolves();
+  const { add, remove, all, bestFor, ao5For, solvesFor } = useF2LRandomSolves();
   const { starredFor } = useF2LAlgorithms();
   const { selected } = useF2LRandomSelection();
   const { settings: scrambleSettings } = usePracticeSettings();
@@ -130,8 +131,6 @@ export function F2LRandomTrainer() {
     setState('stopped');
   }, []);
 
-  useNativeTimer(state === 'running', stop);
-
   const record = useCallback(() => {
     if (current && elapsed > 0) {
       add(current, elapsed);
@@ -154,16 +153,6 @@ export function F2LRandomTrainer() {
     setElapsed(0);
   }, []);
 
-  // Keyboard: Space mirrors the tap action (idle → start, running → stop) and
-  // records on the result screen; Escape discards there.
-  const onSpace = useCallback(() => {
-    if (state === 'idle') {
-      if (!noneSelected && !startBlockedRef.current) start();
-    } else if (state === 'running') stop();
-    else record();
-  }, [state, start, stop, record, noneSelected]);
-  useSpacebar(onSpace);
-  useEscapeKey(discard, state === 'stopped');
 
   // Everything the three case screens need, derived once from the drawn case
   // and its seed. The starred algorithm wins; the speedcubedb primary (which
@@ -190,15 +179,58 @@ export function F2LRandomTrainer() {
     onStop: (seconds) => (seconds === null ? stop() : stopWith(seconds)),
   });
   // No-scramble: the case on a virtual cube, moved by the smart cube's turns.
+  // Solves are recorded as they stop and the next case follows by itself.
   const virtual = useNoScrambleTrainer({
     active: noScramble,
     practice: 'f2l',
     scramble: shown ? shown.setup.scramble : null,
     trainerState: state,
+    describe: () => shown && current && {
+      caseId: current,
+      name: shown.def ? t('common.f2lCase', { number: shown.def.number }) : current,
+      solution: shown.star
+        ? prefixAuf(shown.effectiveAuf, shown.star.algorithm)
+        : shown.def ? prefixAuf(invertAuf(shown.setup.uOffset), shown.def.primaryAlg) : '',
+    },
+    record: (caseId, seconds, solve) => {
+      const solveId = add(caseId as F2LId, seconds);
+      const smartId = solve ? recordSmartSolve(solve, caseId) : null;
+      if (!solveId && !smartId) return null;
+      return () => {
+        if (solveId) remove(solveId);
+        if (smartId) void deleteSmartSolve(smartId);
+      };
+    },
     onStart: start,
-    onStop: (seconds) => (seconds === null ? stop() : stopWith(seconds)),
+    onStop: (seconds) => {
+      const settled = seconds ?? (Date.now() - startRef.current) / 1000;
+      stopWith(settled);
+      return settled;
+    },
     onAbort: abort,
+    onAdvance: discard,
   });
+  // Leaving the app abandons a no-scramble attempt (it is recorded on its own otherwise).
+  useNativeTimer(state === 'running', noScramble ? virtual.reset : stop);
+  // Keyboard: Space mirrors the tap action (idle → start, running → stop) and
+  // records on the result screen; Escape discards there. In no-scramble mode
+  // the solve is already recorded, so Space goes on and Escape takes it back.
+  const latest = virtual.results[0];
+  const onSpace = useCallback(() => {
+    if (state === 'idle') {
+      if (!noneSelected && !startBlockedRef.current) start();
+    } else if (state === 'running') {
+      if (noScramble) virtual.stopByHand();
+      else stop();
+    } else if (noScramble) virtual.next();
+    else record();
+  }, [state, start, stop, record, noneSelected, noScramble, virtual]);
+  useSpacebar(onSpace);
+  useEscapeKey(
+    noScramble ? () => { if (latest && !latest.undone) virtual.undo(latest.key); } : discard,
+    state === 'stopped',
+  );
+
   const solve = smart?.solve ?? virtual.view?.solve ?? null;
   const recognitionMs = smart?.recognitionMs ?? virtual.view?.recognitionMs ?? null;
   useEffect(() => {
@@ -297,13 +329,9 @@ export function F2LRandomTrainer() {
     return (
       <NoScrambleStage
         state={state}
-        view={virtual.view}
-        connected={virtual.connected}
+        trainer={virtual}
         elapsed={elapsed}
         selectedNote={selectedNote}
-        onStop={stop}
-        onReset={virtual.reset}
-        result={<div className="flex flex-col items-center gap-4">{resultInfo}{resultRest}</div>}
       />
     );
   }

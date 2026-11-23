@@ -48,13 +48,15 @@ export interface SmartSolve {
 }
 
 /** Keep a cube-timed solve on this device (when the user records the time). */
-export function recordSmartSolve(solve: SmartSolve, caseId: string) {
+/** Keeps a cube-timed solve on the device; returns its id (for undoing it). */
+export function recordSmartSolve(solve: SmartSolve, caseId: string): string {
   const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
     : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
   addSmartSolve(buildSmartSolve({ ...solve, id, caseId, recordedAt: new Date().toISOString() })).catch(() => {
     // Storage unavailable or full: the time itself is still recorded.
   });
+  return id;
 }
 
 // Per-trainer holder for the current attempt, read with useSyncExternalStore.

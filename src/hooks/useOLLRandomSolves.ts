@@ -39,7 +39,8 @@ export interface UseOLLRandomSolvesResult {
   solvesFor: (ollId: OLLId) => OLLRandomSolve[];
   bestFor: (ollId: OLLId) => number | null;
   ao5For: (ollId: OLLId) => number | null;
-  add: (ollId: OLLId, seconds: number) => void;
+  /** Records a time; returns the new record's id, or null when the time is invalid. */
+  add: (ollId: OLLId, seconds: number) => string | null;
   remove: (id: string) => void;
   resetForOLL: (ollId: OLLId) => void;
 }
@@ -65,8 +66,8 @@ export function useOLLRandomSolves(): UseOLLRandomSolvesResult {
     [all],
   );
 
-  const add = useCallback((ollId: OLLId, seconds: number) => {
-    if (!Number.isFinite(seconds) || seconds <= 0) return;
+  const add = useCallback((ollId: OLLId, seconds: number): string | null => {
+    if (!Number.isFinite(seconds) || seconds <= 0) return null;
     const created: OLLRandomSolve = {
       id: newId(),
       ollId,
@@ -74,6 +75,7 @@ export function useOLLRandomSolves(): UseOLLRandomSolvesResult {
       recordedAt: nowIso(),
     };
     mutate((prev) => [created, ...prev]);
+    return created.id;
   }, []);
 
   const remove = useCallback((id: string) => {

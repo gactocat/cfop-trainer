@@ -23,7 +23,7 @@ import { advanceGuide, applyPlan, guideView, planSetup, GUIDE_START, type SetupP
 import { manualStart, sessionMove, startSession, type TrainerSession } from '@/lib/smart-cube/trainer-session';
 import { smartCubeUnsupported } from '@/lib/smart-cube/support';
 import { buildSmartSolve, mergeTurns, solveNotation, turnsPerSecond } from '@/lib/smart-cube/solve-record';
-import { manualStartVirtual, resetVirtual, startVirtual, virtualMove, virtualNotation, type VirtualSession } from '@/lib/smart-cube/virtual-session';
+import { isResetGesture, manualStartVirtual, resetVirtual, startVirtual, virtualMove, virtualNotation, type VirtualSession } from '@/lib/smart-cube/virtual-session';
 import { displayRotation } from '@/lib/smart-cube/holding';
 import { F2L_STICKERING_MASK, f2lStickeringMask } from '@/lib/f2l-stickering-mask';
 import { OLL_STICKERING_MASK, ollStickeringMask } from '@/lib/oll-stickering-mask';
@@ -335,6 +335,17 @@ eq(manualStart(startSession('pll', 'D', planSetup(TPERM, 'yellow-blue')!, SOLVED
   const byHand = manualStartVirtual(tperm);
   eq([byHand.phase, byHand.startAt], ['running', null], 'a hand-started virtual attempt has no cube start');
   eq(startVirtual('pll', 'yellow-blue', 'R Q', 0), null, 'an unplannable setup gives no virtual case');
+}
+
+// --- the no-scramble reset gesture
+{
+  const turns = (spec: [Face, 1 | 3, number][]) => spec.map(([face, amount, at]) => ({ face, amount, at }));
+  ok(isResetGesture(turns([['R', 1, 0], ['U', 1, 100], ['U', 1, 300], ['U', 1, 500], ['U', 1, 700]])), 'four same turns of one face reset the case');
+  ok(isResetGesture(turns([['F', 3, 0], ['F', 3, 200], ['F', 3, 400], ['F', 3, 600]])), 'counter-clockwise works too');
+  ok(!isResetGesture(turns([['U', 1, 0], ['U', 1, 200], ['U', 1, 400]])), 'three turns are not enough');
+  ok(!isResetGesture(turns([['U', 1, 0], ['U', 1, 200], ['U', 3, 400], ['U', 1, 600]])), 'mixed directions do not reset');
+  ok(!isResetGesture(turns([['U', 1, 0], ['R', 1, 200], ['U', 1, 400], ['U', 1, 600]])), 'another face in between does not reset');
+  ok(!isResetGesture(turns([['U', 1, 0], ['U', 1, 1000], ['U', 1, 2000], ['U', 1, 3000]])), 'slow turns do not reset');
 }
 
 // --- stickering masks for the virtual cube

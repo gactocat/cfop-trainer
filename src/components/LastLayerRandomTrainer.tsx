@@ -16,6 +16,7 @@ import { buildLastLayerSetup, type LastLayerAlgorithm, type LastLayerSetup } fro
 import type { LastLayerPractice } from '@/types/practice';
 import type { PracticeSettings } from '@/lib/practice-settings-store';
 import { pickStaleWeighted } from '@/lib/stale-weighted-pick';
+import { deleteSmartSolve } from '@/lib/smart-solve-store';
 import { formatSeconds } from '@/lib/stats';
 import { AUFS } from '@/types/pll';
 import { LastLayerPlayer } from './LastLayerPlayer';
@@ -44,14 +45,15 @@ interface Props<Id extends string> {
   alternativesFor: (id: Id) => readonly string[];
   nameFor: (id: Id) => string;
   lastRecorded: Map<Id, number>;
-  add: (id: Id, seconds: number) => void;
+  add: (id: Id, seconds: number) => string | null;
+  remove: (solveId: string) => void;
   bestFor: (id: Id) => number | null;
   ao5For: (id: Id) => number | null;
   solvesFor: (id: Id) => unknown[];
 }
 
 export function LastLayerRandomTrainer<Id extends string>({
-  practice, ids, selected, algorithmFor, alternativesFor, nameFor, lastRecorded, add, bestFor, ao5For, solvesFor,
+  practice, ids, selected, algorithmFor, alternativesFor, nameFor, lastRecorded, add, remove, bestFor, ao5For, solvesFor,
 }: Props<Id>) {
   const { t, tn } = useT();
   const { settings } = usePracticeSettings();
@@ -138,19 +140,42 @@ export function LastLayerRandomTrainer<Id extends string>({
     onStart: start,
     onStop: (seconds) => (seconds === null ? stop() : stopWith(seconds)),
   });
+  const discard = useCallback(() => {
+    setState('idle');
+    setElapsed(0);
+    setCurrent(null);
+  }, []);
+
   // No-scramble: the case on a virtual cube, moved by the smart cube's turns.
+  // Solves are recorded as they stop and the next case follows by itself.
   const virtual = useNoScrambleTrainer({
     active: noScramble,
     practice,
     scramble: current ? current.setup.scramble : null,
     trainerState: state,
+    describe: () => current && { caseId: current.id, name: nameFor(current.id), solution: current.setup.solution },
+    record: (caseId, seconds, solve) => {
+      const solveId = add(caseId as Id, seconds);
+      const smartId = solve ? recordSmartSolve(solve, caseId) : null;
+      if (!solveId && !smartId) return null;
+      return () => {
+        if (solveId) remove(solveId);
+        if (smartId) void deleteSmartSolve(smartId);
+      };
+    },
     onStart: start,
-    onStop: (seconds) => (seconds === null ? stop() : stopWith(seconds)),
+    onStop: (seconds) => {
+      const settled = seconds ?? (Date.now() - startRef.current) / 1000;
+      stopWith(settled);
+      return settled;
+    },
     onAbort: abort,
+    onAdvance: discard,
   });
   useEffect(() => { startBlockedRef.current = noScramble && !virtual.connected; });
 
-  useNativeTimer(state === 'running', stop);
+  // Leaving the app abandons a no-scramble attempt (it is recorded on its own otherwise).
+  useNativeTimer(state === 'running', noScramble ? virtual.reset : stop);
 
   const smartSolve = smart?.solve ?? virtual.view?.solve ?? null;
   const recognitionMs = smart?.recognitionMs ?? virtual.view?.recognitionMs ?? null;
@@ -164,22 +189,24 @@ export function LastLayerRandomTrainer<Id extends string>({
     setCurrent(null);
   }, [current, elapsed, add, smartSolve]);
 
-  const discard = useCallback(() => {
-    setState('idle');
-    setElapsed(0);
-    setCurrent(null);
-  }, []);
-
   // Keyboard: Space mirrors the tap action (idle → start, running → stop) and
-  // records on the result screen; Escape discards there.
+  // records on the result screen; Escape discards there. In no-scramble mode
+  // the solve is already recorded, so Space goes on and Escape takes it back.
+  const latest = virtual.results[0];
   const onSpace = useCallback(() => {
     if (state === 'idle') {
       if (!noneSelected && !startBlockedRef.current) start();
-    } else if (state === 'running') stop();
+    } else if (state === 'running') {
+      if (noScramble) virtual.stopByHand();
+      else stop();
+    } else if (noScramble) virtual.next();
     else record();
-  }, [state, start, stop, record, noneSelected]);
+  }, [state, start, stop, record, noneSelected, noScramble, virtual]);
   useSpacebar(onSpace);
-  useEscapeKey(discard, state === 'stopped');
+  useEscapeKey(
+    noScramble ? () => { if (latest && !latest.undone) virtual.undo(latest.key); } : discard,
+    state === 'stopped',
+  );
 
   // The result screen's content, shared by the standard/inverse layout and
   // the no-scramble one.
@@ -246,13 +273,9 @@ export function LastLayerRandomTrainer<Id extends string>({
     return (
       <NoScrambleStage
         state={state}
-        view={virtual.view}
-        connected={virtual.connected}
+        trainer={virtual}
         elapsed={elapsed}
         selectedNote={mounted ? t('trainer.selectedCount', { count: selected.size, total: ids.length }) : ''}
-        onStop={stop}
-        onReset={virtual.reset}
-        result={<div className="flex flex-col items-center gap-4">{resultInfo}{resultRest}</div>}
       />
     );
   }

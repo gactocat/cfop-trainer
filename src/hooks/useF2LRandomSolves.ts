@@ -37,7 +37,8 @@ export interface UseF2LRandomSolvesResult {
   solvesFor: (f2lId: F2LId) => F2LRandomSolve[];
   bestFor: (f2lId: F2LId) => number | null;
   ao5For: (f2lId: F2LId) => number | null;
-  add: (f2lId: F2LId, seconds: number) => void;
+  /** Records a time; returns the new record's id, or null when the time is invalid. */
+  add: (f2lId: F2LId, seconds: number) => string | null;
   remove: (id: string) => void;
   resetFor: (f2lId: F2LId) => void;
 }
@@ -63,8 +64,8 @@ export function useF2LRandomSolves(): UseF2LRandomSolvesResult {
     [all],
   );
 
-  const add = useCallback((f2lId: F2LId, seconds: number) => {
-    if (!Number.isFinite(seconds) || seconds <= 0) return;
+  const add = useCallback((f2lId: F2LId, seconds: number): string | null => {
+    if (!Number.isFinite(seconds) || seconds <= 0) return null;
     const created: F2LRandomSolve = {
       id: newId(),
       f2lId,
@@ -72,6 +73,7 @@ export function useF2LRandomSolves(): UseF2LRandomSolvesResult {
       recordedAt: nowIso(),
     };
     mutate((prev) => [created, ...prev]);
+    return created.id;
   }, []);
 
   const remove = useCallback((id: string) => {

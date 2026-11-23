@@ -38,7 +38,8 @@ export interface UseRandomSolvesResult {
   solvesFor: (pllId: PllId) => RandomSolve[];
   bestFor: (pllId: PllId) => number | null;
   ao5For: (pllId: PllId) => number | null;
-  add: (pllId: PllId, seconds: number) => void;
+  /** Records a time; returns the new record's id, or null when the time is invalid. */
+  add: (pllId: PllId, seconds: number) => string | null;
   remove: (id: string) => void;
   resetForPll: (pllId: PllId) => void;
 }
@@ -64,8 +65,8 @@ export function useRandomSolves(): UseRandomSolvesResult {
     [all],
   );
 
-  const add = useCallback((pllId: PllId, seconds: number) => {
-    if (!Number.isFinite(seconds) || seconds <= 0) return;
+  const add = useCallback((pllId: PllId, seconds: number): string | null => {
+    if (!Number.isFinite(seconds) || seconds <= 0) return null;
     const created: RandomSolve = {
       id: newId(),
       pllId,
@@ -73,6 +74,7 @@ export function useRandomSolves(): UseRandomSolvesResult {
       recordedAt: nowIso(),
     };
     mutate((prev) => [created, ...prev]);
+    return created.id;
   }, []);
 
   const remove = useCallback((id: string) => {

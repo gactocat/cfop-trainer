@@ -19,3 +19,9 @@
     --foreground: #ededed;
     color-scheme: dark;
 }
+
+/* No-scramble trainer: the bar that fills while waiting for the cube to rest. */
+@keyframes no-scramble-settle {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}

@@ -95,3 +95,19 @@ export function manualStopVirtual(session: VirtualSession): VirtualSession {
 export function virtualNotation(session: VirtualSession): string[] {
   return session.turns.map((t) => userNotation(session.plan.finalFrame, t.face, t.amount));
 }
+
+/** Turning one face the same way this many times in a row starts the case again. */
+export const RESET_TURNS = 4;
+const RESET_WITHIN_MS = 2500;
+
+/**
+ * Whether the latest turns are one face turned the same way RESET_TURNS times
+ * within RESET_WITHIN_MS (host clock): a gesture no solve makes, since the
+ * turns cancel out, used to start the case again without touching the screen.
+ */
+export function isResetGesture(recent: readonly { face: Face; amount: 1 | 3; at: number }[]): boolean {
+  if (recent.length < RESET_TURNS) return false;
+  const last = recent.slice(-RESET_TURNS);
+  return last.every((t) => t.face === last[0].face && t.amount === last[0].amount)
+    && last[last.length - 1].at - last[0].at <= RESET_WITHIN_MS;
+}
