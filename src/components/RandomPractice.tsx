@@ -58,8 +58,9 @@ function Options({ onStart }: { onStart: () => void }) {
     return () => window.removeEventListener('keydown', onKey, true);
   }, []);
   return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="mx-auto flex max-w-md flex-col gap-5 px-1 py-6">
+    <div className="flex flex-1 flex-col overflow-y-auto">
+      {/* m-auto centres the options, and keeps them reachable when they overflow. */}
+      <div className="m-auto flex w-full max-w-md flex-col gap-5 px-1 py-6">
         <h3 className="text-lg font-semibold">{t('trainer.setup.title')}</h3>
         <section className="space-y-2">
           <h4 className="text-sm font-medium">{t('settings.trainerMode.title')}</h4>
