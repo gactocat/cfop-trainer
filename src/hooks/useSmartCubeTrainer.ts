@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'reac
 import { useSmartCube, useSmartCubeSettings } from '@/hooks/useSmartCube';
 import { canWriteData } from '@/lib/persistence';
 import { lastLayerFace, type CubeHolding } from '@/lib/smart-cube/holding';
-import { buildSmartSolve } from '@/lib/smart-cube/solve-record';
+import { buildSmartSolve, type SmartSolveMode } from '@/lib/smart-cube/solve-record';
 import { guideView, planSetup, type SetupPlan } from '@/lib/smart-cube/setup-guide';
 import {
   manualStart,
@@ -43,6 +43,8 @@ export interface SmartSolve {
   turns: SolveTurn[];
   recognitionMs: number | null;
   executionMs: number;
+  /** Absent means inverse setup. */
+  mode?: SmartSolveMode;
 }
 
 /** Keep a cube-timed solve on this device (when the user records the time). */

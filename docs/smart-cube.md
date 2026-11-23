@@ -35,6 +35,23 @@ and PLL:
 Tap and Space still start and stop the timer. Without a connected cube nothing
 changes, and standard mode ignores the cube.
 
+## No scramble
+
+A third random-trainer mode, next to standard and inverse setup. The case is
+built as a virtual cube (the trainer's setup applied to a solved cube, in the
+chosen holding) and drawn with one persistent 3D player; the smart cube's
+turns move the virtual cube, while the physical cube's own state (FACELETS)
+is ignored. The first turn starts the timer and the same goals as inverse
+mode stop it, on the cube clock; recognition is case shown to first turn on
+the host clock, since the case appears on screen. "Back to the case" resets
+the virtual cube, and abandons the attempt if it was being timed.
+
+The choice is device-local (`noScramble` in `cfop:smart-cube:v1`) and layered
+over the synced trainer mode, which keeps only standard and inverse, so older
+app versions and other devices are unaffected. It is offered only where Web
+Bluetooth works; without a connected cube the trainer asks to connect one.
+Recorded solves carry `mode: 'no-scramble'`.
+
 ## Recorded solves
 
 The result screen of a cube-timed solve shows the turns in the chosen
@@ -62,6 +79,8 @@ unchanged, so older app versions are unaffected.
   turns relative to its centres, so r = L x, M = R L' x' and so on, and
   rotations only change the frame.
 - `trainer-session.ts`: the need-base, setup, ready, running, done state machine.
+- `virtual-session.ts`: the no-scramble attempt (`useNoScrambleTrainer`,
+  `NoScrambleStage`, `VirtualCube`).
 - `support.ts`: why Web Bluetooth is unavailable, from the user agent.
 - `src/lib/smart-cube-store.ts`: the connection. FACELETS events (about once a
   second) resync the tracked state when no turn is in flight; three seconds

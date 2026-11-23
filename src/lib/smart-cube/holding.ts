@@ -19,6 +19,14 @@ const HOLDING_FRAMES: Record<CubeHolding, Frame> = {
 
 export const holdingFrame = (holding: CubeHolding): Frame => HOLDING_FRAMES[holding];
 
+/**
+ * The rotation that shows cubing.js's default cube (white U, green F) in this
+ * holding, for a player's setup: yellow-blue matches the app's 3D views.
+ */
+export function displayRotation(holding: CubeHolding): string {
+  return holding === 'yellow-blue' ? 'x2' : holding === 'yellow-green' ? 'z2' : '';
+}
+
 /** The cube face that is the last layer (the face on top) when held this way. */
 export const lastLayerFace = (holding: CubeHolding): LastLayerFace => HOLDING_FRAMES[holding].U as LastLayerFace;
 

@@ -22,6 +22,8 @@ import { advanceGuide, applyPlan, guideView, planSetup, GUIDE_START, type SetupP
 import { manualStart, sessionMove, startSession, type TrainerSession } from '@/lib/smart-cube/trainer-session';
 import { smartCubeUnsupported } from '@/lib/smart-cube/support';
 import { buildSmartSolve, mergeTurns, solveNotation, turnsPerSecond } from '@/lib/smart-cube/solve-record';
+import { manualStartVirtual, resetVirtual, startVirtual, virtualMove, virtualNotation, type VirtualSession } from '@/lib/smart-cube/virtual-session';
+import { displayRotation } from '@/lib/smart-cube/holding';
 
 let checks = 0;
 const ok = (value: unknown, label: string) => { assert.ok(value, label); checks++; };
@@ -86,6 +88,8 @@ const kpuzzle = await cube3x3x3.kpuzzle();
 const kSolved = kpuzzle.defaultPattern();
 const ROTATIONS = ['', 'x', 'x2', "x'", 'z', "z'"].flatMap((a) => ['', 'y', 'y2', "y'"].map((b) => `${a} ${b}`.trim()));
 const PREFIX: Record<CubeHolding, string> = { 'yellow-blue': 'x2', 'yellow-green': 'z2', 'white-green': '' };
+// The virtual cube is drawn with the same rotations these checks use.
+for (const h of CUBE_HOLDINGS) eq(displayRotation(h), PREFIX[h], `display rotation for ${h}`);
 function kNormalized(p: KPattern): KPattern {
   for (const r of ROTATIONS) {
     const q = r ? p.applyAlg(r) : p;
@@ -243,6 +247,25 @@ function attempt(practice: 'f2l' | 'oll' | 'pll', holding: CubeHolding, scramble
   assert.ok(st.elapsedMs !== null && st.elapsedMs >= 0, `${label}: elapsed on the cube clock`);
   assert.equal(st.solveTurns[st.solveTurns.length - 1].cubeTime - st.solveTurns[0].cubeTime, st.elapsedMs, `${label}: kept turns span the elapsed time`);
   checks++;
+  // No scramble: the same case on a virtual cube, solved by the same turns
+  // whatever the physical cube's state.
+  let v: VirtualSession | null = startVirtual(practice, holding, scramble, 0);
+  assert.ok(v, `${label}: virtual case`);
+  assert.ok(!stateEquals(v.caseState, SOLVED) || !setupPlan.steps.length, `${label}: the virtual case is not solved`);
+  const vEvents: string[] = [];
+  let vt = 1000;
+  for (const step of solvePlan.steps) {
+    for (const [face, n] of Object.entries(step.turns) as [Face, Amount][]) {
+      for (const amount of (n === 2 ? [1, 1] : [n]) as (1 | 3)[]) {
+        const r = virtualMove(v!, { face, amount, cubeTime: (vt += 100), hostTime: vt });
+        v = r.session;
+        if (r.event) vEvents.push(r.event);
+      }
+    }
+  }
+  assert.equal(v!.phase, 'done', `${label}: the virtual solve stops (${vEvents.join(',')})`);
+  assert.equal(vEvents[0], 'start', `${label}: the first turn starts the virtual attempt`);
+  checks++;
 }
 let attempts = 0;
 for (const holding of CUBE_HOLDINGS) {
@@ -280,6 +303,36 @@ eq(solveNotation([{ face: 'D', amount: 1 }, { face: 'D', amount: 1 }, { face: 'B
 eq(solveNotation([{ face: 'D', amount: 3 }], 'white-green'), "D'", 'white-green keeps cube faces');
 eq([turnsPerSecond(12, 2000), turnsPerSecond(5, 0)], [6, 0], 'TPS, and zero for no time');
 eq(manualStart(startSession('pll', 'D', planSetup(TPERM, 'yellow-blue')!, SOLVED)).solveTurns, [], 'a hand-started attempt keeps no turns');
+
+// --- no scramble
+{
+  const tperm = startVirtual('pll', 'yellow-blue', TPERM, 1000)!;
+  ok(stateEquals(tperm.caseState, applyPlan(SOLVED, planSetup(TPERM, 'yellow-blue')!)), 'the virtual case is the setup applied to a solved cube');
+  eq(tperm.phase, 'ready', 'the virtual case is ready at once');
+  let v = tperm;
+  const solveSteps = planSetup(TPERM, 'yellow-blue')!.steps; // T-perm is its own inverse
+  const events: string[] = [];
+  let t = 5000;
+  for (const step of solveSteps) {
+    for (const [face, n] of Object.entries(step.turns) as [Face, Amount][]) {
+      for (const amount of (n === 2 ? [1, 1] : [n]) as (1 | 3)[]) {
+        const r = virtualMove(v, { face, amount, cubeTime: (t += 100), hostTime: t - 3000 });
+        v = r.session;
+        if (r.event) events.push(r.event);
+      }
+    }
+  }
+  eq(events, ['start', 'stop'], 'the first turn starts and the goal stops');
+  eq(v.recognitionMs, 1100, 'recognition is case shown to first turn on the host clock');
+  eq(v.elapsedMs, v.solveTurns[v.solveTurns.length - 1].cubeTime - v.solveTurns[0].cubeTime, 'elapsed on the cube clock');
+  eq(virtualNotation(v).slice(0, 4), ['R', 'U', "R'", "U'"], 'virtual turns read in the holding');
+  const again = resetVirtual(v, 9000);
+  ok(stateEquals(again.state, again.caseState) && again.phase === 'ready' && again.turns.length === 0, 'reset returns to the case');
+  eq(virtualMove(v, { face: 'R', amount: 1, cubeTime: 1, hostTime: 1 }).event, null, 'turns after the stop are ignored');
+  const byHand = manualStartVirtual(tperm);
+  eq([byHand.phase, byHand.startAt], ['running', null], 'a hand-started virtual attempt has no cube start');
+  eq(startVirtual('pll', 'yellow-blue', 'R Q', 0), null, 'an unplannable setup gives no virtual case');
+}
 
 // --- support detection
 const env = { hasBluetooth: false, secureContext: true, maxTouchPoints: 0, nativeApp: false };

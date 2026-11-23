@@ -37,6 +37,8 @@ export interface SmartCubeTurn {
   amount: 1 | 3;
   /** Cube clock, ms. */
   cubeTime: number;
+  /** Host clock (performance.now()) when the turn arrived. */
+  hostTime: number;
   /** State after the turn. */
   state: CubeState;
 }
@@ -126,7 +128,7 @@ function onEvent(event: GanCubeEvent) {
       if (event.cubeTimestamp !== null && event.localTimestamp !== null) clockOffset = event.cubeTimestamp - event.localTimestamp;
       const cubeTime = event.cubeTimestamp ?? event.timestamp + (clockOffset ?? 0);
       update({ state });
-      const turn: SmartCubeTurn = { face, amount, cubeTime, state };
+      const turn: SmartCubeTurn = { face, amount, cubeTime, hostTime: event.localTimestamp ?? event.timestamp, state };
       turnListeners.forEach((l) => l(turn));
       break;
     }

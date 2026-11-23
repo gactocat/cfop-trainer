@@ -10,9 +10,15 @@ export interface SmartCubeSettings {
   holding: CubeHolding;
   /** MAC address per advertised device name, remembered after a successful connection. */
   macs: Readonly<Record<string, string>>;
+  /**
+   * Random training in no-scramble mode. Kept here, on the device, rather than
+   * in the synced trainer mode: it needs this device's smart cube, and older
+   * app versions only know standard and inverse.
+   */
+  noScramble: boolean;
 }
 
-const DEFAULTS: SmartCubeSettings = { holding: DEFAULT_HOLDING, macs: {} };
+const DEFAULTS: SmartCubeSettings = { holding: DEFAULT_HOLDING, macs: {}, noScramble: false };
 
 function decode(raw: unknown): SmartCubeSettings {
   if (typeof raw !== 'object' || raw === null) return DEFAULTS;
@@ -24,6 +30,7 @@ function decode(raw: unknown): SmartCubeSettings {
   return {
     holding: CUBE_HOLDINGS.includes(value.holding as CubeHolding) ? (value.holding as CubeHolding) : DEFAULT_HOLDING,
     macs,
+    noScramble: value.noScramble === true,
   };
 }
 
@@ -70,6 +77,11 @@ if (typeof window !== 'undefined') {
 
 export function setHolding(holding: CubeHolding) {
   write({ ...getSnapshot(), holding });
+}
+
+export function setNoScramble(noScramble: boolean) {
+  if (getSnapshot().noScramble === noScramble) return;
+  write({ ...getSnapshot(), noScramble });
 }
 
 export function rememberMac(deviceName: string, mac: string) {

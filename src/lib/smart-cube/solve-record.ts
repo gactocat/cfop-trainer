@@ -33,7 +33,12 @@ export interface SmartSolveRecord {
   moveCount: number;
   /** moveCount per second of execution, two decimals. */
   tps: number;
+  /** How the case was presented; absent in records from before no-scramble mode. */
+  mode?: SmartSolveMode;
 }
+
+/** inverse: set up on the physical cube. no-scramble: solved on a virtual cube. */
+export type SmartSolveMode = 'inverse' | 'no-scramble';
 
 /** Merge consecutive turns of one face, dropping those that cancel. */
 export function mergeTurns(turns: readonly { face: Face; amount: number }[]): { face: Face; amount: Amount }[] {
@@ -72,6 +77,7 @@ export function buildSmartSolve(input: {
   turns: readonly { face: Face; amount: 1 | 3; cubeTime: number }[];
   recognitionMs: number | null;
   executionMs: number;
+  mode?: SmartSolveMode;
 }): SmartSolveRecord {
   const start = input.turns[0]?.cubeTime ?? 0;
   const moveCount = mergeTurns(input.turns).length;
@@ -89,5 +95,6 @@ export function buildSmartSolve(input: {
     executionMs: input.executionMs,
     moveCount,
     tps: turnsPerSecond(moveCount, input.executionMs),
+    mode: input.mode ?? 'inverse',
   };
 }
