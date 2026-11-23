@@ -12,7 +12,8 @@
     "generate:scrambles": "node --import ./scripts/register-src-alias.mjs scripts/generate-f2l-scramble-pool.mts",
     "build:ios:web": "node scripts/build-ios-web.mjs",
     "ios:sync": "npm run build:ios:web && cap sync ios",
-    "ios:open": "cap open ios",
+    "ios:resolve": "xcodebuild -resolvePackageDependencies -project ios/App/App.xcodeproj -scheme App -scmProvider system",
+    "ios:open": "npm run ios:resolve && cap open ios",
     "ios:run": "npm run ios:sync && cap run ios",
     "ios:build": "npm run ios:sync && xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath ios/DerivedData build"
   },

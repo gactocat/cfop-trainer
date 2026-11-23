@@ -30,6 +30,15 @@ In Xcode, choose the App scheme and an iPhone simulator, then Run. Alternatively
 npm run ios:run
 ```
 
+`ios:open` first runs `ios:resolve`, which resolves the Swift packages with the
+system git into the derived data folder Xcode uses for this project. Xcode's
+own Git does not use your SSH setup: with a global
+`url.git@github.com:.insteadOf https://github.com` it fails with "Authentication
+failed because the credentials were missing", but it uses packages that are
+already resolved. If Xcode reports a package resolution failure, quit Xcode and
+run `npm run ios:open` again; Reset Package Caches and Update to Latest Package
+Versions in Xcode fetch with its own Git and fail the same way.
+
 `ios:sync` runs a dedicated Next.js static export and copies it to the native
 project. Always run it after changing web code or environment variables.
 `ios:build` additionally builds the simulator application. Xcode's simulator
