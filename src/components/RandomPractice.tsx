@@ -43,8 +43,20 @@ function Options({ onStart }: { onStart: () => void }) {
   const mode = useTrainerMode();
   const { autoAdvance } = useSmartCubeSettings();
   const start = useRef<HTMLButtonElement | null>(null);
-  // Space or Enter starts straight away, as on the trainer itself.
-  useEffect(() => { start.current?.focus(); }, []);
+  const onStartRef = useRef(onStart);
+  useEffect(() => { onStartRef.current = onStart; });
+  // Start has the focus, so Space or Enter starts straight away; Enter still
+  // does after another option took the focus (Space keeps toggling it).
+  useEffect(() => {
+    start.current?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Enter' || event.isComposing) return;
+      event.preventDefault();
+      onStartRef.current();
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, []);
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="mx-auto flex max-w-md flex-col gap-5 px-1 py-6">
