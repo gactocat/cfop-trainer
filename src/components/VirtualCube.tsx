@@ -12,9 +12,15 @@ type PlayerElement = HTMLElement & {
   experimentalStickeringMaskOrbits: unknown;
 };
 
-// Assigning undefined would not clear a mask, so "no mask" is an empty one.
-function applyMask(element: PlayerElement, mask: object | null) {
-  element.experimentalStickeringMaskOrbits = mask ?? { orbits: {} };
+// PLL shows every colour. cubing.js only repaints the pieces a mask lists, so
+// this lists them all rather than passing no mask.
+const allRegular = (pieces: number, facelets: number) => ({
+  pieces: Array.from({ length: pieces }, () => ({ facelets: Array<string>(facelets).fill('regular') })),
+});
+const FULL_COLOUR_MASK = { orbits: { CORNERS: allRegular(8, 3), EDGES: allRegular(12, 2), CENTERS: allRegular(6, 4) } };
+
+function applyMask(element: PlayerElement, mask: object) {
+  element.experimentalStickeringMaskOrbits = mask;
 }
 
 // The no-scramble virtual cube: one twisty-player (one WebGL context) that
@@ -36,7 +42,7 @@ export function VirtualCube({ practice, holding, setupAlg, moves, resetKey, clas
   // yellow on top and its U layer with white on top.
   const mask = useMemo(() => {
     const ll = lastLayerFace(holding);
-    return practice === 'f2l' ? f2lStickeringMask(ll) : practice === 'oll' ? ollStickeringMask(ll) : null;
+    return practice === 'f2l' ? f2lStickeringMask(ll) : practice === 'oll' ? ollStickeringMask(ll) : FULL_COLOUR_MASK;
   }, [practice, holding]);
   const [player, setPlayer] = useState<PlayerElement | null>(null);
   const applied = useRef<{ key: number; setup: string; count: number } | null>(null);

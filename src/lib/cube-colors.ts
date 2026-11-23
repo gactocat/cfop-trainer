@@ -5,6 +5,10 @@
 // sticker materials of the 3D cube, which cubing.js shares across players.
 // Recheck both after upgrading cubing.js; if either changes, players fall back
 // to the default colours.
+//
+// It also darkens the floating hint of an ignored sticker. cubing.js draws
+// ignored stickers dark grey but their hints light grey, which reads as white
+// on a dark background and is hard to tell from the white face's hints.
 
 import type { TwistyPlayer } from 'cubing/twisty';
 
@@ -22,6 +26,11 @@ const SVG_FILLS: Record<string, string> = {
   orange: ORANGE,
   limegreen: GREEN,
 };
+
+// Ignored stickers and their hints in cubing.js's 3D cube.
+const IGNORED = 0x666666;
+const IGNORED_HINT = 0xcccccc;
+const BACK_SIDE = 1; // three.js BackSide: hint stickers face away from the viewer.
 
 // Sticker colours hard-coded in cubing.js's 3D cube.
 const MATERIAL_COLORS: [number, string][] = [
@@ -62,25 +71,61 @@ interface ColorLike {
   equals(color: ColorLike): boolean;
 }
 
+interface MaterialLike {
+  color?: ColorLike;
+  side?: number;
+  transparent?: boolean;
+}
+
 interface NodeLike {
-  material?: { color?: ColorLike } | { color?: ColorLike }[];
+  material?: MaterialLike | MaterialLike[];
   traverse(callback: (node: NodeLike) => void): void;
+}
+
+// cubing.js builds each colour as `new Color(hex).convertLinearToSRGB()`.
+const isColor = (color: ColorLike, hex: number) => color.equals(color.clone().setHex(hex).convertLinearToSRGB());
+
+let ignoredHintDarkened = false;
+
+// The ignored hint material is shared too, but only reachable from a hint
+// sticker that a stickering mask has marked ignored. Returns whether it was
+// found (and so is now dark for every player).
+function darkenIgnoredHint(root: NodeLike): boolean {
+  if (ignoredHintDarkened) return true;
+  root.traverse((node) => {
+    for (const material of [node.material ?? []].flat()) {
+      const color = material.color;
+      if (!color || material.side !== BACK_SIDE || !material.transparent || !isColor(color, IGNORED_HINT)) continue;
+      color.setHex(IGNORED).convertLinearToSRGB();
+      ignoredHintDarkened = true;
+    }
+  });
+  return ignoredHintDarkened;
 }
 
 // Recolours the shared 3D sticker materials. Only the first call changes them,
 // but every player may have drawn a frame with the old colours, so each one
 // is asked to redraw.
 export async function recolour3DPlayer(player: TwistyPlayer): Promise<void> {
-  const root = (await player.experimentalCurrentThreeJSPuzzleObject()) as unknown as NodeLike;
+  let root: NodeLike | null = null;
+  // A mask set after the player was created reaches the cube later, so look
+  // for the ignored hint again whenever the player schedules a render.
+  const onRender = () => {
+    if (ignoredHintDarkened || !root || !darkenIgnoredHint(root)) return;
+    void player.experimentalCurrentVantages().then((vantages) => {
+      for (const vantage of vantages) vantage.scheduleRender();
+    });
+  };
+  root = (await player.experimentalCurrentThreeJSPuzzleObject(onRender)) as unknown as NodeLike;
   root.traverse((node) => {
     for (const material of [node.material ?? []].flat()) {
       const color = material.color;
       if (!color) continue;
-      // cubing.js builds each colour as `new Color(hex).convertLinearToSRGB()`.
-      const match = MATERIAL_COLORS.find(([from]) => color.equals(color.clone().setHex(from).convertLinearToSRGB()));
+      const match = MATERIAL_COLORS.find(([from]) => isColor(color, from));
       if (!match) continue;
       color.set(match[1]).convertLinearToSRGB();
     }
   });
+  darkenIgnoredHint(root);
   player.timestamp = 'start';
 }
