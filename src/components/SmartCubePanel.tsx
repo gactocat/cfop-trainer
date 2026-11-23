@@ -10,6 +10,8 @@ import { CUBE_HOLDINGS, type CubeHolding } from '@/lib/smart-cube/holding';
 import type { SmartCubeUnsupported } from '@/lib/smart-cube/support';
 import { connect, connectChosen, disconnect, hasChosenDevice, unsupportedReason, type SmartCubeProblem, type SmartCubeStatus } from '@/lib/smart-cube-store';
 import { forgetMac, setHolding } from '@/lib/smart-cube-settings-store';
+import { clearSmartSolves, MAX_SMART_SOLVES } from '@/lib/smart-solve-store';
+import { useSmartSolveCount } from '@/hooks/useSmartSolves';
 
 const UNSUPPORTED: Record<SmartCubeUnsupported, MessageKey> = {
   'native-app': 'smartCube.unsupported.nativeApp',
@@ -53,8 +55,9 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 }
 
 export function SmartCubePanel() {
-  const { t } = useT();
+  const { t, tn } = useT();
   const mounted = useMounted();
+  const solveCount = useSmartSolveCount();
   const cube = useSmartCube();
   const { holding, macs } = useSmartCubeSettings();
   const [mac, setMac] = useState('');
@@ -150,6 +153,25 @@ export function SmartCubePanel() {
             <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('smartCube.holding.help')}</p>
           </div>
         </>
+      )}
+
+      {(!unsupported || (solveCount ?? 0) > 0) && (
+        <div className="space-y-2 border-t border-zinc-200 pt-3 dark:border-zinc-800">
+          <h3 className="font-medium">{t('smartCube.records.title')}</h3>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('smartCube.records.help', { max: MAX_SMART_SOLVES })}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <span>{solveCount === null ? '-' : tn('smartCube.records.count', solveCount)}</span>
+            {(solveCount ?? 0) > 0 && (
+              <button
+                type="button"
+                className={button}
+                onClick={() => { if (window.confirm(t('smartCube.records.confirmClear'))) void clearSmartSolves(); }}
+              >
+                {t('smartCube.records.clear')}
+              </button>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

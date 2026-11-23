@@ -12,6 +12,7 @@ import { OLLAlgorithmForm } from './OLLAlgorithmForm';
 import { OLLAlgorithmRow } from './OLLAlgorithmRow';
 import { OLL3DPlayer } from './OLL3DPlayer';
 import { OLLLLView } from './OLLLLView';
+import { SmartSolveHistory } from './SmartSolveHistory';
 
 type CubeView = '2d' | '3d';
 
@@ -197,6 +198,8 @@ export function OLLDetail({ ollId }: OLLDetailProps) {
           </ul>
         )}
       </section>
+
+      <SmartSolveHistory practice="oll" caseId={ollId} />
     </div>
   );
 }

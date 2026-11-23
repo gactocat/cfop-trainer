@@ -12,6 +12,7 @@ import { AlgorithmForm } from './AlgorithmForm';
 import { AlgorithmRow } from './AlgorithmRow';
 import { Pll3DPlayer } from './Pll3DPlayer';
 import { PllLLView } from './PllLLView';
+import { SmartSolveHistory } from './SmartSolveHistory';
 
 type CubeView = '2d' | '3d';
 
@@ -194,6 +195,8 @@ export function PllDetail({ pllId }: PllDetailProps) {
           </ul>
         )}
       </section>
+
+      <SmartSolveHistory practice="pll" caseId={pllId} />
     </div>
   );
 }

@@ -363,6 +363,20 @@ const en = {
   'smartCube.trainer.autoStop': 'Stops when solved',
   'smartCube.trainer.recognition': 'Recognition {seconds} s',
   'smartCube.trainer.connected': 'Smart cube connected',
+  'smartCube.solve.turned': 'Your turns',
+  'smartCube.solve.summary': '{moves} moves · {tps} TPS',
+  'smartCube.history.title': 'Smart cube solves',
+  "smartCube.history.help": "Solves timed by a smart cube and recorded, with the turns you made. They are kept on this device only and are not synced to your account.",
+  'smartCube.history.delete': 'Delete this solve',
+  'smartCube.history.clearCase': 'Delete all for this case',
+  "smartCube.history.confirmClearCase": "Delete all smart cube solves for this case?",
+  'smartCube.history.showAll': 'Show all ({count})',
+  'smartCube.records.title': 'Recorded solves',
+  "smartCube.records.help": "When you record a time the cube measured, its turns are kept on this device, up to {max} solves; the oldest are removed first. They appear on each case's page and are not synced to your account.",
+  'smartCube.records.count_one': '{count} solve kept',
+  'smartCube.records.count_other': '{count} solves kept',
+  'smartCube.records.clear': 'Delete all recorded solves',
+  "smartCube.records.confirmClear": "Delete every smart cube solve kept on this device?",
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -705,6 +719,20 @@ const ja: Messages = {
   'smartCube.trainer.autoStop': 'そろうと自動でストップ',
   'smartCube.trainer.recognition': '認識 {seconds} 秒',
   'smartCube.trainer.connected': 'スマートキューブ接続中',
+  'smartCube.solve.turned': '回した手',
+  'smartCube.solve.summary': '{moves} 手・{tps} TPS',
+  'smartCube.history.title': 'スマートキューブの記録',
+  "smartCube.history.help": "スマートキューブで計測して記録した回と、そのとき回した手です。この端末だけに残し、アカウントには同期しません。",
+  'smartCube.history.delete': 'この記録を消す',
+  'smartCube.history.clearCase': 'このケースの記録をすべて消す',
+  "smartCube.history.confirmClearCase": "このケースのスマートキューブの記録をすべて消しますか？",
+  'smartCube.history.showAll': 'すべて表示 ({count} 件)',
+  'smartCube.records.title': '手順の記録',
+  "smartCube.records.help": "キューブが測った時間を記録すると、回した手をこの端末に残します。最大 {max} 件で、超えると古いものから消します。各ケースのページに表示し、アカウントには同期しません。",
+  'smartCube.records.count_one': '{count} 件',
+  'smartCube.records.count_other': '{count} 件',
+  'smartCube.records.clear': '手順の記録をすべて消す',
+  "smartCube.records.confirmClear": "この端末のスマートキューブの記録をすべて消しますか？",
 };
 
 export const MESSAGES: Record<Locale, Messages> = { en, ja };

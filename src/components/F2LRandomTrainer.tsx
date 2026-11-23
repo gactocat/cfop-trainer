@@ -10,7 +10,7 @@ import { useMounted } from '@/hooks/useMounted';
 import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { useSpacebar } from '@/hooks/useSpacebar';
 import { useNativeTimer } from '@/hooks/useNativeTimer';
-import { useSmartCubeTrainer } from '@/hooks/useSmartCubeTrainer';
+import { recordSmartSolve, useSmartCubeTrainer, type SmartSolve } from '@/hooks/useSmartCubeTrainer';
 import { useT } from '@/hooks/useT';
 import { combineAuf, invertAuf, prefixAuf } from '@/lib/f2l-auf';
 import { buildF2LSetup, seededRandom } from '@/lib/f2l-scramble';
@@ -20,6 +20,7 @@ import { F2L_IDS, type F2LId } from '@/types/f2l';
 import type { Auf } from '@/types/pll';
 import { F2L3DPlayer } from './F2L3DPlayer';
 import { SmartCubeSetupStatus, SmartCubeSetupTokens } from './SmartCubeSetupGuide';
+import { SmartSolveSummary } from './SmartSolveHistory';
 
 type TrainerState = 'idle' | 'running' | 'stopped';
 
@@ -40,6 +41,8 @@ export function F2LRandomTrainer() {
   const mounted = useMounted();
   const startRef = useRef(0);
   const rafRef = useRef<number | null>(null);
+  // The solve the smart cube timed, if any; read when the time is recorded.
+  const smartSolveRef = useRef<SmartSolve | null>(null);
 
   // Epoch ms of each case's most recent solve, driving the staleness-weighted
   // draw below — cases timed longest ago (or never) surface more often.
@@ -120,7 +123,10 @@ export function F2LRandomTrainer() {
   useNativeTimer(state === 'running', stop);
 
   const record = useCallback(() => {
-    if (current && elapsed > 0) add(current, elapsed);
+    if (current && elapsed > 0) {
+      add(current, elapsed);
+      if (smartSolveRef.current) recordSmartSolve(smartSolveRef.current, current);
+    }
     setState('idle');
     setElapsed(0);
     setCurrent(null);
@@ -167,6 +173,7 @@ export function F2LRandomTrainer() {
     onStart: start,
     onStop: (seconds) => (seconds === null ? stop() : stopWith(seconds)),
   });
+  useEffect(() => { smartSolveRef.current = smart?.solve ?? null; });
 
   const player = (className: string) =>
     shown && (
@@ -233,6 +240,7 @@ export function F2LRandomTrainer() {
             <p className="italic text-zinc-500">{t('trainer.f2l.noAlgorithm')}</p>
           )}
         </div>
+        {smart?.solve && <SmartSolveSummary solve={smart.solve} />}
         <div className="flex gap-3">
           <button
             type="button"

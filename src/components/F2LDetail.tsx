@@ -11,6 +11,7 @@ import type { F2LId } from '@/types/f2l';
 import { F2LAlgorithmForm } from './F2LAlgorithmForm';
 import { F2LAlgorithmRow } from './F2LAlgorithmRow';
 import { F2L3DPlayer } from './F2L3DPlayer';
+import { SmartSolveHistory } from './SmartSolveHistory';
 
 interface F2LDetailProps {
   f2lId: F2LId;
@@ -150,6 +151,8 @@ export function F2LDetail({ f2lId }: F2LDetailProps) {
           </ul>
         )}
       </section>
+
+      <SmartSolveHistory practice="f2l" caseId={f2lId} />
     </div>
   );
 }

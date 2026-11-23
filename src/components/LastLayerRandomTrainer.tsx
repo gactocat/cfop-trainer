@@ -5,7 +5,7 @@ import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useMounted } from '@/hooks/useMounted';
 import { useSpacebar } from '@/hooks/useSpacebar';
 import { useNativeTimer } from '@/hooks/useNativeTimer';
-import { useSmartCubeTrainer } from '@/hooks/useSmartCubeTrainer';
+import { recordSmartSolve, useSmartCubeTrainer } from '@/hooks/useSmartCubeTrainer';
 import { useT } from '@/hooks/useT';
 import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { useLastLayerSolver } from '@/hooks/useLastLayerSolver';
@@ -18,6 +18,7 @@ import { formatSeconds } from '@/lib/stats';
 import { AUFS } from '@/types/pll';
 import { LastLayerPlayer } from './LastLayerPlayer';
 import { SmartCubeSetupStatus, SmartCubeSetupTokens } from './SmartCubeSetupGuide';
+import { SmartSolveSummary } from './SmartSolveHistory';
 
 type TrainerState = 'idle' | 'running' | 'stopped';
 interface Pick<Id> {
@@ -122,12 +123,16 @@ export function LastLayerRandomTrainer<Id extends string>({
 
   useNativeTimer(state === 'running', stop);
 
+  const smartSolve = smart?.solve ?? null;
   const record = useCallback(() => {
-    if (current && elapsed > 0) add(current.id, elapsed);
+    if (current && elapsed > 0) {
+      add(current.id, elapsed);
+      if (smartSolve) recordSmartSolve(smartSolve, current.id);
+    }
     setState('idle');
     setElapsed(0);
     setCurrent(null);
-  }, [current, elapsed, add]);
+  }, [current, elapsed, add, smartSolve]);
 
   const discard = useCallback(() => {
     setState('idle');
@@ -189,6 +194,7 @@ export function LastLayerRandomTrainer<Id extends string>({
             </>}
           </p>
         </div>
+        {smart?.solve && <SmartSolveSummary solve={smart.solve} />}
         <div className="flex gap-3">
           <button
             type="button"
