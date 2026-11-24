@@ -794,7 +794,7 @@ const ja: Messages = {
   'trainer.noScramble.best': 'ベスト',
   'trainer.noScramble.empty': '解いたケースがここに並びます',
   'trainer.setup.title': '練習の設定',
-  'trainer.setup.start': '始める',
+  'trainer.setup.start': '開始',
   'trainer.setup.change': '練習の設定',
   'trainer.setup.fixedAuf': 'AUF はそのまま',
   'trainer.setup.autoAdvance': '時間で次のケースへ',

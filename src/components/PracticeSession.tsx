@@ -127,14 +127,17 @@ function Options({ scope, subject, onStart }: {
         <section>
           <RandomAufToggle />
         </section>
-        <button
-          ref={start}
-          type="button"
-          onClick={startNow}
-          className="rounded-md bg-emerald-600 px-4 py-3 text-base font-semibold text-white hover:bg-emerald-700"
-        >
-          {t('trainer.setup.start')}
-        </button>
+        {/* Sized like the app's other primary buttons, at the end of the form. */}
+        <div className="flex justify-end">
+          <button
+            ref={start}
+            type="button"
+            onClick={startNow}
+            className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-4 py-2 font-medium"
+          >
+            {t('trainer.setup.start')}
+          </button>
+        </div>
       </div>
     </div>
   );
