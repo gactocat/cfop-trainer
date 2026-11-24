@@ -34,7 +34,11 @@ export function SmartCubeSetupStatus({ view, practice }: { view: SmartTrainerVie
   return (
     <div
       aria-live="polite"
-      className={`rounded-md px-3 py-1.5 text-sm font-semibold ${view.undo && view.phase === 'setup' ? 'bg-rose-700/80' : 'bg-white/20'}`}
+      className={`rounded-md px-3 py-1.5 text-sm font-semibold ${
+        view.undo && view.phase === 'setup'
+          ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-200'
+          : 'bg-zinc-200/80 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200'
+      }`}
     >
       {message}
     </div>

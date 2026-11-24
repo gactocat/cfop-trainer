@@ -5,6 +5,11 @@ export interface PracticeSettings {
   aufDisplay: 'cube' | 'prefix';
   trainerMode: 'standard' | 'inverse';
   randomAuf: boolean;
+  /**
+   * Start each case with its algorithm's AUF already turned. Overrides
+   * randomAuf; absent in older versions, which then see randomAuf (false).
+   */
+  alignAuf?: boolean;
   colorTheme?: 'light' | 'dark';
 }
 
@@ -21,6 +26,7 @@ function validSettings(raw: unknown): Partial<PracticeSettings> {
     ...(value.aufDisplay === 'cube' || value.aufDisplay === 'prefix' ? { aufDisplay: value.aufDisplay } : {}),
     ...(value.trainerMode === 'standard' || value.trainerMode === 'inverse' ? { trainerMode: value.trainerMode } : {}),
     ...(typeof value.randomAuf === 'boolean' ? { randomAuf: value.randomAuf } : {}),
+    ...(typeof value.alignAuf === 'boolean' ? { alignAuf: value.alignAuf } : {}),
     ...(value.colorTheme === 'light' || value.colorTheme === 'dark' ? { colorTheme: value.colorTheme } : {}),
   };
 }
@@ -61,6 +67,6 @@ export function update(patch: Partial<PracticeSettings>): void {
   store.mutate((prev) => {
     const next = { ...prev, ...patch };
     return next.aufDisplay === prev.aufDisplay && next.trainerMode === prev.trainerMode &&
-      next.randomAuf === prev.randomAuf && next.colorTheme === prev.colorTheme ? prev : next;
+      next.randomAuf === prev.randomAuf && next.alignAuf === prev.alignAuf && next.colorTheme === prev.colorTheme ? prev : next;
   });
 }

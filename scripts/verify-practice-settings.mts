@@ -44,6 +44,8 @@ const scenarios: { name: string; stored: Record<string, string>; expected: Pract
   { name: 'invalid shared fields use defaults', stored: { [sharedKey]: '{"aufDisplay":7,"randomAuf":"false"}' }, expected: defaults },
   { name: 'explicit dark theme survives practice edits', stored: { [sharedKey]: '{"colorTheme":"dark"}' }, expected: { ...defaults, colorTheme: 'dark' } },
   { name: 'invalid theme follows system default', stored: { [sharedKey]: '{"colorTheme":"invalid"}' }, expected: defaults },
+  { name: 'aligned AUF survives', stored: { [sharedKey]: '{"randomAuf":false,"alignAuf":true}' }, expected: { ...defaults, randomAuf: false, alignAuf: true } },
+  { name: 'invalid aligned AUF is ignored', stored: { [sharedKey]: '{"alignAuf":"yes"}' }, expected: defaults },
 ];
 
 let moduleId = 0;
@@ -103,7 +105,7 @@ for (const mode of ['no-setup', 'setup'] as const) {
 assert.equal(trainerFlavor('no-setup', false), 'standard', 'no setup without a cube is the tap timer');
 assert.equal(trainerFlavor('no-setup', true), 'no-scramble', 'no setup with a cube is the virtual cube');
 assert.equal(trainerFlavor('setup', false), 'inverse', 'with setup without a cube shows the setup');
-assert.equal(trainerFlavor('setup', true), 'inverse', 'with setup with a cube guides the setup');
+assert.equal(trainerFlavor('setup', true), 'smart-setup', 'with setup with a cube is guided and recorded by the cube');
 
 // Data saved by the three-mode version, read through both stores; choosing
 // a mode then clears the old flag and keeps the cube's other preferences.

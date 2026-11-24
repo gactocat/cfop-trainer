@@ -34,3 +34,11 @@ export function buildLastLayerSetup(
 }
 
 export type LastLayerSetup = ReturnType<typeof buildLastLayerSetup>;
+
+/**
+ * The offset that leaves the case ready for the algorithm without its AUF.
+ * Cube mode already applies the stored AUF, so no further turn is needed.
+ */
+export function alignedOffset(record: LastLayerAlgorithm, aufDisplay: PracticeSettings['aufDisplay']): Auf {
+  return aufDisplay === 'prefix' ? record.auf : 'U0';
+}

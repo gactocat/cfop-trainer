@@ -4,31 +4,25 @@ import { appendUTurn, prefixAuf } from '@/lib/f2l-auf';
 import { invertAlg } from '@/lib/invert-alg';
 import { normalizeAlg } from '@/lib/normalize-alg';
 import type { F2LId } from '@/types/f2l';
-import { AUFS, type Auf } from '@/types/pll';
+import { caseOffset, type AufStart } from '@/lib/auf-start';
+import type { Auf } from '@/types/pll';
 
 // The inverse-setup trainer's scramble is a random pick from a pre-generated
 // pool of short setups that reach the case by a different route than the
 // user's algorithm (see scripts/generate-f2l-scramble-pool.mts), so the
 // solution cannot be read off the scramble while turning. The plain inverse
 // of the algorithm is only used as a fallback when a case has no pool entry.
-export interface F2LScrambleSettings {
-  // Turn the U layer by a random amount on top of the case, so the case shows
-  // up in a random orientation and the AUF has to be recognised, as it would
-  // mid-solve. Applies to both trainer modes: it rotates the displayed case in
-  // standard mode and is appended to the scramble in inverse-setup mode.
-  randomAuf: boolean;
-}
-
-export const DEFAULT_F2L_SCRAMBLE_SETTINGS: F2LScrambleSettings = {
-  randomAuf: true,
-};
+//
+// How the U layer is turned on top of the case (see AufStart): randomly, so
+// the AUF has to be recognised as it would mid-solve; by the algorithm's AUF,
+// so the body can start at once; or not at all. Applies to every mode: it
+// rotates the displayed case and is appended to the setup scramble.
 
 export interface F2LSetup {
   // Moves to apply to an F2L-solved cube to reach the case (with `uOffset`
   // already included).
   scramble: string;
-  // The random U turn applied on top of the canonical case; U0 when the
-  // random-orientation option is off.
+  // The U turn applied on top of the canonical case (see AufStart).
   uOffset: Auf;
 }
 
@@ -52,12 +46,14 @@ export function seededRandom(seed: number): () => number {
 export function buildF2LSetup(
   f2lId: F2LId,
   algorithm: { auf: Auf; body: string },
-  settings: F2LScrambleSettings,
+  aufStart: AufStart,
   random: () => number = Math.random,
 ): F2LSetup {
   const full = prefixAuf(algorithm.auf, algorithm.body);
   // Draw the offset first so it does not depend on whether a pool exists.
-  const uOffset: Auf = settings.randomAuf ? AUFS[Math.floor(random() * AUFS.length)] : 'U0';
+  // The canonical case needs the algorithm's AUF first, so turning by it
+  // leaves only the body to solve.
+  const uOffset = caseOffset(aufStart, algorithm.auf, random);
   if (!full.trim()) return { scramble: '', uOffset };
 
   // Make the algorithm rotation-neutral before inverting, so an alg with a

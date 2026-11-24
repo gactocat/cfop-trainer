@@ -34,10 +34,23 @@ and PLL:
 4. The timer stops when the goal state is reached: F2L solved, last layer
    oriented, or solved apart from the final AUF. The time is the cube clock
    between the first and the last turn, so Bluetooth delivery delay does not
-   count. Recording or discarding stays manual.
+   count.
 
-Tap and Space still start and stop the timer. Without a connected cube, with
-setup shows the setup to apply by hand and no setup is the tap timer.
+With setup and a cube connected when the practice starts (`smart-setup` in
+`lib/practice-mode.ts`), the practice uses the same calm screen as no scramble
+(`SmartSetupStage`, sharing `CubeStage` with `NoScrambleStage`): the guide
+beside a cube that shows the setup done so far and then the solving turns,
+the frame's colour for the state, a recognition timer from ready to the first
+turn, and the solve recorded as it stops, with Undo, Next and the automatic
+next case as below (`useSmartSetupPractice`). Space still starts and stops the
+timer by hand. Without a connected cube, with setup shows the setup to apply
+by hand and no setup is the tap timer, as before.
+
+Both cube-driven practices keep this session's solves in one log
+(`lib/practice-log.ts`) and show them per case, most recently solved first:
+recognition and solving, each as a mean and a best (`lib/session-stats.ts`).
+Undone solves do not count; a solve without a recognition time (started by
+hand) shows "-" there.
 
 ## iOS app
 
@@ -87,7 +100,9 @@ case" does. Stopping by hand records the host-timed attempt the same way, and
 leaving the iOS app abandons the attempt. The app keeps the screen on while a
 cube is connected in this mode.
 
-A practice asks for its mode, a smart cube, random AUF and, for no scramble,
+A practice asks for its mode, a smart cube, the case orientation (AUF: as
+set, random, or turned by the algorithm's AUF so it can start at once; see
+`lib/auf-start.ts`, stored as `randomAuf` and `alignAuf`) and, with a cube,
 the automatic next case each time it opens, starting from the last choices.
 The mode is stored in the synced trainer mode with the values older app
 versions know: no setup as `standard`, with setup as `inverse`. The three-mode

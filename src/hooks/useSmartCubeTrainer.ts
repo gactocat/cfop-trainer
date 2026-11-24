@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useSmartCube, useSmartCubeSettings } from '@/hooks/useSmartCube';
 import { canWriteData } from '@/lib/persistence';
-import { lastLayerFace, type CubeHolding } from '@/lib/smart-cube/holding';
+import { lastLayerFace, userNotation, type CubeHolding } from '@/lib/smart-cube/holding';
 import { buildSmartSolve, type SmartSolveMode } from '@/lib/smart-cube/solve-record';
 import { guideView, planSetup, type SetupPlan } from '@/lib/smart-cube/setup-guide';
 import {
@@ -32,6 +32,10 @@ export interface SmartTrainerView {
   undo: string;
   /** Ready to first turn, ms on the cube clock. */
   recognitionMs: number | null;
+  /** Host time (performance.now()) the setup was finished: recognition runs from here to the first turn. */
+  readySince: number | null;
+  /** Solving turns so far, in the user's notation. */
+  moves: string[];
   /** The attempt the cube timed from first turn to goal, once stopped. */
   solve: SmartSolve | null;
 }
@@ -64,6 +68,7 @@ class SessionHolder {
   session: TrainerSession | null = null;
   holding: CubeHolding = 'yellow-blue';
   private view: SmartTrainerView | null = null;
+  private readySince: number | null = null;
   private listeners = new Set<() => void>();
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
@@ -72,12 +77,17 @@ class SessionHolder {
   getSnapshot = () => this.view;
   set(session: TrainerSession | null, holding = this.holding) {
     if (session === this.session && holding === this.holding) return;
+    const becameReady = session?.phase === 'ready' && this.session?.phase !== 'ready';
+    if (becameReady) this.readySince = performance.now();
+    else if (session?.phase !== 'ready' && session?.phase !== 'running' && session?.phase !== 'done') this.readySince = null;
     this.session = session;
     this.holding = holding;
     this.view = session && {
       phase: session.phase,
       plan: session.plan,
       recognitionMs: session.recognitionMs,
+      readySince: this.readySince,
+      moves: session.solveTurns.map((turn) => userNotation(session.plan.finalFrame, turn.face, turn.amount)),
       ...guideView(session.plan, session.progress),
       solve: session.phase === 'done' && session.elapsedMs !== null && session.solveTurns.length > 0
         ? {
@@ -102,14 +112,19 @@ const serverView = () => null;
  * is reached. Returns null when no cube is connected or there is no setup, so
  * the trainer behaves exactly as without a cube.
  */
-export function useSmartCubeTrainer({ practice, scramble, trainerState, onStart, onStop }: {
+export function useSmartCubeTrainer({ practice, scramble, trainerState, onStart, onStop, onTurnAfterStop }: {
   practice: TrainerPractice;
   /** The setup shown on the start screen; null outside inverse mode. */
   scramble: string | null;
   trainerState: TrainerState;
   onStart: () => void;
-  /** Elapsed seconds on the cube clock, or null when the trainer should time it itself. */
-  onStop: (seconds: number | null) => void;
+  /**
+   * The cube reached the goal: elapsed seconds on the cube clock (null when
+   * the trainer should time it itself) and the solve the cube timed.
+   */
+  onStop: (seconds: number | null, solve: SmartSolve | null) => void;
+  /** A turn after the stop (a last AUF, setting the cube down). */
+  onTurnAfterStop?: () => void;
 }): SmartTrainerView | null {
   const cube = useSmartCube();
   const { holding } = useSmartCubeSettings();
@@ -119,8 +134,8 @@ export function useSmartCubeTrainer({ practice, scramble, trainerState, onStart,
   const ll = lastLayerFace(holding);
   const [holder] = useState(() => new SessionHolder());
   const view = useSyncExternalStore(holder.subscribe, holder.getSnapshot, serverView);
-  const callbacks = useRef({ onStart, onStop });
-  useEffect(() => { callbacks.current = { onStart, onStop }; });
+  const callbacks = useRef({ onStart, onStop, onTurnAfterStop });
+  useEffect(() => { callbacks.current = { onStart, onStop, onTurnAfterStop }; });
 
   // A new attempt begins with each case, holding or connection; the trainer's
   // own start and stop (tap, Space) are mirrored into the session.
@@ -135,6 +150,10 @@ export function useSmartCubeTrainer({ practice, scramble, trainerState, onStart,
     return subscribeTurns((turn) => {
       const session = holder.session;
       if (!session) return;
+      if (session.phase === 'done') {
+        callbacks.current.onTurnAfterStop?.();
+        return;
+      }
       const result = sessionMove(session, turn);
       // Not while a dialog covers the trainer or data cannot be written (as for Space).
       if (result.event === 'start' && (!canWriteData() || document.querySelector('[data-app-overlay]'))) {
@@ -144,7 +163,7 @@ export function useSmartCubeTrainer({ practice, scramble, trainerState, onStart,
       holder.set(result.session);
       if (result.event === 'start') callbacks.current.onStart();
       if (result.event === 'stop') {
-        callbacks.current.onStop(result.session.elapsedMs === null ? null : result.session.elapsedMs / 1000);
+        callbacks.current.onStop(result.session.elapsedMs === null ? null : result.session.elapsedMs / 1000, holder.getSnapshot()?.solve ?? null);
       }
     });
   }, [holder, plan]);

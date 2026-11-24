@@ -5,6 +5,7 @@ import { useKeepAwake } from '@/hooks/useNativeTimer';
 import { useSmartCube, useSmartCubeSettings } from '@/hooks/useSmartCube';
 import type { SmartSolve } from '@/hooks/useSmartCubeTrainer';
 import { canWriteData } from '@/lib/persistence';
+import type { PracticeCase, PracticeLog } from '@/lib/practice-log';
 import type { Face } from '@/lib/smart-cube/cube-state';
 import { displayRotation, type CubeHolding } from '@/lib/smart-cube/holding';
 import { mergeTurns, turnsPerSecond } from '@/lib/smart-cube/solve-record';
@@ -25,8 +26,7 @@ import { subscribeTurns } from '@/lib/smart-cube-store';
 
 type TrainerState = 'idle' | 'running' | 'stopped';
 
-/** With auto-advance, the next case comes once the cube has been still this long after a solve. */
-export const SETTLE_MS = 1500;
+export { SETTLE_MS } from '@/lib/practice-log';
 
 export interface NoScrambleView {
   practice: TrainerPractice;
@@ -38,49 +38,19 @@ export interface NoScrambleView {
   moves: string[];
   /** Changes whenever the virtual cube jumps (new case or reset) instead of turning. */
   resetKey: number;
+  /** Host time (performance.now()) the case was shown: recognition runs from here to the first turn. */
+  shownAt: number;
   recognitionMs: number | null;
   /** The attempt the cube timed, once it stopped. */
   solve: SmartSolve | null;
 }
 
-/** What the trainer knows about the case on screen, read when it is solved. */
-export interface NoScrambleCase {
-  caseId: string;
-  name: string;
-  solution: string;
-}
-
-/** One solve of this session, newest first in `results`. */
-export interface NoScrambleResult {
-  key: number;
-  caseId: string;
-  name: string;
-  solution: string;
-  seconds: number;
-  recognitionMs: number | null;
-  moveCount: number | null;
-  tps: number | null;
-  /** Taken back with undo: no longer recorded. */
-  undone: boolean;
-}
-
-export interface NoScrambleSnapshot {
-  view: NoScrambleView | null;
-  results: readonly NoScrambleResult[];
-  /** Waiting for the cube to rest before the next case; `key` changes when the wait restarts. */
-  settle: { key: number } | null;
-}
-
-const EMPTY: NoScrambleSnapshot = { view: null, results: [], settle: null };
+export type NoScrambleCase = PracticeCase;
 
 class VirtualHolder {
   session: VirtualSession | null = null;
-  private snapshot: NoScrambleSnapshot = EMPTY;
+  private view: NoScrambleView | null = null;
   private resets = 0;
-  private resultKeys = 0;
-  private settleKeys = 0;
-  private settleTimer: ReturnType<typeof setTimeout> | null = null;
-  private undos = new Map<number, () => void>();
   /** Recent turns, for the reset gesture. */
   recent: { face: Face; amount: 1 | 3; at: number }[] = [];
   private listeners = new Set<() => void>();
@@ -89,14 +59,7 @@ class VirtualHolder {
     this.listeners.add(listener);
     return () => { this.listeners.delete(listener); };
   };
-  getSnapshot = () => this.snapshot;
-  get view() { return this.snapshot.view; }
-  get settling() { return this.snapshot.settle !== null; }
-
-  private publish(patch: Partial<NoScrambleSnapshot>) {
-    this.snapshot = { ...this.snapshot, ...patch };
-    this.listeners.forEach((l) => l());
-  }
+  getSnapshot = () => this.view;
 
   set(session: VirtualSession | null, jumped: boolean) {
     if (session === this.session) return;
@@ -105,74 +68,44 @@ class VirtualHolder {
       this.recent = [];
     }
     this.session = session;
-    this.publish({
-      view: session && {
-        practice: session.practice,
-        holding: session.holding,
-        phase: session.phase,
-        setupAlg: `${displayRotation(session.holding)} ${session.plan.tokens.join(' ')}`.trim(),
-        moves: virtualNotation(session),
-        resetKey: this.resets,
-        recognitionMs: session.recognitionMs,
-        solve: session.phase === 'done' && session.elapsedMs !== null && session.solveTurns.length > 0
-          ? {
-            practice: session.practice,
-            holding: session.holding,
-            scramble: session.plan.tokens.join(' '),
-            turns: session.solveTurns,
-            recognitionMs: session.recognitionMs,
-            executionMs: session.elapsedMs,
-            mode: 'no-scramble' as const,
-          }
-          : null,
-      },
-    });
-  }
-
-  addResult(result: Omit<NoScrambleResult, 'key' | 'undone'>, undo: (() => void) | null) {
-    const key = ++this.resultKeys;
-    if (undo) this.undos.set(key, undo);
-    this.publish({ results: [{ ...result, key, undone: false }, ...this.snapshot.results] });
-  }
-
-  undo(key: number) {
-    const undo = this.undos.get(key);
-    if (!undo) return;
-    this.undos.delete(key);
-    undo();
-    this.publish({ results: this.snapshot.results.map((r) => (r.key === key ? { ...r, undone: true } : r)) });
-  }
-
-  /** (Re)start the wait for the cube to rest; `done` runs once it has. */
-  startSettle(done: () => void) {
-    if (this.settleTimer) clearTimeout(this.settleTimer);
-    this.settleTimer = setTimeout(() => {
-      this.settleTimer = null;
-      this.publish({ settle: null });
-      done();
-    }, SETTLE_MS);
-    this.publish({ settle: { key: ++this.settleKeys } });
-  }
-
-  clearSettle() {
-    if (this.settleTimer) clearTimeout(this.settleTimer);
-    this.settleTimer = null;
-    if (this.snapshot.settle) this.publish({ settle: null });
+    this.view = session && {
+      practice: session.practice,
+      holding: session.holding,
+      phase: session.phase,
+      setupAlg: `${displayRotation(session.holding)} ${session.plan.tokens.join(' ')}`.trim(),
+      moves: virtualNotation(session),
+      resetKey: this.resets,
+      shownAt: session.shownAt,
+      recognitionMs: session.recognitionMs,
+      solve: session.phase === 'done' && session.elapsedMs !== null && session.solveTurns.length > 0
+        ? {
+          practice: session.practice,
+          holding: session.holding,
+          scramble: session.plan.tokens.join(' '),
+          turns: session.solveTurns,
+          recognitionMs: session.recognitionMs,
+          executionMs: session.elapsedMs,
+          mode: 'no-scramble' as const,
+        }
+        : null,
+    };
+    this.listeners.forEach((l) => l());
   }
 }
 
-const serverSnapshot = () => EMPTY;
+const serverView = () => null;
 
 /**
  * No-scramble mode: the case is shown on a virtual cube built from the
  * trainer's setup, the smart cube's turns move it, the first turn starts the
- * timer and reaching the practice's goal stops it. A solve is recorded as soon
- * as it stops (undo takes it back). The next case comes with `next`, or, with
- * `autoAdvance`, by itself once the cube has been still for SETTLE_MS.
- * Turning one face the same way four times in a row starts the case again.
+ * timer and reaching the practice's goal stops it. A solve is recorded in
+ * `log` as soon as it stops (undo takes it back). The next case comes with
+ * `next`, or, with `autoAdvance`, by itself once the cube has been still for
+ * SETTLE_MS. Turning one face the same way four times in a row starts the
+ * case again.
  */
 export function useNoScrambleTrainer({
-  active, practice, scramble, trainerState, autoAdvance, describe, record, onStart, onStop, onAbort, onAdvance,
+  active, practice, scramble, trainerState, autoAdvance, log, describe, record, onStart, onStop, onAbort, onAdvance,
 }: {
   active: boolean;
   /** Go on to the next case by itself once the cube rests; otherwise wait for `next`. */
@@ -181,6 +114,8 @@ export function useNoScrambleTrainer({
   /** The case's setup in the user's notation, as the trainer built it. */
   scramble: string | null;
   trainerState: TrainerState;
+  /** This session's solves. */
+  log: PracticeLog;
   /** The case on screen, read when it is solved. */
   describe: () => NoScrambleCase | null;
   /** Record a solve; returns how to take it back, or null when nothing was recorded. */
@@ -195,18 +130,18 @@ export function useNoScrambleTrainer({
   onAbort: () => void;
   /** Show the next case. */
   onAdvance: () => void;
-}): NoScrambleSnapshot & {
+}): {
+  view: NoScrambleView | null;
   connected: boolean;
   reset: () => void;
   stopByHand: () => void;
   next: () => void;
-  undo: (key: number) => void;
 } {
   const cube = useSmartCube();
   const { holding } = useSmartCubeSettings();
   const connected = cube.status === 'connected';
   const [holder] = useState(() => new VirtualHolder());
-  const snapshot = useSyncExternalStore(holder.subscribe, holder.getSnapshot, serverSnapshot);
+  const view = useSyncExternalStore(holder.subscribe, holder.getSnapshot, serverView);
   const callbacks = useRef({ autoAdvance, describe, record, onStart, onStop, onAbort, onAdvance });
   useEffect(() => { callbacks.current = { autoAdvance, describe, record, onStart, onStop, onAbort, onAdvance }; });
   // The phone is put down while practising, so keep its screen on.
@@ -216,17 +151,16 @@ export function useNoScrambleTrainer({
   // start and stop (tap, Space) are mirrored into the attempt.
   useEffect(() => {
     if (!active || !scramble) {
-      holder.clearSettle();
+      // The log may belong to the with-setup practice while this one is off.
+      if (active) log.clearSettle();
       holder.set(null, true);
     } else if (trainerState === 'idle') {
-      holder.clearSettle();
+      log.clearSettle();
       holder.set(startVirtual(practice, holding, scramble, performance.now()), true);
     } else if (holder.session) {
       holder.set(trainerState === 'running' ? manualStartVirtual(holder.session) : manualStopVirtual(holder.session), false);
     }
-  }, [holder, active, practice, holding, scramble, trainerState]);
-
-  useEffect(() => () => holder.clearSettle(), [holder]);
+  }, [holder, log, active, practice, holding, scramble, trainerState]);
 
   // The attempt just stopped: record it and wait for the cube to rest.
   const finish = (cubeSeconds: number | null) => {
@@ -234,11 +168,11 @@ export function useNoScrambleTrainer({
     if (!session) return;
     const seconds = callbacks.current.onStop(cubeSeconds);
     const info = callbacks.current.describe();
-    const solve = holder.view?.solve ?? null;
+    const solve = holder.getSnapshot()?.solve ?? null;
     if (info && seconds > 0) {
       const undo = callbacks.current.record(info.caseId, seconds, solve);
       const moveCount = solve ? mergeTurns(solve.turns).length : null;
-      holder.addResult({
+      log.add({
         ...info,
         seconds,
         recognitionMs: session.recognitionMs,
@@ -246,7 +180,7 @@ export function useNoScrambleTrainer({
         tps: solve && moveCount !== null ? turnsPerSecond(moveCount, solve.executionMs) : null,
       }, undo);
     }
-    if (callbacks.current.autoAdvance) holder.startSettle(() => callbacks.current.onAdvance());
+    if (callbacks.current.autoAdvance) log.startSettle(() => callbacks.current.onAdvance());
   };
   const finishRef = useRef(finish);
   useEffect(() => { finishRef.current = finish; });
@@ -270,7 +204,7 @@ export function useNoScrambleTrainer({
       if (!canWriteData() || document.querySelector('[data-app-overlay]')) return;
       // Turns after the stop (a last AUF, setting the cube down) only delay an automatic next case.
       if (session.phase === 'done') {
-        if (holder.settling) holder.startSettle(() => callbacks.current.onAdvance());
+        if (log.settling) log.startSettle(() => callbacks.current.onAdvance());
         return;
       }
       holder.recent = [...holder.recent.slice(-(RESET_TURNS - 1)), { face: turn.face, amount: turn.amount, at: turn.hostTime }];
@@ -283,7 +217,7 @@ export function useNoScrambleTrainer({
         resetRef.current();
       }
     });
-  }, [holder, active, connected]);
+  }, [holder, log, active, connected]);
 
   const stopByHand = () => {
     const session = holder.session;
@@ -294,18 +228,9 @@ export function useNoScrambleTrainer({
 
   const next = () => {
     if (holder.session?.phase !== 'done') return;
-    holder.clearSettle();
+    log.clearSettle();
     callbacks.current.onAdvance();
   };
 
-  return {
-    view: active ? snapshot.view : null,
-    results: snapshot.results,
-    settle: active ? snapshot.settle : null,
-    connected,
-    reset,
-    stopByHand,
-    next,
-    undo: (key) => holder.undo(key),
-  };
+  return { view: active ? view : null, connected, reset, stopByHand, next };
 }

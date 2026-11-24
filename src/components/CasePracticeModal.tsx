@@ -26,7 +26,7 @@ export function CasePracticeModal({ practice, name, algorithm, onClose, children
   const { settings } = usePracticeSettings();
   const hint = mode === 'no-scramble'
     ? 'trainer.hint.noScramble'
-    : mode === 'inverse'
+    : mode === 'inverse' || mode === 'smart-setup'
       ? practice === 'f2l' ? 'trainer.hint.f2lSetup' : 'trainer.hint.lastLayerSolved'
       : 'trainer.hint.case';
   return (

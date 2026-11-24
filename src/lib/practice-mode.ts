@@ -11,9 +11,13 @@ export type PracticeMode = 'no-setup' | 'setup';
 /**
  * How a practice actually runs: no setup is the tap timer without a smart
  * cube and the virtual cube (no-scramble) with one; with setup is the
- * inverse-setup trainer, which follows a connected cube by itself.
+ * inverse-setup tap trainer without a cube and, with one, the guided setup
+ * on the cube (smart-setup), timed and recorded by the cube like no-scramble.
  */
-export type TrainerFlavor = 'standard' | 'inverse' | 'no-scramble';
+export type TrainerFlavor = 'standard' | 'inverse' | 'no-scramble' | 'smart-setup';
+
+/** Flavors driven by a smart cube: a calm stage, solves recorded as they stop. */
+export const isCubeFlavor = (flavor: TrainerFlavor) => flavor === 'no-scramble' || flavor === 'smart-setup';
 
 /**
  * Read the mode from what is stored. The synced practice settings keep the
@@ -36,7 +40,7 @@ export function storedTrainerMode(mode: PracticeMode): PracticeSettings['trainer
 
 /** How a practice in `mode` runs, given whether a smart cube is connected. */
 export function trainerFlavor(mode: PracticeMode, cubeConnected: boolean): TrainerFlavor {
-  if (mode === 'setup') return 'inverse';
+  if (mode === 'setup') return cubeConnected ? 'smart-setup' : 'inverse';
   return cubeConnected ? 'no-scramble' : 'standard';
 }
 

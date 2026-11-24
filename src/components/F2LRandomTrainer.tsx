@@ -10,22 +10,24 @@ import { useMounted } from '@/hooks/useMounted';
 import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { useSpacebar } from '@/hooks/useSpacebar';
 import { useNativeTimer } from '@/hooks/useNativeTimer';
-import { recordSmartSolve, useSmartCubeTrainer, type SmartSolve } from '@/hooks/useSmartCubeTrainer';
+import { recordSmartSolve, type SmartSolve } from '@/hooks/useSmartCubeTrainer';
 import { useNoScrambleTrainer } from '@/hooks/useNoScrambleTrainer';
+import { usePracticeLog } from '@/hooks/usePracticeLog';
+import { useSmartSetupPractice } from '@/hooks/useSmartSetupPractice';
 import { useSmartCubeSettings } from '@/hooks/useSmartCube';
 import { useTrainerMode } from '@/hooks/useTrainerMode';
 import { useT } from '@/hooks/useT';
-import { combineAuf, invertAuf, prefixAuf } from '@/lib/f2l-auf';
+import { combineAuf, invertAuf, prefixAuf, splitF2LAuf } from '@/lib/f2l-auf';
 import { buildF2LSetup, seededRandom } from '@/lib/f2l-scramble';
+import { aufStartOf } from '@/lib/auf-start';
 import { pickStaleWeighted } from '@/lib/stale-weighted-pick';
 import { deleteSmartSolve } from '@/lib/smart-solve-store';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import { F2L_IDS, type F2LAlgorithmRecord, type F2LId } from '@/types/f2l';
 import type { Auf } from '@/types/pll';
 import { F2L3DPlayer } from './F2L3DPlayer';
-import { SmartCubeSetupStatus, SmartCubeSetupTokens } from './SmartCubeSetupGuide';
-import { SmartSolveSummary } from './SmartSolveHistory';
 import { NoScrambleStage } from './NoScrambleStage';
+import { SmartSetupStage } from './SmartSetupStage';
 
 type TrainerState = 'idle' | 'running' | 'stopped';
 
@@ -96,12 +98,15 @@ export function F2LTrainer({
   const { t, tn } = useT();
   const { settings: scrambleSettings } = usePracticeSettings();
   const { aufDisplay: aufMode } = scrambleSettings;
-  // Fixed when the practice started: no setup runs on the virtual cube when a
-  // smart cube was connected, and as the tap timer otherwise.
+  // Fixed when the practice started (see TrainerFlavorContext). No setup runs
+  // on the virtual cube with a smart cube and as the tap timer without one;
+  // with setup is guided on the cube with one, and applied by hand without.
   const mode = useTrainerMode();
   const noScramble = mode === 'no-scramble';
-  const inverse = mode === 'inverse';
-  // Both inverse and no-scramble show the case before timing, so draw it ahead.
+  const smartSetup = mode === 'smart-setup';
+  const cubeDriven = noScramble || smartSetup;
+  const inverse = mode === 'inverse' || smartSetup;
+  // Both setups and no-scramble show the case before timing, so draw it ahead.
   const drawAhead = inverse || noScramble;
   const [state, setState] = useState<TrainerState>('idle');
   const [current, setCurrent] = useState<F2LId | null>(null);
@@ -113,9 +118,7 @@ export function F2LTrainer({
   const mounted = useMounted();
   const startRef = useRef(0);
   const rafRef = useRef<number | null>(null);
-  // The solve the smart cube timed, if any; read when the time is recorded.
-  const smartSolveRef = useRef<SmartSolve | null>(null);
-  // No-scramble without a connected cube has nothing to solve, so Space waits.
+  // A cube-driven practice without a connected cube has nothing to solve, so Space waits.
   const startBlockedRef = useRef(false);
 
   // Draw only from the selected cases. Falls back to all of `ids` if nothing
@@ -182,10 +185,7 @@ export function F2LTrainer({
   }, []);
 
   const record = useCallback(() => {
-    if (current && elapsed > 0) {
-      add(current, elapsed);
-      if (smartSolveRef.current) recordSmartSolve(smartSolveRef.current, current);
-    }
+    if (current && elapsed > 0) add(current, elapsed);
     setState('idle');
     setElapsed(0);
     setCurrent(null);
@@ -206,47 +206,38 @@ export function F2LTrainer({
 
   // Everything the three case screens need, derived once from the drawn case
   // and its seed. The given algorithm (the starred one in random practice)
-  // wins; the speedcubedb primary (which carries its own AUF as a leading
-  // turn) is the fallback.
+  // wins; the speedcubedb primary, whose leading U turn is its AUF, is the
+  // fallback.
   const shown = useMemo(() => {
     if (!current) return null;
     const def = getF2LDefinition(current);
     const star = algorithmFor(current);
-    const auf: Auf = star?.auf ?? 'U0';
-    const body = star?.algorithm ?? def?.primaryAlg ?? '';
-    const setup = buildF2LSetup(current, { auf, body }, scrambleSettings, seededRandom(setupSeed));
+    const primary = splitF2LAuf(def?.primaryAlg ?? '');
+    const auf: Auf = star?.auf ?? primary.auf;
+    const body = star?.algorithm ?? primary.rest;
+    const setup = buildF2LSetup(current, { auf, body }, aufStartOf(scrambleSettings), seededRandom(setupSeed));
     // The U turn needed from the shown orientation before the body.
     const effectiveAuf = combineAuf(invertAuf(setup.uOffset), auf);
     return { def, star, auf, body, setup, effectiveAuf };
   }, [current, algorithmFor, scrambleSettings, setupSeed]);
 
-  // With a smart cube connected, inverse mode follows the setup on the cube
-  // and starts and stops the timer by itself; without one this is null.
-  const smart = useSmartCubeTrainer({
-    practice: 'f2l',
-    scramble: inverse && shown ? shown.setup.scramble : null,
-    trainerState: state,
-    onStart: start,
-    onStop: (seconds) => (seconds === null ? stop() : stopWith(seconds)),
-  });
-  // No-scramble: the case on a virtual cube, moved by the smart cube's turns.
-  // Solves are recorded as they stop; the next case follows on Next, or by
+  // With a smart cube, either flow runs from the cube: solves are recorded in
+  // this session's log as they stop, and the next case follows on Next, or by
   // itself once the cube rests when auto-advance is on.
   const { autoAdvance } = useSmartCubeSettings();
-  const virtual = useNoScrambleTrainer({
-    active: noScramble,
-    autoAdvance,
-    practice: 'f2l',
+  const { log, results, settle } = usePracticeLog();
+  const cubeFlow = {
+    practice: 'f2l' as const,
     scramble: shown ? shown.setup.scramble : null,
     trainerState: state,
+    autoAdvance,
+    log,
     describe: () => shown && current && {
       caseId: current,
       name: shown.def ? t('common.f2lCase', { number: shown.def.number }) : current,
-      solution: shown.star
-        ? prefixAuf(shown.effectiveAuf, shown.star.algorithm)
-        : shown.def ? prefixAuf(invertAuf(shown.setup.uOffset), shown.def.primaryAlg) : '',
+      solution: shown.body ? prefixAuf(shown.effectiveAuf, shown.body) : '',
     },
-    record: (caseId, seconds, solve) => {
+    record: (caseId: string, seconds: number, solve: SmartSolve | null) => {
       const solveId = add(caseId as F2LId, seconds);
       const smartId = solve ? recordSmartSolve(solve, caseId) : null;
       if (!solveId && !smartId) return null;
@@ -256,41 +247,40 @@ export function F2LTrainer({
       };
     },
     onStart: start,
-    onStop: (seconds) => {
+    onStop: (seconds: number | null) => {
       const settled = seconds ?? (Date.now() - startRef.current) / 1000;
       stopWith(settled);
       return settled;
     },
-    onAbort: abort,
     onAdvance: discard,
-  });
-  // Leaving the app abandons a no-scramble attempt (it is recorded on its own otherwise).
-  useNativeTimer(state === 'running', noScramble ? virtual.reset : stop);
+  };
+  // No setup: the case on a virtual cube, moved by the smart cube's turns.
+  const virtual = useNoScrambleTrainer({ ...cubeFlow, active: noScramble, onAbort: abort });
+  // With setup: the setup guided on the cube itself.
+  const guided = useSmartSetupPractice({ ...cubeFlow, active: smartSetup });
+  const cube = noScramble ? virtual : guided;
+  // Leaving the app abandons a cube-driven attempt (it is recorded on its own otherwise).
+  useNativeTimer(state === 'running', noScramble ? virtual.reset : smartSetup ? abort : stop);
   // Keyboard: Space mirrors the tap action (idle → start, running → stop) and
-  // records on the result screen; Escape discards there. In no-scramble mode
-  // the solve is already recorded, so Space goes on and Escape takes it back.
-  const latest = virtual.results[0];
+  // records on the result screen; Escape discards there. When the cube drives
+  // the practice the solve is already recorded, so Space goes on and Escape
+  // takes it back.
+  const latest = results[0];
   const onSpace = useCallback(() => {
     if (state === 'idle') {
       if (!noneSelected && !startBlockedRef.current) start();
     } else if (state === 'running') {
-      if (noScramble) virtual.stopByHand();
+      if (cubeDriven) cube.stopByHand();
       else stop();
-    } else if (noScramble) virtual.next();
+    } else if (cubeDriven) cube.next();
     else record();
-  }, [state, start, stop, record, noneSelected, noScramble, virtual]);
+  }, [state, start, stop, record, noneSelected, cubeDriven, cube]);
   useSpacebar(onSpace);
   useEscapeKey(
-    noScramble ? () => { if (latest && !latest.undone) virtual.undo(latest.key); } : discard,
+    cubeDriven ? () => { if (latest && !latest.undone) log.undo(latest.key); } : discard,
     state === 'stopped',
   );
-
-  const solve = smart?.solve ?? virtual.view?.solve ?? null;
-  const recognitionMs = smart?.recognitionMs ?? virtual.view?.recognitionMs ?? null;
-  useEffect(() => {
-    smartSolveRef.current = solve;
-    startBlockedRef.current = noScramble && !virtual.connected;
-  });
+  useEffect(() => { startBlockedRef.current = cubeDriven && !cube.connected; });
 
   const player = (className: string) =>
     shown && (
@@ -324,36 +314,27 @@ export function F2LTrainer({
           })}
         </div>
       )}
-      {recognitionMs != null && (
-        <div className="mt-1 text-xs font-mono text-amber-700/80 dark:text-amber-300/80">
-          {t('smartCube.trainer.recognition', { seconds: (recognitionMs / 1000).toFixed(2) })}
-        </div>
-      )}
     </div>
   );
   const resultRest = shown && current && (
     <>
       <div className="max-w-2xl w-full text-center font-mono text-sm break-words text-zinc-700 dark:text-zinc-300">
-        {shown.star ? (
+        {/* The speedcubedb primary stands in (greyed) when no algorithm is saved. */}
+        {shown.body ? (
           aufMode === 'cube' ? (
-            <p>
+            <p className={shown.star ? '' : 'text-zinc-500'}>
               <span className="inline-block min-w-[2.5em] mr-2 px-1.5 py-0.5 text-[10px] rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 align-middle">
                 {shown.effectiveAuf}
               </span>
-              {shown.star.algorithm}
+              {shown.body}
             </p>
           ) : (
-            <p>{prefixAuf(shown.effectiveAuf, shown.star.algorithm)}</p>
+            <p className={shown.star ? '' : 'text-zinc-500'}>{prefixAuf(shown.effectiveAuf, shown.body)}</p>
           )
-        ) : shown.def ? (
-          <p className="text-zinc-500">
-            {prefixAuf(invertAuf(shown.setup.uOffset), shown.def.primaryAlg)}
-          </p>
         ) : (
           <p className="italic text-zinc-500">{t('trainer.f2l.noAlgorithm')}</p>
         )}
       </div>
-      {solve && <SmartSolveSummary solve={solve} />}
       <div className="flex gap-3">
         <button
           type="button"
@@ -382,10 +363,19 @@ export function F2LTrainer({
   if (noScramble && !noneSelected) {
     return (
       <NoScrambleStage
-        state={state}
-        trainer={virtual}
-        elapsed={elapsed}
-        selectedNote={selectedNote}
+        state={state} view={virtual.view} connected={virtual.connected} log={{ results, settle }}
+        elapsed={elapsed} selectedNote={selectedNote}
+        onReset={virtual.reset} onStop={virtual.stopByHand} onNext={virtual.next} onUndo={(key) => log.undo(key)}
+      />
+    );
+  }
+
+  if (smartSetup && !noneSelected) {
+    return (
+      <SmartSetupStage
+        practice="f2l" state={state} view={guided.view} connected={guided.connected} log={{ results, settle }}
+        elapsed={elapsed} selectedNote={selectedNote}
+        onStop={guided.stopByHand} onNext={guided.next} onUndo={(key) => log.undo(key)}
       />
     );
   }
@@ -424,7 +414,6 @@ export function F2LTrainer({
         <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
           {t('trainer.tapOrSpaceToStop')}
         </div>
-        {smart && <div className="text-xs opacity-80">{t('smartCube.trainer.autoStop')}</div>}
       </button>
     );
   }
@@ -447,18 +436,15 @@ export function F2LTrainer({
       <button
         type="button"
         onPointerDown={start}
-        className={`w-full flex-1 min-h-[200px] rounded-lg flex flex-col items-center justify-center gap-4 px-6 transition-colors select-none touch-none text-white ${
-          smart?.phase === 'ready' ? 'bg-sky-600 hover:bg-sky-700' : 'bg-emerald-500 hover:bg-emerald-600'
-        }`}
+        className="w-full flex-1 min-h-[200px] rounded-lg flex flex-col items-center justify-center gap-4 px-6 transition-colors select-none touch-none text-white bg-emerald-500 hover:bg-emerald-600"
         aria-label={t('trainer.tapToStartAria')}
       >
         <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
-          {t(smart ? 'smartCube.trainer.turn' : 'trainer.applyToCube')}
+          {t('trainer.applyToCube')}
         </div>
         <div className="max-w-2xl w-full text-center font-mono text-3xl sm:text-4xl font-bold break-words leading-snug">
-          {smart ? <SmartCubeSetupTokens view={smart} /> : shown?.setup.scramble || '…'}
+          {shown?.setup.scramble || '…'}
         </div>
-        {smart && <SmartCubeSetupStatus view={smart} practice="f2l" />}
         <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
           {t('trainer.tapOrSpaceToStart')}
         </div>

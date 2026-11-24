@@ -7,10 +7,11 @@ import { useSmartCube, useSmartCubeSettings } from '@/hooks/useSmartCube';
 import { TrainerFlavorContext, usePracticeMode, type TrainerFlavor } from '@/hooks/useTrainerMode';
 import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
-import { trainerFlavor } from '@/lib/practice-mode';
+import { aufStartOf } from '@/lib/auf-start';
+import { isCubeFlavor, trainerFlavor } from '@/lib/practice-mode';
 import { setAutoAdvance } from '@/lib/smart-cube-settings-store';
 import { unsupportedReason } from '@/lib/smart-cube-store';
-import { RandomAufToggle } from './RandomAufToggle';
+import { AUF_START_LABEL, AufStartToggle } from './AufStartToggle';
 import { SmartCubeConnect } from './SmartCubeConnect';
 import { TrainerModeToggle } from './TrainerModeToggle';
 
@@ -21,13 +22,15 @@ const MODE_LABEL: Record<TrainerFlavor, MessageKey> = {
   standard: 'practice.mode.noSetup',
   'no-scramble': 'practice.mode.noSetup',
   inverse: 'practice.mode.withSetup',
+  'smart-setup': 'practice.mode.withSetup',
 };
 
 // How the practice will run, under the mode: with a cube connected, what the
 // cube does.
-function modeHelp(flavor: TrainerFlavor, connected: boolean, scope: PracticeScope): MessageKey {
+function modeHelp(flavor: TrainerFlavor, scope: PracticeScope): MessageKey {
   if (flavor === 'no-scramble') return 'practice.cube.noSetup';
-  if (flavor === 'inverse') return connected ? 'practice.cube.setup' : 'practice.mode.withSetupHelp';
+  if (flavor === 'smart-setup') return 'practice.cube.setup';
+  if (flavor === 'inverse') return 'practice.mode.withSetupHelp';
   return scope === 'case' ? 'practice.mode.noSetupHelpCase' : 'practice.mode.noSetupHelp';
 }
 
@@ -97,7 +100,7 @@ function Options({ scope, subject, onStart }: {
         <section className="space-y-2">
           <h4 className="text-sm font-medium">{t('practice.mode.title')}</h4>
           <TrainerModeToggle />
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">{t(modeHelp(flavor, connected, scope))}</p>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">{t(modeHelp(flavor, scope))}</p>
         </section>
         <section className="space-y-2">
           <h4 className="text-sm font-medium">{t('smartCube.title')}</h4>
@@ -109,7 +112,7 @@ function Options({ scope, subject, onStart }: {
               {t(mode === 'setup' ? 'practice.cube.offerSetup' : 'practice.cube.offerNoSetup')}
             </p>
           )}
-          {flavor === 'no-scramble' && (
+          {isCubeFlavor(flavor) && (
             <div className="space-y-1 pt-1">
               <label className="flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300 select-none">
                 <input
@@ -125,7 +128,7 @@ function Options({ scope, subject, onStart }: {
           )}
         </section>
         <section>
-          <RandomAufToggle />
+          <AufStartToggle />
         </section>
         {/* Sized like the app's other primary buttons, at the end of the form. */}
         <div className="flex justify-end">
@@ -148,16 +151,15 @@ function Summary({ flavor, onChange }: { flavor: TrainerFlavor; onChange: () => 
   const { t } = useT();
   const { settings } = usePracticeSettings();
   const { autoAdvance } = useSmartCubeSettings();
-  const connected = useSmartCube().status === 'connected';
-  // No-scramble runs on the cube even while it reconnects; inverse uses it when there.
-  const withCube = flavor === 'no-scramble' || (flavor === 'inverse' && connected);
+  // Runs on the cube even while it reconnects.
+  const withCube = isCubeFlavor(flavor);
   return (
     <div className="flex shrink-0 items-center justify-between gap-2 pb-2 text-xs text-zinc-600 dark:text-zinc-300">
       <div className="flex flex-wrap gap-1.5">
         <span className={chip}>{t(MODE_LABEL[flavor])}</span>
         {withCube && <span className={chip}>{t('smartCube.title')}</span>}
-        <span className={chip}>{t(settings.randomAuf ? 'settings.trainerMode.randomAufLabel' : 'trainer.setup.fixedAuf')}</span>
-        {flavor === 'no-scramble' && autoAdvance && <span className={chip}>{t('trainer.setup.autoAdvance')}</span>}
+        <span className={chip}>{t('practice.auf.chip', { choice: t(AUF_START_LABEL[aufStartOf(settings)]) })}</span>
+        {withCube && autoAdvance && <span className={chip}>{t('trainer.setup.autoAdvance')}</span>}
       </div>
       <button
         type="button"
