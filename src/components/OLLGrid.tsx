@@ -20,8 +20,10 @@ import { InfoTip } from './InfoTip';
 const CARD_CLASS =
   'group flex flex-col h-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-2 sm:p-3 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors';
 
-// Narrow cards that fill each row: three across on a phone, more on wider screens.
-const GRID_CLASS = 'grid grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] gap-2 sm:gap-3';
+// Cards at least 10rem wide fill each row: two across on a phone held
+// upright (360 to 500 px), more on wider screens. The case view inside is
+// 144 px, which fits the narrowest card.
+const GRID_CLASS = 'grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-2 sm:gap-3';
 
 const CATEGORY_KEYS: Record<OLLCategory, MessageKey> = {
   'dot-case': 'oll.category.dot-case',
@@ -207,22 +209,23 @@ export function OLLGrid() {
                         <span className="font-medium text-sm">{oll.name}</span>
                       </span>
                       <span
-                        className={`text-[11px] font-mono px-1 py-0.5 rounded ${timeBadgeClasses(best)}`}
+                        className={`text-xs font-mono px-1.5 py-0.5 rounded ${timeBadgeClasses(best)}`}
                       >
                         {formatSeconds(best)}
                       </span>
                     </div>
                     <div className="flex justify-center mb-2">
-                      <OLLLLView ollId={oll.id} auf={displayAuf} algorithm={star?.algorithm} size={88} />
+                      <OLLLLView ollId={oll.id} auf={displayAuf} algorithm={star?.algorithm} size={144} />
                     </div>
                     {count > 0 && (
-                      <div className="mt-auto pt-2 flex flex-wrap items-center justify-center gap-x-2 text-[10px] text-zinc-500 font-mono">
+                      <div className="mt-auto pt-2 flex flex-wrap items-center justify-center gap-x-2 text-[11px] text-zinc-500 font-mono">
                         <span>
                           ao5{' '}
                           <span className="text-zinc-700 dark:text-zinc-300">
                             {formatSeconds(ao5)}
                           </span>
                         </span>
+                        <span aria-hidden>·</span>
                         <span title={t('common.lastRecordedDate')}>{formatLastDate(last, intl)}</span>
                       </div>
                     )}
