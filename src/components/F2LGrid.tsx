@@ -11,11 +11,9 @@ import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
 import { f2lSelectionPresets } from '@/lib/f2l-selection-presets-store';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
+import { ListHeaderActions } from './ListHeaderActions';
 import { F2L3DPlayer } from './F2L3DPlayer';
-import { SelectIcon } from './SelectIcon';
-import { SelectionPresetsBar } from './SelectionPresetsBar';
 import { F2L_IDS, type F2LCategory, type F2LId } from '@/types/f2l';
-import { InfoTip } from './InfoTip';
 
 const CARD_CLASS =
   'group flex flex-col h-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-2 sm:p-3 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors';
@@ -54,7 +52,7 @@ function formatLastDate(iso: string | undefined, intl: string): string {
   }
 }
 
-export function F2LGrid() {
+export function F2LGrid({ onRandom }: { onRandom: () => void }) {
   const { ready: algReady, starredFor } = useF2LAlgorithms();
   const selection = useF2LRandomSelection();
   const presets = useSelectionPresets(f2lSelectionPresets);
@@ -87,78 +85,22 @@ export function F2LGrid() {
     };
   };
 
-  const heading = (
-    <>
-      <h1 className="flex items-center gap-1.5 text-2xl font-semibold tracking-tight">
-        {t('f2l.grid.title')}
-        <InfoTip>
-          <span className="block">{t('f2l.grid.description')}</span>
-          <span className="block">{t('grid.help')}</span>
-        </InfoTip>
-      </h1>
-    </>
-  );
-
   return (
     <div className="space-y-8">
-      {/* The title and, beside it, the case selection: one row that wraps on a narrow screen. */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        {heading}
-        {mounted && (
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            {selectionMode ? (
-              <>
-                <span className="text-zinc-500">
-                  {t('grid.selectedForRandom', { count: selection.count, total: F2L_IDS.length })}
-                </span>
-                <button
-                  type="button"
-                  onClick={selection.selectAll}
-                  className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                >
-                  {t('common.selectAll')}
-                </button>
-                <button
-                  type="button"
-                  onClick={selection.clear}
-                  className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                >
-                  {t('common.clear')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectionMode(false)}
-                  className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 text-xs font-medium"
-                >
-                  {t('common.done')}
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setSelectionMode(true)}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                >
-                  <SelectIcon className="text-sm" />
-                  {t('common.select')}
-                </button>
-                <span className="text-zinc-500 text-xs">
-                  {t('grid.shown', { count: selection.count, total: F2L_IDS.length })}
-                </span>
-              </>
-            )}
-            <SelectionPresetsBar
-              presets={presets.presets}
-              selected={selection.selected}
-              selectionMode={selectionMode}
-              onLoad={selection.replace}
-              onSave={presets.save}
-              onDelete={presets.remove}
-            />
-          </div>
-        )}
-      </div>
+      {/* The page title is the header's breadcrumb; Select and random practice sit beside it. */}
+      <h1 className="sr-only">{t('f2l.grid.title')}</h1>
+      <ListHeaderActions
+        info={<>
+          <span className="block">{t('f2l.grid.description')}</span>
+          <span className="block">{t('grid.help')}</span>
+        </>}
+        total={F2L_IDS.length}
+        selection={selection}
+        presets={presets}
+        selectionMode={selectionMode}
+        onSelectionModeChange={setSelectionMode}
+        onRandom={onRandom}
+      />
 
       {mounted && !selectionMode && totalVisible === 0 && (
         <p className="text-sm text-zinc-500 py-6 text-center">{t('f2l.grid.noneSelected')}</p>

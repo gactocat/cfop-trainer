@@ -8,7 +8,7 @@
 - Public support page: https://cfop.app/support
 - Support contact: gactocat@gmail.com
 - Guest offline storage and signed-in server storage.
-- Light/dark switch in the gear menu. With no selection, it follows the device.
+- Light/dark switch in the settings on the top page. With no selection, it follows the device.
   Explicit choices are stored in the existing practice-settings document,
   preserving compatibility with existing account document keys. Older app
   versions may drop the appearance choice when saving practice settings.

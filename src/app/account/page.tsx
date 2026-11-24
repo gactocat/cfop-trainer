@@ -1,4 +1,5 @@
-import { Home } from '@/components/Home';
+import { LandingPage } from '@/components/LandingPage';
 
-// Email callbacks keep their existing URL and open the shared account modal.
-export default function AccountPage() { return <Home />; }
+// Email callbacks keep their existing URL: the top page, where the settings
+// are, with the account dialog open.
+export default function AccountPage() { return <LandingPage />; }

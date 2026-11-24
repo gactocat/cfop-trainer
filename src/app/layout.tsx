@@ -1,15 +1,14 @@
 import type { Metadata, Viewport } from 'next';
-import Image from 'next/image';
-import Link from 'next/link';
 import { Geist, Geist_Mono } from 'next/font/google';
-import { PracticeTabs } from '@/components/PracticeTabs';
+import { AppDialogs } from '@/components/AppDialogs';
+import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { HtmlLang } from '@/components/HtmlLang';
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
-import { SettingsButton } from '@/components/SettingsButton';
 import { AccountBoundary, AccountSession } from '@/components/AccountBoundary';
 import { ColorTheme } from '@/components/ColorTheme';
 import { PublicLinks } from '@/components/PublicLinks';
 import { DISPLAY_INIT_SCRIPT } from '@/lib/display-init-script';
+import { HEADER_ACTIONS_ID, HEADER_TOOLBAR_ID } from '@/lib/header-slots';
 import './globals.css';
 
 const geistSans = Geist({
@@ -73,18 +72,17 @@ export default function RootLayout({
         <HtmlLang />
         <ColorTheme />
         <header className="pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur sticky top-0 z-10">
-          <div className="mx-auto max-w-6xl px-3 sm:px-4 py-3 flex items-center gap-2 sm:gap-4">
-            <Link href="/" className="mr-1 sm:mr-2 shrink-0 flex items-center gap-2 whitespace-nowrap font-semibold text-base sm:text-lg tracking-tight">
-              <Image src="/logo.svg" alt="" width={27} height={28} className="h-6 w-auto sm:h-7" />
-              CFOP Trainer
-            </Link>
-            <PracticeTabs />
-            <SettingsButton />
+          {/* The breadcrumb, then what the page adds: a list page's Select and random practice, and its selection tools below. */}
+          <div className="mx-auto max-w-6xl px-3 sm:px-4 py-3 flex min-h-[3.75rem] items-center gap-2">
+            <Breadcrumbs />
+            <div id={HEADER_ACTIONS_ID} className="flex flex-1 items-center gap-2" />
           </div>
+          <div id={HEADER_TOOLBAR_ID} />
         </header>
         <main className="mx-auto w-full max-w-6xl pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] flex-1">
           <AccountBoundary>{children}</AccountBoundary>
         </main>
+        <AppDialogs />
         <footer className="mx-auto w-full max-w-6xl px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]"><PublicLinks /></footer>
       </body>
     </html>

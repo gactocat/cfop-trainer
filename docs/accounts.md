@@ -96,9 +96,9 @@ domain for `cfop-trainer`:
 Add each redirect URL as a separate entry. If you use a different local port or
 preview deployment, add its exact `/account` URL too. Keep the default
 confirmation/reset email links using `{{ .ConfirmationURL }}`. The app passes
-`/account` as the destination and opens the same account modal over the practice
-screen for confirmation and password recovery. Normal sign-in opens from the
-header gear menu without navigating away from the current page.
+`/account` as the destination and opens the same account modal over the top
+page for confirmation and password recovery. Normal sign-in opens from Account
+in the settings on the top page (CFOP Trainer in the header leads there).
 
 See [password authentication](https://supabase.com/docs/guides/auth/passwords)
 and [redirect URL configuration](https://supabase.com/docs/guides/auth/redirect-urls).

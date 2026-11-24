@@ -48,8 +48,9 @@ export function SelectionPresetsBar<Id extends string>({
     }
   };
 
+  // The parts flow with the selection tools around them (see ListHeaderActions).
   return (
-    <div className="flex items-center gap-2 flex-wrap">
+    <div className="contents">
       {presets.length > 0 && (
         <select
           aria-label={t('selection.savedSetsAria')}

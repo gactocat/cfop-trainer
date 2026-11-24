@@ -77,15 +77,6 @@ export function PllDetail({ pllId }: PllDetailProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link
-          href="/pll"
-          className="inline-flex items-center text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
-        >
-          {t('pll.detail.all')}
-        </Link>
-      </div>
-
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
         <div className="space-y-2">
           <h1 className="text-3xl font-semibold tracking-tight">{def.name}</h1>

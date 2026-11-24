@@ -6,6 +6,7 @@ import { useT } from '@/hooks/useT';
 import { F2L_IDS } from '@/types/f2l';
 import { OLL_IDS } from '@/types/oll';
 import { PLL_IDS } from '@/types/pll';
+import { HomeSettings } from './HomeSettings';
 import { ShuffleIcon } from './ShuffleIcon';
 
 const PRACTICES = [
@@ -78,6 +79,8 @@ export function LandingPage() {
           ))}
         </div>
       </nav>
+
+      <HomeSettings />
 
       <section aria-labelledby="use-cases-heading" className="mt-10 sm:mt-14">
         <h2 id="use-cases-heading" className="mb-4 text-sm font-medium text-zinc-600 dark:text-zinc-400">{t('landing.useCases')}</h2>
