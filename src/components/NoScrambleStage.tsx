@@ -78,7 +78,7 @@ export function NoScrambleStage({ state, trainer, elapsed, selectedNote }: {
                 onClick={() => openAppDialog('smartCube')}
                 className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
               >
-                {t('trainer.noScramble.connectButton')}
+                {t('practice.cube.connect')}
               </button>
             </>
           ) : state === 'idle' ? (

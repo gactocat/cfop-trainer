@@ -27,14 +27,14 @@ import { forgetMac, setHolding } from '@/lib/smart-cube-settings-store';
 import { clearSmartSolves, MAX_SMART_SOLVES } from '@/lib/smart-solve-store';
 import { useSmartSolveCount } from '@/hooks/useSmartSolves';
 
-const UNSUPPORTED: Record<SmartCubeUnsupported, MessageKey> = {
+export const UNSUPPORTED: Record<SmartCubeUnsupported, MessageKey> = {
   ios: 'smartCube.unsupported.ios',
   insecure: 'smartCube.unsupported.insecure',
   firefox: 'smartCube.unsupported.firefox',
   safari: 'smartCube.unsupported.safari',
   browser: 'smartCube.unsupported.browser',
 };
-const STATUS: Record<SmartCubeStatus, MessageKey> = {
+export const STATUS: Record<SmartCubeStatus, MessageKey> = {
   idle: 'smartCube.status.idle',
   choosing: 'smartCube.status.choosing',
   scanning: 'smartCube.status.scanning',
@@ -43,7 +43,7 @@ const STATUS: Record<SmartCubeStatus, MessageKey> = {
   connecting: 'smartCube.status.connecting',
   connected: 'smartCube.status.connected',
 };
-const PROBLEM: Record<SmartCubeProblem, MessageKey> = {
+export const PROBLEM: Record<SmartCubeProblem, MessageKey> = {
   'not-gen4': 'smartCube.problem.notGen4',
   'invalid-mac': 'smartCube.problem.invalidMac',
   'wrong-mac': 'smartCube.problem.wrongMac',

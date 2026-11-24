@@ -11,9 +11,9 @@ export interface SmartCubeSettings {
   /** MAC address per advertised device name, remembered after a successful connection. */
   macs: Readonly<Record<string, string>>;
   /**
-   * Random training in no-scramble mode. Kept here, on the device, rather than
-   * in the synced trainer mode: it needs this device's smart cube, and older
-   * app versions only know standard and inverse.
+   * No-scramble chosen as a third random-training mode (versions before the
+   * two modes). It now reads as no setup (`practiceModeFrom`) and is cleared
+   * when a mode is chosen; with no setup, a connected cube gives no-scramble.
    */
   noScramble: boolean;
   /** No-scramble: show the next case by itself once the cube has been still; otherwise Next does. */

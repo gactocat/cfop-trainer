@@ -51,16 +51,21 @@ interface Props<Id extends string> {
   bestFor: (id: Id) => number | null;
   ao5For: (id: Id) => number | null;
   solvesFor: (id: Id) => unknown[];
+  /** Case practice: one case, recorded to one algorithm, so no selection note. */
+  single?: boolean;
 }
 
 export function LastLayerRandomTrainer<Id extends string>({
   practice, ids, selected, algorithmFor, alternativesFor, nameFor, lastRecorded, add, remove, bestFor, ao5For, solvesFor,
+  single = false,
 }: Props<Id>) {
   const { t, tn } = useT();
   const { settings } = usePracticeSettings();
-  // No-scramble is a device-local mode on top of the synced trainer mode.
-  const noScramble = useTrainerMode() === 'no-scramble';
-  const inverse = settings.trainerMode === 'inverse' && !noScramble;
+  // Fixed when the practice started: no setup runs on the virtual cube when a
+  // smart cube was connected, and as the tap timer otherwise.
+  const mode = useTrainerMode();
+  const noScramble = mode === 'no-scramble';
+  const inverse = mode === 'inverse';
   // Both inverse and no-scramble show the case before timing, so draw it ahead.
   const drawAhead = inverse || noScramble;
   const solver = useLastLayerSolver();
@@ -225,7 +230,7 @@ export function LastLayerRandomTrainer<Id extends string>({
       </div>
       {previousSolves > 0 && (
         <div className="mt-1 text-xs font-mono text-amber-700/80 dark:text-amber-300/80">
-          {t('detail.randomStats', {
+          {t(single ? 'detail.caseStats' : 'detail.randomStats', {
             best: formatSeconds(bestFor(current.id)),
             ao5: formatSeconds(ao5For(current.id)),
             solves: tn('common.solves', previousSolves),
@@ -273,15 +278,10 @@ export function LastLayerRandomTrainer<Id extends string>({
     </>
   );
 
+  const selectedNote = mounted && !single ? t('trainer.selectedCount', { count: selected.size, total: ids.length }) : '';
+
   if (noScramble && !noneSelected) {
-    return (
-      <NoScrambleStage
-        state={state}
-        trainer={virtual}
-        elapsed={elapsed}
-        selectedNote={mounted ? t('trainer.selectedCount', { count: selected.size, total: ids.length }) : ''}
-      />
-    );
+    return <NoScrambleStage state={state} trainer={virtual} elapsed={elapsed} selectedNote={selectedNote} />;
   }
 
   if (state === 'stopped' && current) {
@@ -354,9 +354,7 @@ export function LastLayerRandomTrainer<Id extends string>({
         <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
           {t('trainer.tapOrSpaceToStart')}
         </div>
-        <div className="text-xs opacity-75">
-          {mounted && t('trainer.selectedCount', { count: selected.size, total: ids.length })}
-        </div>
+        <div className="text-xs opacity-75">{selectedNote}</div>
       </button>
     );
   }
@@ -374,9 +372,7 @@ export function LastLayerRandomTrainer<Id extends string>({
       <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
         {t('trainer.tapOrSpaceToStart')}
       </div>
-      <div className="text-xs opacity-75">
-        {mounted && t('trainer.selectedCount', { count: selected.size, total: ids.length })}
-      </div>
+      <div className="text-xs opacity-75">{selectedNote}</div>
     </button>
   );
 }

@@ -1,9 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { useEscapeKey } from '@/hooks/useEscapeKey';
-import { useSpacebar } from '@/hooks/useSpacebar';
-import { useNativeTimer } from '@/hooks/useNativeTimer';
+import { useState, type FormEvent } from 'react';
 import { useT } from '@/hooks/useT';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import type { TimeRecord } from '@/types/pll';
@@ -26,113 +23,6 @@ function formatRecordedAt(iso: string, intl: string): string {
   } catch {
     return iso;
   }
-}
-
-type StopwatchState = 'idle' | 'running' | 'stopped';
-
-function Stopwatch({ onRecord }: { onRecord: (seconds: number) => void }) {
-  const { t } = useT();
-  const [state, setState] = useState<StopwatchState>('idle');
-  const [elapsed, setElapsed] = useState(0);
-  const startRef = useRef(0);
-  const rafRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (state !== 'running') return;
-    const tick = () => {
-      setElapsed((Date.now() - startRef.current) / 1000);
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => {
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-    };
-  }, [state]);
-
-  const start = useCallback(() => {
-    startRef.current = Date.now();
-    setElapsed(0);
-    setState('running');
-  }, []);
-  const stop = useCallback(() => {
-    setElapsed((Date.now() - startRef.current) / 1000);
-    setState('stopped');
-  }, []);
-  useNativeTimer(state === 'running', stop);
-
-  const record = useCallback(() => {
-    if (elapsed > 0) onRecord(elapsed);
-    setState('idle');
-    setElapsed(0);
-  }, [elapsed, onRecord]);
-  const discard = useCallback(() => {
-    setState('idle');
-    setElapsed(0);
-  }, []);
-
-  // Keyboard: Space mirrors the tap action (idle → start, running → stop) and
-  // records on the result screen; Escape discards there.
-  const onSpace = useCallback(() => {
-    if (state === 'idle') start();
-    else if (state === 'running') stop();
-    else record();
-  }, [state, start, stop, record]);
-  useSpacebar(onSpace);
-  useEscapeKey(discard, state === 'stopped');
-
-  // Big tap-anywhere surface for idle/running. Stopped state shrinks the
-  // surface and shows explicit Record/Discard buttons.
-  const surfaceClasses =
-    state === 'running'
-      ? 'bg-rose-500 hover:bg-rose-600 text-white'
-      : 'bg-emerald-500 hover:bg-emerald-600 text-white';
-
-  if (state === 'stopped') {
-    return (
-      <div className="rounded-md border border-amber-400 dark:border-amber-500 bg-amber-50 dark:bg-amber-950/30 p-6 flex flex-col items-center gap-4 select-none">
-        <div className="font-mono text-6xl sm:text-7xl font-bold tabular-nums text-amber-700 dark:text-amber-300">
-          {elapsed.toFixed(3)}
-        </div>
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={record}
-            className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 font-semibold"
-          >
-            ✓ {t('common.record')}
-            <kbd className="hidden sm:inline ml-2 text-[10px] font-mono font-normal opacity-70">Space</kbd>
-          </button>
-          <button
-            type="button"
-            onClick={discard}
-            className="rounded-md border border-zinc-300 dark:border-zinc-700 px-6 py-2.5 font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800"
-          >
-            ✗ {t('common.discard')}
-            <kbd className="hidden sm:inline ml-2 text-[10px] font-mono font-normal opacity-70">Esc</kbd>
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      onPointerDown={state === 'idle' ? start : stop}
-      className={`w-full min-h-[220px] rounded-md flex flex-col items-center justify-center gap-3 transition-colors select-none touch-none ${surfaceClasses}`}
-      aria-label={state === 'idle' ? t('stopwatch.tapToStartAria') : t('stopwatch.tapToStopAria')}
-    >
-      <div
-        className="font-mono text-6xl sm:text-7xl font-bold tabular-nums leading-none"
-        aria-live="polite"
-      >
-        {elapsed.toFixed(3)}
-      </div>
-      <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
-        {state === 'idle' ? t('stopwatch.tapToStart') : t('stopwatch.tapToStop')}
-      </div>
-    </button>
-  );
 }
 
 export function TimeHistoryPanel({
@@ -160,8 +50,6 @@ export function TimeHistoryPanel({
         <Stat label={t('common.best')} value={formatSeconds(best)} accent="emerald" />
         <Stat label={t('common.ao5')} value={formatSeconds(ao5)} />
       </div>
-
-      <Stopwatch onRecord={onAdd} />
 
       <form onSubmit={handleAdd} className="flex gap-2">
         <input

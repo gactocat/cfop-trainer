@@ -19,8 +19,8 @@ import { combineAuf, invertAuf, prefixAuf } from '@/lib/f2l-auf';
 import { buildF2LSetup, seededRandom } from '@/lib/f2l-scramble';
 import { pickStaleWeighted } from '@/lib/stale-weighted-pick';
 import { deleteSmartSolve } from '@/lib/smart-solve-store';
-import { formatSeconds } from '@/lib/stats';
-import { F2L_IDS, type F2LId } from '@/types/f2l';
+import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
+import { F2L_IDS, type F2LAlgorithmRecord, type F2LId } from '@/types/f2l';
 import type { Auf } from '@/types/pll';
 import { F2L3DPlayer } from './F2L3DPlayer';
 import { SmartCubeSetupStatus, SmartCubeSetupTokens } from './SmartCubeSetupGuide';
@@ -29,16 +29,78 @@ import { NoScrambleStage } from './NoScrambleStage';
 
 type TrainerState = 'idle' | 'running' | 'stopped';
 
+interface F2LTrainerProps {
+  ids: readonly F2LId[];
+  selected: ReadonlySet<F2LId>;
+  // Epoch ms of each case's most recent solve, driving the staleness-weighted
+  // draw: cases timed longest ago (or never) surface more often.
+  lastRecorded: Map<F2LId, number>;
+  /** The algorithm a case is set up and shown with; null falls back to speedcubedb's primary. */
+  algorithmFor: (id: F2LId) => { auf: Auf; algorithm: string } | null;
+  /** Records a time; returns its id (for undo), or null when nothing was recorded. */
+  add: (id: F2LId, seconds: number) => string | null;
+  remove: (solveId: string) => void;
+  bestFor: (id: F2LId) => number | null;
+  ao5For: (id: F2LId) => number | null;
+  solvesFor: (id: F2LId) => unknown[];
+  /** Case practice: one case, recorded to one algorithm, so no selection note. */
+  single?: boolean;
+}
+
+// Random F2L practice: the cases ticked in the grid, timed into the random
+// solves, with the starred algorithms.
 export function F2LRandomTrainer() {
-  const { t, tn } = useT();
-  const { add, remove, all, bestFor, ao5For, solvesFor } = useF2LRandomSolves();
+  const solves = useF2LRandomSolves();
   const { starredFor } = useF2LAlgorithms();
   const { selected } = useF2LRandomSelection();
+  const lastRecorded = useMemo(() => {
+    const map = new Map<F2LId, number>();
+    for (const s of solves.all) {
+      const ts = Date.parse(s.recordedAt);
+      if (Number.isNaN(ts)) continue;
+      const prev = map.get(s.f2lId);
+      if (prev === undefined || ts > prev) map.set(s.f2lId, ts);
+    }
+    return map;
+  }, [solves.all]);
+  return (
+    <F2LTrainer
+      ids={F2L_IDS} selected={selected} lastRecorded={lastRecorded} algorithmFor={starredFor}
+      add={solves.add} remove={solves.remove} bestFor={solves.bestFor} ao5For={solves.ao5For} solvesFor={solves.solvesFor}
+    />
+  );
+}
+
+// Practice of one algorithm from its case page: the same trainer with a
+// single case, timed into that algorithm's times.
+export function F2LCaseTrainer({ record }: { record: F2LAlgorithmRecord }) {
+  const { addTime, removeTime } = useF2LAlgorithms();
+  const { id, f2lId, auf, algorithm, times } = record;
+  const ids = useMemo(() => [f2lId], [f2lId]);
+  const selected = useMemo(() => new Set([f2lId]), [f2lId]);
+  const lastRecorded = useMemo(() => new Map<F2LId, number>(), []);
+  const algorithmFor = useCallback(() => ({ auf, algorithm }), [auf, algorithm]);
+  return (
+    <F2LTrainer
+      ids={ids} selected={selected} lastRecorded={lastRecorded} algorithmFor={algorithmFor} single
+      add={(_case, seconds) => addTime(id, seconds)}
+      remove={(timeId) => removeTime(id, timeId)}
+      bestFor={() => bestSeconds(times)} ao5For={() => averageOfN(times, 5)} solvesFor={() => times}
+    />
+  );
+}
+
+export function F2LTrainer({
+  ids, selected, lastRecorded, algorithmFor, add, remove, bestFor, ao5For, solvesFor, single = false,
+}: F2LTrainerProps) {
+  const { t, tn } = useT();
   const { settings: scrambleSettings } = usePracticeSettings();
-  const { aufDisplay: aufMode, trainerMode } = scrambleSettings;
-  // No-scramble is a device-local mode on top of the synced trainer mode.
-  const noScramble = useTrainerMode() === 'no-scramble';
-  const inverse = trainerMode === 'inverse' && !noScramble;
+  const { aufDisplay: aufMode } = scrambleSettings;
+  // Fixed when the practice started: no setup runs on the virtual cube when a
+  // smart cube was connected, and as the tap timer otherwise.
+  const mode = useTrainerMode();
+  const noScramble = mode === 'no-scramble';
+  const inverse = mode === 'inverse';
   // Both inverse and no-scramble show the case before timing, so draw it ahead.
   const drawAhead = inverse || noScramble;
   const [state, setState] = useState<TrainerState>('idle');
@@ -56,30 +118,17 @@ export function F2LRandomTrainer() {
   // No-scramble without a connected cube has nothing to solve, so Space waits.
   const startBlockedRef = useRef(false);
 
-  // Epoch ms of each case's most recent solve, driving the staleness-weighted
-  // draw below — cases timed longest ago (or never) surface more often.
-  const lastRecorded = useMemo(() => {
-    const map = new Map<F2LId, number>();
-    for (const s of all) {
-      const ts = Date.parse(s.recordedAt);
-      if (Number.isNaN(ts)) continue;
-      const prev = map.get(s.f2lId);
-      if (prev === undefined || ts > prev) map.set(s.f2lId, ts);
-    }
-    return map;
-  }, [all]);
-
-  // Draw only from the cases the user ticked in the grid below. Falls back to
-  // the full set if nothing is selected (shouldn't happen — start is disabled).
-  // Also returns a fresh seed for the case's setup.
+  // Draw only from the selected cases. Falls back to all of `ids` if nothing
+  // is selected (shouldn't happen — start is disabled). Also returns a fresh
+  // seed for the case's setup.
   const pickRandom = useCallback((): { id: F2LId; seed: number } => {
-    const pool = F2L_IDS.filter((id) => selected.has(id));
-    const list = pool.length > 0 ? pool : F2L_IDS;
+    const pool = ids.filter((id) => selected.has(id));
+    const list = pool.length > 0 ? pool : ids;
     return {
       id: pickStaleWeighted(list, (id) => lastRecorded.get(id), Date.now()),
       seed: Math.floor(Math.random() * 0x7fffffff),
     };
-  }, [selected, lastRecorded]);
+  }, [ids, selected, lastRecorded]);
 
   const noneSelected = mounted && selected.size === 0;
 
@@ -156,19 +205,20 @@ export function F2LRandomTrainer() {
 
 
   // Everything the three case screens need, derived once from the drawn case
-  // and its seed. The starred algorithm wins; the speedcubedb primary (which
-  // carries its own AUF as a leading turn) is the fallback.
+  // and its seed. The given algorithm (the starred one in random practice)
+  // wins; the speedcubedb primary (which carries its own AUF as a leading
+  // turn) is the fallback.
   const shown = useMemo(() => {
     if (!current) return null;
     const def = getF2LDefinition(current);
-    const star = starredFor(current);
+    const star = algorithmFor(current);
     const auf: Auf = star?.auf ?? 'U0';
     const body = star?.algorithm ?? def?.primaryAlg ?? '';
     const setup = buildF2LSetup(current, { auf, body }, scrambleSettings, seededRandom(setupSeed));
     // The U turn needed from the shown orientation before the body.
     const effectiveAuf = combineAuf(invertAuf(setup.uOffset), auf);
     return { def, star, auf, body, setup, effectiveAuf };
-  }, [current, starredFor, scrambleSettings, setupSeed]);
+  }, [current, algorithmFor, scrambleSettings, setupSeed]);
 
   // With a smart cube connected, inverse mode follows the setup on the cube
   // and starts and stops the timer by itself; without one this is null.
@@ -267,7 +317,7 @@ export function F2LRandomTrainer() {
       </div>
       {previousSolves > 0 && (
         <div className="mt-1 text-xs font-mono text-amber-700/80 dark:text-amber-300/80">
-          {t('detail.randomStats', {
+          {t(single ? 'detail.caseStats' : 'detail.randomStats', {
             best: formatSeconds(bestFor(current)),
             ao5: formatSeconds(ao5For(current)),
             solves: tn('common.solves', previousSolves),
@@ -325,8 +375,8 @@ export function F2LRandomTrainer() {
     </>
   );
 
-  const selectedNote = mounted
-    ? t('trainer.selectedCount', { count: selected.size, total: F2L_IDS.length })
+  const selectedNote = mounted && !single
+    ? t('trainer.selectedCount', { count: selected.size, total: ids.length })
     : '';
 
   if (noScramble && !noneSelected) {

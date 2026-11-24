@@ -40,7 +40,8 @@ export interface UseF2LAlgorithmsResult {
   ) => void;
   setStar: (id: string) => void;
   remove: (id: string) => void;
-  addTime: (algorithmId: string, seconds: number) => void;
+  /** Records a time; returns its id, or null when the time is invalid. */
+  addTime: (algorithmId: string, seconds: number) => string | null;
   removeTime: (algorithmId: string, timeId: string) => void;
 }
 
@@ -118,8 +119,8 @@ export function useF2LAlgorithms(): UseF2LAlgorithmsResult {
     mutate((prev) => prev.filter((r) => r.id !== id));
   }, []);
 
-  const addTime = useCallback((algorithmId: string, seconds: number) => {
-    if (!Number.isFinite(seconds) || seconds <= 0) return;
+  const addTime = useCallback((algorithmId: string, seconds: number): string | null => {
+    if (!Number.isFinite(seconds) || seconds <= 0) return null;
     const t: TimeRecord = {
       id: newId(),
       seconds,
@@ -132,6 +133,7 @@ export function useF2LAlgorithms(): UseF2LAlgorithmsResult {
           : r,
       ),
     );
+    return t.id;
   }, []);
 
   const removeTime = useCallback((algorithmId: string, timeId: string) => {

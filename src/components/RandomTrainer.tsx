@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { getPllDefinition } from '@/data/pll-definitions';
 import { PRESET_ALGORITHMS } from '@/data/preset-algorithms';
 import { useAlgorithms } from '@/hooks/useAlgorithms';
@@ -8,12 +8,29 @@ import { usePllRandomSelection } from '@/hooks/usePllRandomSelection';
 import { useRandomSolves } from '@/hooks/useRandomSolves';
 import { splitAuf } from '@/lib/auf-from-algorithm';
 import { prefixAuf } from '@/lib/f2l-auf';
-import { PLL_IDS, type PllId } from '@/types/pll';
+import { averageOfN, bestSeconds } from '@/lib/stats';
+import { PLL_IDS, type AlgorithmRecord, type PllId } from '@/types/pll';
 import { LastLayerRandomTrainer } from './LastLayerRandomTrainer';
+
+// Every known algorithm for a case (with AUF prefix): the user's and the
+// presets, used to vary the inverse setup.
+function usePllAlternatives() {
+  const { forPll } = useAlgorithms();
+  return useCallback((id: PllId) => [
+    ...forPll(id).map((r) => prefixAuf(r.auf, r.algorithm)),
+    ...PRESET_ALGORITHMS[id].map((preset) => {
+      const { auf, rest } = splitAuf(preset);
+      return prefixAuf(auf, rest);
+    }),
+  ], [forPll]);
+}
+
+const nameFor = (id: PllId) => getPllDefinition(id)?.name ?? id;
 
 export function RandomTrainer() {
   const solves = useRandomSolves();
-  const { starredFor, forPll } = useAlgorithms();
+  const { starredFor } = useAlgorithms();
+  const alternativesFor = usePllAlternatives();
   const { selected } = usePllRandomSelection();
   const lastRecorded = useMemo(() => {
     const map = new Map<PllId, number>();
@@ -31,14 +48,28 @@ export function RandomTrainer() {
       const { auf, rest } = splitAuf(PRESET_ALGORITHMS[id][0]);
       return { auf, algorithm: rest };
     }}
-    alternativesFor={(id) => [
-      ...forPll(id).map((r) => prefixAuf(r.auf, r.algorithm)),
-      ...PRESET_ALGORITHMS[id].map((preset) => {
-        const { auf, rest } = splitAuf(preset);
-        return prefixAuf(auf, rest);
-      }),
-    ]}
-    nameFor={(id) => getPllDefinition(id)?.name ?? id}
+    alternativesFor={alternativesFor}
+    nameFor={nameFor}
     add={solves.add} remove={solves.remove} bestFor={solves.bestFor} ao5For={solves.ao5For} solvesFor={solves.solvesFor}
+  />;
+}
+
+// Practice of one algorithm from its case page: the same trainer with a
+// single case, timed into that algorithm's times.
+export function PllCaseTrainer({ record }: { record: AlgorithmRecord }) {
+  const { addTime, removeTime } = useAlgorithms();
+  const alternativesFor = usePllAlternatives();
+  const { id, pllId, auf, algorithm, times } = record;
+  const ids = useMemo(() => [pllId], [pllId]);
+  const selected = useMemo(() => new Set([pllId]), [pllId]);
+  const lastRecorded = useMemo(() => new Map<PllId, number>(), []);
+  return <LastLayerRandomTrainer
+    practice="pll" ids={ids} selected={selected} lastRecorded={lastRecorded} single
+    algorithmFor={() => ({ auf, algorithm })}
+    alternativesFor={alternativesFor}
+    nameFor={nameFor}
+    add={(_case, seconds) => addTime(id, seconds)}
+    remove={(timeId) => removeTime(id, timeId)}
+    bestFor={() => bestSeconds(times)} ao5For={() => averageOfN(times, 5)} solvesFor={() => times}
   />;
 }

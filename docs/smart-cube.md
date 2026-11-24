@@ -9,14 +9,18 @@ instead of offering a connection.
 ## Using it
 
 Gear menu, Smart cube: connect, see battery and model, choose how the cube is
-held, and enter the MAC address if Chrome cannot read it. The cube's data is
+held, and enter the MAC address if Chrome cannot read it. The practice options
+(random practice and an algorithm's practice on its case page) also offer
+"Connect smart cube" and show the connected cube with its battery; they open
+the dialog for the MAC address and, in the iOS app, for the list of cubes. The cube's data is
 encrypted with its MAC; Chrome reads it from the cube's advertisements only
 with `chrome://flags/#enable-experimental-web-platform-features`. A MAC that
 works (the cube then reports a readable model name) is saved per device name
 in localStorage under `cfop:smart-cube:v1`, together with the holding. It is
 never part of the account document.
 
-With a cube connected and the random trainer in inverse-setup mode, F2L, OLL
+Practice has two modes, no setup and with setup. A connected cube changes how
+each runs: no setup becomes no scramble (below), and with setup, for F2L, OLL
 and PLL:
 
 1. The setup must start from the practice's goal state: F2L solved (F2L),
@@ -32,8 +36,8 @@ and PLL:
    between the first and the last turn, so Bluetooth delivery delay does not
    count. Recording or discarding stays manual.
 
-Tap and Space still start and stop the timer. Without a connected cube nothing
-changes, and standard mode ignores the cube.
+Tap and Space still start and stop the timer. Without a connected cube, with
+setup shows the setup to apply by hand and no setup is the tap timer.
 
 ## iOS app
 
@@ -56,7 +60,7 @@ The simulator has no Bluetooth, so only builds can be checked there.
 
 ## No scramble
 
-A third random-trainer mode, next to standard and inverse setup. The case is
+No setup with a cube connected when the practice starts. The case is
 built as a virtual cube (the trainer's setup applied to a solved cube, in the
 chosen holding) and drawn with one persistent 3D player; the smart cube's
 turns move the virtual cube, while the physical cube's own state (FACELETS)
@@ -83,13 +87,15 @@ case" does. Stopping by hand records the host-timed attempt the same way, and
 leaving the iOS app abandons the attempt. The app keeps the screen on while a
 cube is connected in this mode.
 
-Random practice asks for its mode, random AUF and, for no-scramble, the
-automatic next case each time it opens, starting from the last choices; the
-settings dialog no longer has them. The choice is device-local (`noScramble`
-and `autoAdvance` in `cfop:smart-cube:v1`) and layered
-over the synced trainer mode, which keeps only standard and inverse, so older
-app versions and other devices are unaffected. It is offered only where a cube can
-connect; without a connected cube the trainer asks to connect one.
+A practice asks for its mode, a smart cube, random AUF and, for no scramble,
+the automatic next case each time it opens, starting from the last choices.
+The mode is stored in the synced trainer mode with the values older app
+versions know: no setup as `standard`, with setup as `inverse`. The three-mode
+version kept no scramble as a device-local `noScramble` flag in
+`cfop:smart-cube:v1`; it reads as no setup and is cleared once a mode is
+chosen (`src/lib/practice-mode.ts`). `autoAdvance` stays device-local. How the
+practice runs is fixed when it starts, so a cube lost mid-session leaves the
+no-scramble screen asking to reconnect rather than switching to the tap timer.
 Recorded solves carry `mode: 'no-scramble'`.
 
 ## Recorded solves

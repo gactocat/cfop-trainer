@@ -7,19 +7,21 @@ import { useAlgorithms } from '@/hooks/useAlgorithms';
 import { usePllRandomSelection } from '@/hooks/usePllRandomSelection';
 import { useMounted } from '@/hooks/useMounted';
 import { useSelectionPresets } from '@/hooks/useSelectionPresets';
-import { usePracticeSettings } from '@/hooks/usePracticeSettings';
-import { prefixAuf } from '@/lib/f2l-auf';
 import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
 import { pllSelectionPresets } from '@/lib/pll-selection-presets-store';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import { PllLLView } from './PllLLView';
+import { SelectIcon } from './SelectIcon';
 import { SelectionPresetsBar } from './SelectionPresetsBar';
 import { PLL_IDS, type PllCategory, type PllId } from '@/types/pll';
 import { InfoTip } from './InfoTip';
 
 const CARD_CLASS =
-  'group flex flex-col h-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors';
+  'group flex flex-col h-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-2 sm:p-3 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors';
+
+// Narrow cards that fill each row: three across on a phone, more on wider screens.
+const GRID_CLASS = 'grid grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] gap-2 sm:gap-3';
 
 const CATEGORY_KEYS: Record<PllCategory, MessageKey> = {
   epll: 'pll.category.epll',
@@ -50,11 +52,10 @@ function formatLastDate(iso: string | undefined, intl: string): string {
 }
 
 export function PllGrid() {
-  const { ready: algReady, starredFor, all: allAlgorithms } = useAlgorithms();
+  const { ready: algReady, starredFor } = useAlgorithms();
   const selection = usePllRandomSelection();
   const presets = useSelectionPresets(pllSelectionPresets);
-  const { t, tn, intl } = useT();
-  const { settings } = usePracticeSettings();
+  const { t, intl } = useT();
   const mounted = useMounted();
   const [selectionMode, setSelectionMode] = useState(false);
   // Checkboxes only render in selection mode (and after mount so SSR/hydration
@@ -93,11 +94,6 @@ export function PllGrid() {
           <span className="block">{t('grid.help')}</span>
         </InfoTip>
       </h1>
-      {algReady && (
-        <p className="text-xs text-zinc-500 mt-1">
-          {tn('common.algorithmsSaved', allAlgorithms.length)}
-        </p>
-      )}
     </>
   );
 
@@ -139,9 +135,10 @@ export function PllGrid() {
               <button
                 type="button"
                 onClick={() => setSelectionMode(true)}
-                className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
               >
-                {t('common.selectCases')}
+                <SelectIcon className="text-sm" />
+                {t('common.select')}
               </button>
               <span className="text-zinc-500 text-xs">
                 {t('grid.shown', { count: selection.count, total: PLL_IDS.length })}
@@ -171,7 +168,7 @@ export function PllGrid() {
           <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-3">
             {t(CATEGORY_KEYS[category])}
           </h2>
-          <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          <ul className={GRID_CLASS}>
             {visible.map((pll) => {
               const star = algReady ? starredFor(pll.id) : null;
               const { best, ao5, last, count } = statsFor(pll.id);
@@ -182,8 +179,8 @@ export function PllGrid() {
               // link to the detail page until selection is done.
               const card = (
                 <>
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <span className="flex items-center gap-2 min-w-0">
+                    <div className="flex flex-wrap items-start justify-between gap-1 mb-2">
+                      <span className="flex items-center gap-1.5 min-w-0">
                         {showSelect && (
                           <span
                             aria-hidden
@@ -199,39 +196,22 @@ export function PllGrid() {
                         <span className="font-medium text-sm">{pll.name}</span>
                       </span>
                       <span
-                        className={`text-xs font-mono px-1.5 py-0.5 rounded ${timeBadgeClasses(best)}`}
+                        className={`text-[11px] font-mono px-1 py-0.5 rounded ${timeBadgeClasses(best)}`}
                       >
                         {formatSeconds(best)}
                       </span>
                     </div>
                     <div className="flex justify-center mb-2">
-                      <PllLLView pllId={pll.id} auf={displayAuf} algorithm={star?.algorithm} size={96} />
-                    </div>
-                    <div className="text-[11px] font-mono text-zinc-700 dark:text-zinc-300 break-words leading-snug min-h-[2.5em] flex items-center justify-center text-center">
-                      {star ? (
-                        <span>
-                          <span
-                            className="text-amber-500 mr-1"
-                            aria-label={t('common.starred')}
-                            title={t('common.starred')}
-                          >
-                            ★
-                          </span>
-                          {settings.aufDisplay === 'prefix' ? prefixAuf(star.auf, star.algorithm) : star.algorithm}
-                        </span>
-                      ) : (
-                        <span className="text-zinc-400 italic">{t('pll.grid.noAlgorithm')}</span>
-                      )}
+                      <PllLLView pllId={pll.id} auf={displayAuf} algorithm={star?.algorithm} size={88} />
                     </div>
                     {count > 0 && (
-                      <div className="mt-2 flex items-center justify-center gap-2 text-[10px] text-zinc-500 font-mono">
+                      <div className="mt-auto pt-2 flex flex-wrap items-center justify-center gap-x-2 text-[10px] text-zinc-500 font-mono">
                         <span>
                           ao5{' '}
                           <span className="text-zinc-700 dark:text-zinc-300">
                             {formatSeconds(ao5)}
                           </span>
                         </span>
-                        <span aria-hidden>·</span>
                         <span title={t('common.lastRecordedDate')}>{formatLastDate(last, intl)}</span>
                       </div>
                     )}

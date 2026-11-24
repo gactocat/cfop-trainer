@@ -22,7 +22,8 @@ export function FullScreenModal({ open, onClose, title, info, children }: FullSc
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      // A dialog opened on top (the smart cube one) closes by itself.
+      if (e.key === 'Escape' && !document.querySelector('[data-app-overlay]')) onClose();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);

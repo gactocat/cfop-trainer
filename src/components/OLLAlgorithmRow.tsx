@@ -17,6 +17,8 @@ interface OLLAlgorithmRowProps {
   onRemove: (id: string) => void;
   onAddTime: (id: string, seconds: number) => void;
   onRemoveTime: (id: string, timeId: string) => void;
+  /** Open the practice of this algorithm. */
+  onPractice: (id: string) => void;
 }
 
 export function OLLAlgorithmRow({
@@ -26,6 +28,7 @@ export function OLLAlgorithmRow({
   onRemove,
   onAddTime,
   onRemoveTime,
+  onPractice,
 }: OLLAlgorithmRowProps) {
   const { t, tn } = useT();
   const { settings } = usePracticeSettings();
@@ -113,6 +116,13 @@ export function OLLAlgorithmRow({
             its own Update / Cancel. */}
         {!editing && (
           <div className="mt-3 flex items-center justify-end gap-1">
+            <button
+              type="button"
+              onClick={() => onPractice(record.id)}
+              className="text-xs px-2 py-1 rounded-md font-medium text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
+            >
+              {t('algRow.practice')}
+            </button>
             <button
               type="button"
               onClick={() => setExpanded((v) => !v)}

@@ -10,6 +10,8 @@ import { formatSeconds } from '@/lib/stats';
 import { type PllId } from '@/types/pll';
 import { AlgorithmForm } from './AlgorithmForm';
 import { AlgorithmRow } from './AlgorithmRow';
+import { CasePracticeModal } from './CasePracticeModal';
+import { PllCaseTrainer } from './RandomTrainer';
 import { Pll3DPlayer } from './Pll3DPlayer';
 import { PllLLView } from './PllLLView';
 import { SmartSolveHistory } from './SmartSolveHistory';
@@ -24,6 +26,8 @@ export function PllDetail({ pllId }: PllDetailProps) {
   const { t, tn } = useT();
   const def = getPllDefinition(pllId);
   const [adding, setAdding] = useState(false);
+  // The algorithm being practised (its id), or null.
+  const [practising, setPractising] = useState<string | null>(null);
   const [view, setView] = useState<CubeView>('2d');
   const {
     ready,
@@ -53,6 +57,7 @@ export function PllDetail({ pllId }: PllDetailProps) {
         }),
     [all, pllId],
   );
+  const practised = records.find((r) => r.id === practising) ?? null;
 
   const star = ready ? starredFor(pllId) : null;
   const displayAuf = star?.auf ?? 'U0';
@@ -190,6 +195,7 @@ export function PllDetail({ pllId }: PllDetailProps) {
                 onRemove={remove}
                 onAddTime={addTime}
                 onRemoveTime={removeTime}
+                onPractice={setPractising}
               />
             ))}
           </ul>
@@ -197,6 +203,15 @@ export function PllDetail({ pllId }: PllDetailProps) {
       </section>
 
       <SmartSolveHistory practice="pll" caseId={pllId} />
+
+      <CasePracticeModal
+        practice="pll"
+        name={def.name}
+        algorithm={practised}
+        onClose={() => setPractising(null)}
+      >
+        {practised && <PllCaseTrainer record={practised} />}
+      </CasePracticeModal>
     </div>
   );
 }

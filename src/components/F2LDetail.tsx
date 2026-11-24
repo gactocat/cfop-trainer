@@ -10,6 +10,8 @@ import { formatSeconds } from '@/lib/stats';
 import type { F2LId } from '@/types/f2l';
 import { F2LAlgorithmForm } from './F2LAlgorithmForm';
 import { F2LAlgorithmRow } from './F2LAlgorithmRow';
+import { CasePracticeModal } from './CasePracticeModal';
+import { F2LCaseTrainer } from './F2LRandomTrainer';
 import { F2L3DPlayer } from './F2L3DPlayer';
 import { SmartSolveHistory } from './SmartSolveHistory';
 
@@ -21,6 +23,8 @@ export function F2LDetail({ f2lId }: F2LDetailProps) {
   const { t, tn } = useT();
   const def = getF2LDefinition(f2lId);
   const [adding, setAdding] = useState(false);
+  // The algorithm being practised (its id), or null.
+  const [practising, setPractising] = useState<string | null>(null);
   const {
     ready,
     all,
@@ -49,6 +53,7 @@ export function F2LDetail({ f2lId }: F2LDetailProps) {
         }),
     [all, f2lId],
   );
+  const practised = records.find((r) => r.id === practising) ?? null;
 
   const star = ready ? starredFor(f2lId) : null;
 
@@ -146,6 +151,7 @@ export function F2LDetail({ f2lId }: F2LDetailProps) {
                 onRemove={remove}
                 onAddTime={addTime}
                 onRemoveTime={removeTime}
+                onPractice={setPractising}
               />
             ))}
           </ul>
@@ -153,6 +159,15 @@ export function F2LDetail({ f2lId }: F2LDetailProps) {
       </section>
 
       <SmartSolveHistory practice="f2l" caseId={f2lId} />
+
+      <CasePracticeModal
+        practice="f2l"
+        name={t('common.f2lCase', { number: def.number })}
+        algorithm={practised}
+        onClose={() => setPractising(null)}
+      >
+        {practised && <F2LCaseTrainer record={practised} />}
+      </CasePracticeModal>
     </div>
   );
 }

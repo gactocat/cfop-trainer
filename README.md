@@ -23,19 +23,24 @@ See [iOS development and release](docs/ios.md) for simulator and device setup.
   handled separately
 - Random trainer with per-case selection (named sets of cases can be saved
   and restored), spacebar / tap timing, and a staleness-weighted draw
-- F2L inverse-setup mode: shows a short setup scramble so you can bring your
+- Practice of a single algorithm from its case page, with the same options as
+  random practice, timed into that algorithm's times
+- Two practice modes, no setup and with setup, chosen when practice starts
+- F2L with setup: shows a short setup scramble so you can bring your
   own cube into the case before timing. The setup is drawn from a pool of
   alternative routes to the case, so it does not spell out the solution; a
   random U turn can be added on top
-- OLL and PLL inverse-setup modes: apply the inverse of the starred algorithm
+- OLL and PLL with setup: apply the inverse of the starred algorithm
   (or first preset) to a fully solved cube before timing. AUF display, trainer mode
   and random U-layer orientation settings are shared across F2L, OLL and PLL
 - AUF display can rotate the preview or include the AUF in the solution,
   consistently across lists, 2D / 3D previews and random training
 - All 57 OLL cases with 285 preset algorithms from [SpeedCubeDB](https://www.speedcubedb.com/a/3x3/OLL), grouped by shape
-- GAN Gen4 smart cubes over Web Bluetooth (Chrome and Edge): in inverse-setup
-  mode the setup is followed turn by turn, and the timer starts with the first
-  turn and stops when the case is solved, timed on the cube's clock
+- GAN Gen4 smart cubes over Web Bluetooth (Chrome and Edge) and in the iOS app,
+  connected from the practice options: with setup, the setup is followed turn
+  by turn; with no setup, the case is solved on a virtual cube that follows
+  the cube. The timer starts with the first turn and stops when the case is
+  solved, timed on the cube's clock
 
 ## Development
 

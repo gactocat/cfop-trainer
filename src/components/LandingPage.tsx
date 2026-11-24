@@ -72,7 +72,7 @@ export function LandingPage() {
           {PRACTICES.map(({ id, name, count }) => (
             <Link key={id} href={`/${id}`} className="group relative flex items-center gap-4 rounded-xl border border-zinc-200 bg-white p-5 transition-colors hover:border-emerald-600 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-600 sm:block sm:p-6 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-emerald-500">
               <div className="h-20 w-20 shrink-0 sm:mb-5 sm:h-24 sm:w-24"><Cube stage={id} /></div>
-              <div className="min-w-0 flex-1"><div className="flex items-baseline gap-3"><h3 className="text-2xl font-semibold tracking-tight">{name}</h3><span className="text-xs text-zinc-500 dark:text-zinc-400">{t('landing.caseCount', { count })}</span></div><p className="mt-1.5 text-sm text-zinc-600 dark:text-zinc-400">{t(`landing.${id}.description`)}</p></div>
+              <div className="min-w-0 flex-1"><div className="flex items-baseline gap-3"><h3 className="text-2xl font-semibold tracking-tight">{name}</h3><span className="text-xs text-zinc-500 dark:text-zinc-400">{t('landing.caseCount', { count })}</span></div></div>
               <Arrow className="shrink-0 text-zinc-400 transition-transform group-hover:translate-x-1 group-hover:text-emerald-700 motion-reduce:transform-none sm:absolute sm:right-6 sm:top-6 dark:text-zinc-500 dark:group-hover:text-emerald-400" />
             </Link>
           ))}
