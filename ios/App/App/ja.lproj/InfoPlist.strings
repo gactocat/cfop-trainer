@@ -1,2 +1,2 @@
 /* Shown when the app first asks to use Bluetooth. */
-"NSBluetoothAlwaysUsageDescription" = "スマートキューブにつないで回転を読み取るために、Bluetooth を使います。";
+"NSBluetoothAlwaysUsageDescription" = "スマートキューブに接続して回転を読み取るために、Bluetooth を使います。";
