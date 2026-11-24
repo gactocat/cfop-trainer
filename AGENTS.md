@@ -86,6 +86,12 @@ CI (`.github/workflows/ci.yml`) runs the same three steps on every PR.
   when markup must differ between SSR and client; do not add
   `useEffect(() => setState(...), [])`, the lint config rejects it
   (`react-hooks/set-state-in-effect`).
+- First paint: pages are prerendered in English without a theme. A script in
+  the root layout's `<head>` (`lib/display-init-script.ts`) sets `data-theme`
+  and `lang` before anything is drawn, from a device-local hint of the last
+  theme and language (`lib/display-hint.ts`, written by `ColorTheme` and
+  `HtmlLang`), and hides the English until the client renders another
+  language. Keep the script's storage keys in step with the stores.
 - Persisted data is versioned by key (`...:v1`). When changing a record shape,
   add a migration in the store's read path (see `normalizeRecord` in
   `lib/storage.ts`) rather than breaking existing users' data.

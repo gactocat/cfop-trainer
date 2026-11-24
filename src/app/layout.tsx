@@ -9,6 +9,7 @@ import { SettingsButton } from '@/components/SettingsButton';
 import { AccountBoundary, AccountSession } from '@/components/AccountBoundary';
 import { ColorTheme } from '@/components/ColorTheme';
 import { PublicLinks } from '@/components/PublicLinks';
+import { DISPLAY_INIT_SCRIPT } from '@/lib/display-init-script';
 import './globals.css';
 
 const geistSans = Geist({
@@ -58,7 +59,14 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      // The head script sets lang, data-theme and the pending language flag
+      // before hydration, so these attributes differ from the server's.
+      suppressHydrationWarning
     >
+      <head>
+        {/* Before the first paint: theme and language from this device (see display-init-script.ts). */}
+        <script dangerouslySetInnerHTML={{ __html: DISPLAY_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
         <AccountSession />
         <ServiceWorkerRegister />

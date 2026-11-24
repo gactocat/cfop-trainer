@@ -139,3 +139,47 @@ try {
   else Reflect.deleteProperty(globalThis, 'window');
 }
 console.log(`Verified ${modeReads.length} practice mode readings, flavors and choosing a mode over saved three-mode data.`);
+
+// The head script that sets the theme and language before the first paint.
+const { DISPLAY_INIT_SCRIPT } = await import('@/lib/display-init-script');
+const { DISPLAY_HINT_KEY } = await import('@/lib/display-hint');
+const runInit = (stored: Record<string, string> | 'throws', systemDark: boolean, language: string) => {
+  const attributes = new Map<string, string>();
+  const html = {
+    lang: 'en',
+    setAttribute: (name: string, value: string) => { attributes.set(name, value); },
+    removeAttribute: (name: string) => { attributes.delete(name); },
+  };
+  const storage = {
+    getItem: (key: string) => {
+      if (stored === 'throws') throw new Error('blocked');
+      return stored[key] ?? null;
+    },
+  };
+  const timers: (() => void)[] = [];
+  new Function('document', 'localStorage', 'window', 'navigator', 'setTimeout', DISPLAY_INIT_SCRIPT)(
+    { documentElement: html }, storage, { matchMedia: () => ({ matches: systemDark }) }, { language },
+    (callback: () => void) => { timers.push(callback); },
+  );
+  const result = { theme: attributes.get('data-theme'), lang: html.lang, pending: attributes.has('data-locale-pending') };
+  timers.forEach((callback) => callback());
+  return { ...result, pendingAfterTimeout: attributes.has('data-locale-pending') };
+};
+const guestSettings = (colorTheme: string) => JSON.stringify({ ...defaults, colorTheme });
+const initCases: { name: string; stored: Record<string, string> | 'throws'; systemDark: boolean; language: string; theme: string; lang: string }[] = [
+  { name: 'hint wins over the system and the browser', stored: { [DISPLAY_HINT_KEY]: '{"theme":"dark","locale":"ja"}' }, systemDark: false, language: 'en-US', theme: 'dark', lang: 'ja' },
+  { name: 'hint "system" follows the system', stored: { [DISPLAY_HINT_KEY]: '{"theme":"system","locale":"en"}' }, systemDark: true, language: 'ja-JP', theme: 'dark', lang: 'en' },
+  { name: 'guest settings before any hint', stored: { [sharedKey]: guestSettings('light'), 'pll-app:locale:v1': 'en' }, systemDark: true, language: 'ja-JP', theme: 'light', lang: 'en' },
+  { name: 'nothing saved: system dark, Japanese browser', stored: {}, systemDark: true, language: 'ja-JP', theme: 'dark', lang: 'ja' },
+  { name: 'nothing saved: system light, English browser', stored: {}, systemDark: false, language: 'en-US', theme: 'light', lang: 'en' },
+  { name: 'unreadable hint falls back', stored: { [DISPLAY_HINT_KEY]: '{', 'pll-app:locale:v1': 'ja' }, systemDark: false, language: 'en-US', theme: 'light', lang: 'ja' },
+  { name: 'blocked storage falls back to the system and the browser', stored: 'throws', systemDark: true, language: 'ja', theme: 'dark', lang: 'ja' },
+];
+for (const c of initCases) {
+  const result = runInit(c.stored, c.systemDark, c.language);
+  assert.equal(result.theme, c.theme, `${c.name}: theme`);
+  assert.equal(result.lang, c.lang, `${c.name}: lang`);
+  assert.equal(result.pending, c.lang !== 'en', `${c.name}: prerendered English hidden only for another language`);
+  assert.equal(result.pendingAfterTimeout, false, `${c.name}: never hidden for good`);
+}
+console.log(`Verified ${initCases.length} first-paint theme and language decisions.`);

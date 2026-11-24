@@ -20,6 +20,13 @@
     color-scheme: dark;
 }
 
+/* Pages are prerendered in English. When another language was chosen, the
+   head script sets this until the client has rendered it, so the English
+   never shows; the themed background stays, and the layout is kept. */
+html[data-locale-pending] body > * {
+  visibility: hidden;
+}
+
 /* No-scramble trainer: the bar that fills while waiting for the cube to rest. */
 @keyframes no-scramble-settle {
   from { transform: scaleX(0); }
