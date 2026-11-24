@@ -101,62 +101,64 @@ export function PllGrid() {
 
   return (
     <div className="space-y-8">
-      <div>{heading}</div>
-
-      {mounted && (
-        <div className="flex items-center gap-3 text-sm flex-wrap">
-          {selectionMode ? (
-            <>
-              <span className="text-zinc-500">
-                {t('grid.selectedForRandom', { count: selection.count, total: PLL_IDS.length })}
-              </span>
-              <button
-                type="button"
-                onClick={selection.selectAll}
-                className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
-              >
-                {t('common.selectAll')}
-              </button>
-              <button
-                type="button"
-                onClick={selection.clear}
-                className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
-              >
-                {t('common.clear')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectionMode(false)}
-                className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 text-xs font-medium"
-              >
-                {t('common.done')}
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => setSelectionMode(true)}
-                className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
-              >
-                <SelectIcon className="text-sm" />
-                {t('common.select')}
-              </button>
-              <span className="text-zinc-500 text-xs">
-                {t('grid.shown', { count: selection.count, total: PLL_IDS.length })}
-              </span>
-            </>
-          )}
-          <SelectionPresetsBar
-            presets={presets.presets}
-            selected={selection.selected}
-            selectionMode={selectionMode}
-            onLoad={selection.replace}
-            onSave={presets.save}
-            onDelete={presets.remove}
-          />
-        </div>
-      )}
+      {/* The title and, beside it, the case selection: one row that wraps on a narrow screen. */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        {heading}
+        {mounted && (
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            {selectionMode ? (
+              <>
+                <span className="text-zinc-500">
+                  {t('grid.selectedForRandom', { count: selection.count, total: PLL_IDS.length })}
+                </span>
+                <button
+                  type="button"
+                  onClick={selection.selectAll}
+                  className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                >
+                  {t('common.selectAll')}
+                </button>
+                <button
+                  type="button"
+                  onClick={selection.clear}
+                  className="rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                >
+                  {t('common.clear')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectionMode(false)}
+                  className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 text-xs font-medium"
+                >
+                  {t('common.done')}
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setSelectionMode(true)}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                >
+                  <SelectIcon className="text-sm" />
+                  {t('common.select')}
+                </button>
+                <span className="text-zinc-500 text-xs">
+                  {t('grid.shown', { count: selection.count, total: PLL_IDS.length })}
+                </span>
+              </>
+            )}
+            <SelectionPresetsBar
+              presets={presets.presets}
+              selected={selection.selected}
+              selectionMode={selectionMode}
+              onLoad={selection.replace}
+              onSave={presets.save}
+              onDelete={presets.remove}
+            />
+          </div>
+        )}
+      </div>
 
       {mounted && !selectionMode && totalVisible === 0 && (
         <p className="text-sm text-zinc-500 py-6 text-center">{t('pll.grid.noneSelected')}</p>
