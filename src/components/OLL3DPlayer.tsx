@@ -1,6 +1,6 @@
 'use client';
 
-import { usePracticeSettings } from '@/hooks/usePracticeSettings';
+import { useAufDisplay } from '@/hooks/usePracticeSettings';
 import { buildLastLayerSetup } from '@/lib/last-layer-setup';
 import type { Auf } from '@/types/pll';
 import { LastLayerPlayer } from './LastLayerPlayer';
@@ -10,8 +10,8 @@ export function OLL3DPlayer({ algorithm, auf = 'U0', className }: {
   auf?: Auf;
   className?: string;
 }) {
-  const { settings } = usePracticeSettings();
-  const setup = buildLastLayerSetup({ algorithm, auf }, settings.aufDisplay);
+  const { aufDisplay } = useAufDisplay('oll');
+  const setup = buildLastLayerSetup({ algorithm, auf }, aufDisplay);
   return <LastLayerPlayer practice="oll" setupAlg={setup.scramble}
     algorithm={setup.solution} view="3d" className={className} />;
 }

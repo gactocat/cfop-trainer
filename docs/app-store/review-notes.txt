@@ -1,6 +1,6 @@
 CFOP Trainer is a practice tool for a physical 3x3 cube. All algorithm reference, 3D previews, random drills, timers and local records work without signing in. No ads, purchases or subscriptions.
 
-Optional account access: Settings on the top page > Account (tap CFOP Trainer in the header to return to the top page). Use the supplied review credentials; email is already confirmed and no additional verification is needed. On first sign-in, choose Start fresh or import device data. Signed-in changes require internet access and are stored in Supabase. Guest practice works offline.
+Optional account access: Settings on the top page > Account (tap the back button at the header's top left to return to the top page). Use the supplied review credentials; email is already confirmed and no additional verification is needed. On first sign-in, choose Start fresh or import device data. Signed-in changes require internet access and are stored in Supabase. Guest practice works offline.
 
 To delete an account: Settings > Account > Delete account, enter the current password, then confirm permanent deletion. This deletes the authentication account and associated server data. Please use a separate account for deletion testing if you need to retain the supplied review account.
 

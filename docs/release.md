@@ -12,6 +12,11 @@
   Explicit choices are stored in the existing practice-settings document,
   preserving compatibility with existing account document keys. Older app
   versions may drop the appearance choice when saving practice settings.
+- AUF display per list (F2L, OLL, PLL), changed while selecting a list's cases.
+  The choices are stored in the same practice-settings document beside the
+  shared AUF display, which each list starts from and older versions keep
+  using. Older versions drop the per-list choices when saving practice
+  settings; the lists then follow the shared AUF display again.
 
 ## Email delivery: configured and verified
 

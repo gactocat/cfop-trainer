@@ -6,6 +6,8 @@ import { useMounted } from '@/hooks/useMounted';
 import { useT } from '@/hooks/useT';
 import { HEADER_ACTIONS_ID, HEADER_TOOLBAR_ID } from '@/lib/header-slots';
 import type { SelectionPreset } from '@/lib/selection-presets-store';
+import type { Practice } from '@/types/practice';
+import { AufDisplaySetting } from './AufModeToggle';
 import { InfoTip } from './InfoTip';
 import { SelectIcon } from './SelectIcon';
 import { SelectionPresetsBar } from './SelectionPresetsBar';
@@ -13,13 +15,15 @@ import { ShuffleIcon } from './ShuffleIcon';
 
 const OUTLINE = 'rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800';
 
-// A list page's controls, in the app header: the page's (i) after the
-// breadcrumb, then Select (an icon, with the number of cases shown when some
-// are left out) and random practice. While selecting, the selection's tools
-// take a second header row, so they stay in reach down a long list.
+// A list page's controls, in the app header: the page's (i) after its
+// title, then Select (an icon, with the number of cases shown when some are
+// left out) and random practice. While selecting, the selection's tools and
+// the list's AUF display take a second header row, so they stay in reach
+// down a long list.
 export function ListHeaderActions<Id extends string>({
-  info, total, selection, presets, selectionMode, onSelectionModeChange, onRandom,
+  practice, info, total, selection, presets, selectionMode, onSelectionModeChange, onRandom,
 }: {
+  practice: Practice;
   info: ReactNode;
   total: number;
   selection: {
@@ -82,7 +86,7 @@ export function ListHeaderActions<Id extends string>({
               className="inline-flex h-9 items-center gap-1.5 rounded-md bg-emerald-600 px-3 text-sm font-medium text-white hover:bg-emerald-700"
             >
               <ShuffleIcon />
-              {/* Short on a phone, so the breadcrumb and both buttons keep to one row. */}
+              {/* Short on a phone, so the title and both buttons keep to one row. */}
               <span className="sm:hidden">{t('common.randomShort')}</span>
               <span className="hidden sm:inline">{t('common.randomTraining')}</span>
             </button>
@@ -103,10 +107,12 @@ export function ListHeaderActions<Id extends string>({
             onSave={presets.save}
             onDelete={presets.remove}
           />
+          {/* A row of its own on a phone; on a wider screen beside Done. */}
+          <AufDisplaySetting practice={practice} className="order-last w-full sm:order-none sm:ml-auto sm:w-auto" />
           <button
             type="button"
             onClick={() => onSelectionModeChange(false)}
-            className="ml-auto rounded-md bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-700"
+            className="ml-auto sm:ml-0 rounded-md bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-700"
           >
             {t('common.done')}
           </button>

@@ -1,11 +1,11 @@
 import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { AppDialogs } from '@/components/AppDialogs';
-import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { HtmlLang } from '@/components/HtmlLang';
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
 import { AccountBoundary, AccountSession } from '@/components/AccountBoundary';
 import { ColorTheme } from '@/components/ColorTheme';
+import { HeaderTitle } from '@/components/HeaderTitle';
 import { PublicLinks } from '@/components/PublicLinks';
 import { DISPLAY_INIT_SCRIPT } from '@/lib/display-init-script';
 import { HEADER_ACTIONS_ID, HEADER_TOOLBAR_ID } from '@/lib/header-slots';
@@ -72,9 +72,9 @@ export default function RootLayout({
         <HtmlLang />
         <ColorTheme />
         <header className="pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur sticky top-0 z-10">
-          {/* The breadcrumb, then what the page adds: a list page's Select and random practice, and its selection tools below. */}
+          {/* Back and the page's title, then what the page adds: a list page's Select and random practice, and its selection tools below. */}
           <div className="mx-auto max-w-6xl px-3 sm:px-4 py-3 flex min-h-[3.75rem] items-center gap-2">
-            <Breadcrumbs />
+            <HeaderTitle />
             <div id={HEADER_ACTIONS_ID} className="flex flex-1 items-center gap-2" />
           </div>
           <div id={HEADER_TOOLBAR_ID} />

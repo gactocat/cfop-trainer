@@ -1,7 +1,7 @@
 'use client';
 
 import { PRESET_ALGORITHMS } from '@/data/preset-algorithms';
-import { usePracticeSettings } from '@/hooks/usePracticeSettings';
+import { useAufDisplay } from '@/hooks/usePracticeSettings';
 import { splitAuf } from '@/lib/auf-from-algorithm';
 import { buildLastLayerSetup } from '@/lib/last-layer-setup';
 import type { PllId } from '@/types/pll';
@@ -15,11 +15,11 @@ export function PllLLView({ pllId, algorithm, auf, size = 120, className }: {
   size?: number;
   className?: string;
 }) {
-  const { settings } = usePracticeSettings();
+  const { aufDisplay } = useAufDisplay('pll');
   const fallback = splitAuf(PRESET_ALGORITHMS[pllId][0]);
   const setup = buildLastLayerSetup({
     algorithm: algorithm ?? fallback.rest,
     auf: auf ?? fallback.auf,
-  }, settings.aufDisplay);
+  }, aufDisplay);
   return <LastLayerPlayer practice="pll" setupAlg={setup.scramble} size={size} className={className} />;
 }

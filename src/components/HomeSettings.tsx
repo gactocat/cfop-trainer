@@ -10,22 +10,17 @@ import type { MessageKey } from '@/i18n/messages';
 import { openAccountDialog, openAppDialog } from '@/lib/app-dialog';
 import { canWriteData } from '@/lib/persistence';
 import { WritableArea } from './AccountBoundary';
-import { AufModeToggle } from './AufModeToggle';
-import { InfoTip } from './InfoTip';
 import { LocaleToggle } from './LocaleToggle';
 
 const CARD = 'divide-y divide-zinc-200 overflow-hidden rounded-xl border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900';
 
 // A setting changed in place: its name on the left, the control on the right
 // (below the name when the row is too narrow).
-function Setting({ label, info, children }: { label: MessageKey; info?: ReactNode; children: ReactNode }) {
+function Setting({ label, children }: { label: MessageKey; children: ReactNode }) {
   const { t } = useT();
   return (
     <div className="flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
-      <span className="flex items-center gap-1 text-sm font-medium">
-        {t(label)}
-        {info && <InfoTip>{info}</InfoTip>}
-      </span>
+      <span className="text-sm font-medium">{t(label)}</span>
       {children}
     </div>
   );
@@ -58,19 +53,10 @@ const CUBE_ICON = icon(<><path d="M12 2 21 7v10l-9 5-9-5V7z" /><path d="M3 7l9 5
 const ACCOUNT_ICON = icon(<><circle cx="12" cy="8" r="4" /><path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2" /></>);
 const DATA_ICON = icon(<><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5v14a9 3 0 0 0 18 0V5M3 12a9 3 0 0 0 18 0" /></>);
 
-// "Label — explanation" help line inside a setting's tooltip.
-function Help({ label, text }: { label: MessageKey; text: MessageKey }) {
-  const { t } = useT();
-  return (
-    <span className="block">
-      <span className="font-medium text-zinc-800 dark:text-zinc-100">{t(label)}</span> — {t(text)}
-    </span>
-  );
-}
-
 // The app's settings, on the top page below the F2L / OLL / PLL entries:
-// the display settings in place, and the smart cube, the account and the
-// algorithm data in their dialogs.
+// language and dark mode in place, and the smart cube, the account and the
+// algorithm data in their dialogs. Each list keeps its own AUF display,
+// changed while selecting its cases (see ListHeaderActions).
 export function HomeSettings() {
   const { t } = useT();
   const mounted = useMounted();
@@ -92,13 +78,6 @@ export function HomeSettings() {
                 className={`flex h-6 w-10 shrink-0 items-center rounded-full p-0.5 transition-colors disabled:opacity-50 ${mounted && dark ? 'bg-emerald-600' : 'bg-zinc-300 dark:bg-zinc-700'}`}>
                 <span className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${mounted && dark ? 'translate-x-4' : ''}`} />
               </button>
-            </Setting>
-            <Setting label="settings.aufDisplay.title" info={<>
-              <span className="block">{t('settings.aufDisplay.help')}</span>
-              <Help label="settings.aufDisplay.onCube" text="settings.aufDisplay.onCubeHelp" />
-              <Help label="settings.aufDisplay.inAlgorithm" text="settings.aufDisplay.inAlgorithmHelp" />
-            </>}>
-              <AufModeToggle />
             </Setting>
           </div>
         </WritableArea>

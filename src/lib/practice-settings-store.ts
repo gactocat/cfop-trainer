@@ -1,8 +1,21 @@
 import { readStoredValue } from '@/lib/persistence';
 import { createLocalStore } from '@/lib/local-store';
+import type { Practice } from '@/types/practice';
+
+export type AufDisplay = 'cube' | 'prefix';
 
 export interface PracticeSettings {
-  aufDisplay: 'cube' | 'prefix';
+  /**
+   * The one AUF display from before each list had its own. Older versions
+   * use it everywhere; a list without its own choice still follows it.
+   */
+  aufDisplay: AufDisplay;
+  /**
+   * Each list's AUF display, chosen while selecting its cases. Absent in
+   * older versions, which drop it when they save, so the lists then follow
+   * aufDisplay again.
+   */
+  aufDisplays?: Partial<Record<Practice, AufDisplay>>;
   trainerMode: 'standard' | 'inverse';
   randomAuf: boolean;
   /**
@@ -19,11 +32,24 @@ export const DEFAULT_PRACTICE_SETTINGS: PracticeSettings = {
   randomAuf: true,
 };
 
+const PRACTICES: readonly Practice[] = ['f2l', 'oll', 'pll'];
+const isAufDisplay = (value: unknown): value is AufDisplay => value === 'cube' || value === 'prefix';
+
+function validAufDisplays(raw: unknown): Partial<Pick<PracticeSettings, 'aufDisplays'>> {
+  if (typeof raw !== 'object' || raw === null) return {};
+  const value = raw as Record<string, unknown>;
+  const lists = PRACTICES.filter((practice) => isAufDisplay(value[practice]));
+  return lists.length
+    ? { aufDisplays: Object.fromEntries(lists.map((practice) => [practice, value[practice]])) }
+    : {};
+}
+
 function validSettings(raw: unknown): Partial<PracticeSettings> {
   if (typeof raw !== 'object' || raw === null) return {};
   const value = raw as Partial<PracticeSettings>;
   return {
-    ...(value.aufDisplay === 'cube' || value.aufDisplay === 'prefix' ? { aufDisplay: value.aufDisplay } : {}),
+    ...(isAufDisplay(value.aufDisplay) ? { aufDisplay: value.aufDisplay } : {}),
+    ...validAufDisplays(value.aufDisplays),
     ...(value.trainerMode === 'standard' || value.trainerMode === 'inverse' ? { trainerMode: value.trainerMode } : {}),
     ...(typeof value.randomAuf === 'boolean' ? { randomAuf: value.randomAuf } : {}),
     ...(typeof value.alignAuf === 'boolean' ? { alignAuf: value.alignAuf } : {}),
@@ -63,10 +89,25 @@ const store = createLocalStore<PracticeSettings>(
 );
 
 export const { getSnapshot, getServerSnapshot, subscribe } = store;
-export function update(patch: Partial<PracticeSettings>): void {
+export function update(patch: Partial<Omit<PracticeSettings, 'aufDisplays'>>): void {
   store.mutate((prev) => {
     const next = { ...prev, ...patch };
     return next.aufDisplay === prev.aufDisplay && next.trainerMode === prev.trainerMode &&
       next.randomAuf === prev.randomAuf && next.alignAuf === prev.alignAuf && next.colorTheme === prev.colorTheme ? prev : next;
   });
+}
+
+/** How `practice`'s list, case pages and practice show the AUF. */
+export function aufDisplayOf(settings: Pick<PracticeSettings, 'aufDisplay' | 'aufDisplays'>, practice: Practice): AufDisplay {
+  return settings.aufDisplays?.[practice] ?? settings.aufDisplay;
+}
+
+/**
+ * Choose one list's AUF display. The shared aufDisplay is left as it was,
+ * so older versions keep showing what they showed before.
+ */
+export function setAufDisplay(practice: Practice, display: AufDisplay): void {
+  store.mutate((prev) => aufDisplayOf(prev, practice) === display
+    ? prev
+    : { ...prev, aufDisplays: { ...prev.aufDisplays, [practice]: display } });
 }

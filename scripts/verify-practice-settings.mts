@@ -85,6 +85,86 @@ try {
 }
 console.log(`Verified ${scenarios.length} shared-settings migration, persistence and subscription scenarios.`);
 
+// Each list's AUF display: it starts from the one shared choice, is changed
+// list by list, and survives older versions, which know only the shared one.
+{
+  const lists = ['f2l', 'oll', 'pll'] as const;
+  const displays = (store: typeof import('@/lib/practice-settings-store')) =>
+    Object.fromEntries(lists.map((list) => [list, store.aufDisplayOf(store.getSnapshot(), list)]));
+  const all = (display: 'cube' | 'prefix') => ({ f2l: display, oll: display, pll: display });
+  const reads: { name: string; stored: Record<string, string>; expected: Record<string, string> }[] = [
+    { name: 'new user: every list on cube', stored: {}, expected: all('cube') },
+    { name: 'the shared choice is every list\'s first value', stored: { [sharedKey]: '{"aufDisplay":"prefix"}' }, expected: all('prefix') },
+    {
+      name: 'pre-shared F2L preference still seeds every list',
+      stored: { 'pll-app:f2l-auf-display:v1': 'prefix', 'pll-app:pll-trainer-settings:v1': '{"aufDisplay":"cube"}' },
+      expected: all('prefix'),
+    },
+    {
+      name: 'a list with its own choice keeps it; the others follow the shared one',
+      stored: { [sharedKey]: '{"aufDisplay":"prefix","aufDisplays":{"pll":"cube"}}' },
+      expected: { f2l: 'prefix', oll: 'prefix', pll: 'cube' },
+    },
+    {
+      name: 'invalid list choices are ignored',
+      stored: { [sharedKey]: '{"aufDisplay":"cube","aufDisplays":{"f2l":"sideways","oll":"prefix","zbll":"prefix"}}' },
+      expected: { f2l: 'cube', oll: 'prefix', pll: 'cube' },
+    },
+    { name: 'a malformed list map is ignored', stored: { [sharedKey]: '{"aufDisplay":"prefix","aufDisplays":"cube"}' }, expected: all('prefix') },
+  ];
+  for (const { name, stored, expected } of reads) {
+    const values = new Map(Object.entries(stored));
+    Object.defineProperty(globalThis, 'window', { configurable: true, value: {
+      localStorage: {
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => values.set(key, value),
+      },
+    } });
+    const store = await freshStore();
+    assert.deepEqual(displays(store), expected, name);
+  }
+
+  // Changing one list from the shared choice, then an older version saving.
+  const values = new Map<string, string>([[sharedKey, JSON.stringify({ ...defaults, aufDisplay: 'prefix', colorTheme: 'dark' })]]);
+  let writes = 0;
+  Object.defineProperty(globalThis, 'window', { configurable: true, value: {
+    localStorage: {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => { writes++; values.set(key, value); },
+    },
+  } });
+  const store = await freshStore();
+  let notifications = 0;
+  const unsubscribe = store.subscribe(() => notifications++);
+  store.setAufDisplay('pll', 'prefix');
+  assert.equal(writes + notifications, 0, 'choosing what a list already shows writes nothing');
+  store.setAufDisplay('oll', 'cube');
+  assert.equal(notifications, 1, 'a list change notifies once');
+  assert.deepEqual(displays(store), { f2l: 'prefix', oll: 'cube', pll: 'prefix' }, 'only that list changes');
+  let saved = JSON.parse(values.get(sharedKey)!);
+  assert.equal(saved.aufDisplay, 'prefix', 'the shared choice, which older versions use, is kept');
+  assert.equal(saved.colorTheme, 'dark', 'other settings are kept');
+  assert.deepEqual(saved.aufDisplays, { oll: 'cube' }, 'the list choice is saved in the synced settings');
+  store.setAufDisplay('pll', 'cube');
+  store.setAufDisplay('oll', 'prefix');
+  assert.deepEqual(displays(await freshStore()), { f2l: 'prefix', oll: 'prefix', pll: 'cube' }, 'list choices survive a reload');
+  store.update({ trainerMode: 'inverse' });
+  assert.deepEqual(JSON.parse(values.get(sharedKey)!).aufDisplays, { oll: 'prefix', pll: 'cube' }, 'other edits keep the list choices');
+  unsubscribe();
+
+  // An older version reads the shared fields it knows and, saving, keeps
+  // only those (as its validSettings does).
+  saved = JSON.parse(values.get(sharedKey)!);
+  const olderKnown = ['aufDisplay', 'trainerMode', 'randomAuf', 'alignAuf', 'colorTheme'];
+  const older = Object.fromEntries(Object.entries(saved).filter(([key]) => olderKnown.includes(key)));
+  assert.equal(older.aufDisplay, 'prefix', 'older versions still read a valid shared AUF display');
+  values.set(sharedKey, JSON.stringify({ ...older, aufDisplay: 'cube' }));
+  assert.deepEqual(displays(await freshStore()), all('cube'), 'after an older version saves, every list follows its choice again');
+}
+if (originalWindow) Object.defineProperty(globalThis, 'window', originalWindow);
+else Reflect.deleteProperty(globalThis, 'window');
+console.log('Verified per-list AUF display: inheritance, list changes, persistence and older versions.');
+
 // Practice mode: no setup or with setup, read from the synced trainer mode
 // and the device-local no-scramble flag of the three-mode version.
 const { choosePracticeMode, practiceModeFrom, storedTrainerMode, trainerFlavor } = await import('@/lib/practice-mode');

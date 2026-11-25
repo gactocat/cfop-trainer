@@ -98,9 +98,10 @@ export function OLLGrid({ onRandom }: { onRandom: () => void }) {
 
   return (
     <div className="space-y-8">
-      {/* The page title is the header's breadcrumb; Select and random practice sit beside it. */}
+      {/* The page title is in the header; Select and random practice sit beside it. */}
       <h1 className="sr-only">{t('oll.grid.title')}</h1>
       <ListHeaderActions
+        practice="oll"
         info={<>
           <span className="block">{t('oll.grid.description')}</span>
           <span className="block">{t('grid.help')}</span>

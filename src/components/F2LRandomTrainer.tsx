@@ -20,6 +20,7 @@ import { useT } from '@/hooks/useT';
 import { combineAuf, invertAuf, prefixAuf, splitF2LAuf } from '@/lib/f2l-auf';
 import { buildF2LSetup, seededRandom } from '@/lib/f2l-scramble';
 import { aufStartOf } from '@/lib/auf-start';
+import { aufDisplayOf } from '@/lib/practice-settings-store';
 import { pickStaleWeighted } from '@/lib/stale-weighted-pick';
 import { deleteSmartSolve } from '@/lib/smart-solve-store';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
@@ -97,7 +98,7 @@ export function F2LTrainer({
 }: F2LTrainerProps) {
   const { t, tn } = useT();
   const { settings: scrambleSettings } = usePracticeSettings();
-  const { aufDisplay: aufMode } = scrambleSettings;
+  const aufMode = aufDisplayOf(scrambleSettings, 'f2l');
   // Fixed when the practice started (see TrainerFlavorContext). No setup runs
   // on the virtual cube with a smart cube and as the tap timer without one;
   // with setup is guided on the cube with one, and applied by hand without.

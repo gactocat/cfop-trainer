@@ -132,7 +132,7 @@ const en = {
   'common.practice': 'Practice',
   'common.randomTraining': 'Random Training',
   'common.randomShort': 'Random',
-  'nav.breadcrumb': 'Breadcrumb',
+  'nav.backTo': 'Back to {page}',
   'grid.selectShown': 'Select ({count} of {total} cases shown)',
   'home.settings.guest': 'Not signed in (saved on this device)',
   'home.settings.dataHelp': 'Export and import algorithms',
@@ -322,6 +322,7 @@ const en = {
 
   "grid.help": "Open a card to save your algorithms for that case and practice them. Each algorithm has a starting orientation (AUF). Cards show the best time and ao5 of the starred algorithm. Use Select to choose which cases appear here and in random training.",
   "settings.aufDisplay.help": "The AUF is the U-layer turn made before an algorithm. Choose how it is shown.",
+  "settings.aufDisplay.scope": "Each list keeps its own choice, used for its cards, case pages and practice.",
   "trainer.hint.f2lSetup": "Apply the setup shown to a cube with F2L solved, then start the timer and solve the case. The last layer can be in any state. The setup is a short sequence made for this case, not the inverse of your algorithm. The case name appears when you stop.",
   "trainer.hint.selection": "Cases are drawn from those selected in the list. Cases you have not timed recently come up more often.",
   'smartCube.title': 'Smart cube',
@@ -537,7 +538,7 @@ const ja: Messages = {
   'common.practice': '練習',
   'common.randomTraining': 'ランダム練習',
   'common.randomShort': 'ランダム',
-  'nav.breadcrumb': '現在の場所',
+  'nav.backTo': '{page} に戻る',
   'grid.selectShown': '選択 ({total} ケース中 {count} ケースを表示)',
   'home.settings.guest': 'ログインしていません (この端末に保存)',
   'home.settings.dataHelp': '手順の書き出しと読み込み',
@@ -719,6 +720,7 @@ const ja: Messages = {
 
   "grid.help": "カードを開くと、そのケースの手順を登録して練習できます。手順ごとに開始時の向き (AUF) を設定できます。カードには、スター付き手順のベストタイムと ao5 を表示します。「選択」で、この一覧とランダム練習に使うケースを選べます。",
   "settings.aufDisplay.help": "AUF は、手順の前に U 面を合わせる回転です。その表示方法を選びます。",
+  "settings.aufDisplay.scope": "一覧ごとに選べます。その一覧のカード、ケースのページ、練習に使います。",
   "trainer.hint.f2lSetup": "表示されたセットアップ手順を F2L が揃ったキューブに適用してから、スタートして解きます。最後の層の状態は問いません。セットアップ手順はこのケース用に作った短い手順で、登録した手順の逆手順ではありません。ケース名はストップ後に表示します。",
   "trainer.hint.selection": "一覧で選んだケースから出題します。しばらく計測していないケースほど出やすくなります。",
   'smartCube.title': 'スマートキューブ',

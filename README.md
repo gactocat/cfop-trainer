@@ -31,10 +31,11 @@ See [iOS development and release](docs/ios.md) for simulator and device setup.
   alternative routes to the case, so it does not spell out the solution; a
   random U turn can be added on top
 - OLL and PLL with setup: apply the inverse of the starred algorithm
-  (or first preset) to a fully solved cube before timing. AUF display, trainer mode
+  (or first preset) to a fully solved cube before timing. Trainer mode
   and random U-layer orientation settings are shared across F2L, OLL and PLL
 - AUF display can rotate the preview or include the AUF in the solution,
-  consistently across lists, 2D / 3D previews and random training
+  chosen for each list while selecting its cases and applied consistently to
+  that list's cards, case pages, 2D / 3D previews and practice
 - All 57 OLL cases with 285 preset algorithms from [SpeedCubeDB](https://www.speedcubedb.com/a/3x3/OLL), grouped by shape
 - GAN Gen4 smart cubes over Web Bluetooth (Chrome and Edge) and in the iOS app,
   connected from the practice options: with setup, the setup is followed turn

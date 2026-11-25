@@ -87,9 +87,10 @@ export function PllGrid({ onRandom }: { onRandom: () => void }) {
 
   return (
     <div className="space-y-8">
-      {/* The page title is the header's breadcrumb; Select and random practice sit beside it. */}
+      {/* The page title is in the header; Select and random practice sit beside it. */}
       <h1 className="sr-only">{t('pll.grid.title')}</h1>
       <ListHeaderActions
+        practice="pll"
         info={<>
           <span className="block">{t('pll.grid.description')}</span>
           <span className="block">{t('grid.help')}</span>

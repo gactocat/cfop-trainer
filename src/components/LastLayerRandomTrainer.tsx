@@ -18,7 +18,7 @@ import { pickAlternativeSetup } from '@/lib/last-layer-alternatives';
 import { alignedOffset, buildLastLayerSetup, type LastLayerAlgorithm, type LastLayerSetup } from '@/lib/last-layer-setup';
 import { aufStartOf, caseOffset } from '@/lib/auf-start';
 import type { LastLayerPractice } from '@/types/practice';
-import type { PracticeSettings } from '@/lib/practice-settings-store';
+import { aufDisplayOf, type PracticeSettings } from '@/lib/practice-settings-store';
 import { pickStaleWeighted } from '@/lib/stale-weighted-pick';
 import { deleteSmartSolve } from '@/lib/smart-solve-store';
 import { formatSeconds } from '@/lib/stats';
@@ -89,8 +89,9 @@ export function LastLayerRandomTrainer<Id extends string>({
     const pool = ids.filter((id) => selected.has(id));
     const id = pickStaleWeighted(pool.length ? pool : ids, (id) => lastRecorded.get(id), Date.now());
     const algorithm = algorithmFor(id);
-    const offset = caseOffset(aufStartOf(settings), alignedOffset(algorithm, settings.aufDisplay));
-    const setup = buildLastLayerSetup(algorithm, settings.aufDisplay, offset, (plain) =>
+    const aufDisplay = aufDisplayOf(settings, practice);
+    const offset = caseOffset(aufStartOf(settings), alignedOffset(algorithm, aufDisplay));
+    const setup = buildLastLayerSetup(algorithm, aufDisplay, offset, (plain) =>
       inverse
         ? pickAlternativeSetup(solver, practice, plain, alternativesFor(id))
         : plain);
@@ -240,7 +241,7 @@ export function LastLayerRandomTrainer<Id extends string>({
     <>
       <div className="max-w-2xl w-full text-center font-mono text-sm break-words text-zinc-700 dark:text-zinc-300">
         <p>
-          {current.settings.aufDisplay === 'prefix' ? current.setup.solution : <>
+          {aufDisplayOf(current.settings, practice) === 'prefix' ? current.setup.solution : <>
             <span className="inline-block min-w-[2.5em] mr-2 px-1.5 py-0.5 text-[10px] rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 align-middle">
               {current.setup.effectiveAuf}
             </span>

@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { usePracticeSettings } from '@/hooks/usePracticeSettings';
+import { useAufDisplay } from '@/hooks/usePracticeSettings';
 import { useTrainerMode } from '@/hooks/useTrainerMode';
 import { useT } from '@/hooks/useT';
 import { prefixAuf } from '@/lib/f2l-auf';
@@ -23,7 +23,7 @@ export function CasePracticeModal({ practice, name, algorithm, onClose, children
 }) {
   const { t } = useT();
   const mode = useTrainerMode();
-  const { settings } = usePracticeSettings();
+  const { aufDisplay } = useAufDisplay(practice);
   const hint = mode === 'no-scramble'
     ? 'trainer.hint.noScramble'
     : mode === 'inverse' || mode === 'smart-setup'
@@ -45,7 +45,7 @@ export function CasePracticeModal({ practice, name, algorithm, onClose, children
               <span className="mx-1.5 text-zinc-400" aria-hidden>·</span>
               {/* The AUF as the algorithm rows show it. */}
               <span className="font-mono break-words">
-                {settings.aufDisplay === 'prefix' ? prefixAuf(algorithm.auf, algorithm.algorithm) : <>
+                {aufDisplay === 'prefix' ? prefixAuf(algorithm.auf, algorithm.algorithm) : <>
                   <span className="inline-block min-w-[2.5em] mr-2 px-1.5 py-0.5 text-[10px] rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-center align-middle">
                     {algorithm.auf}
                   </span>

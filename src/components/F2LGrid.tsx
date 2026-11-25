@@ -87,9 +87,10 @@ export function F2LGrid({ onRandom }: { onRandom: () => void }) {
 
   return (
     <div className="space-y-8">
-      {/* The page title is the header's breadcrumb; Select and random practice sit beside it. */}
+      {/* The page title is in the header; Select and random practice sit beside it. */}
       <h1 className="sr-only">{t('f2l.grid.title')}</h1>
       <ListHeaderActions
+        practice="f2l"
         info={<>
           <span className="block">{t('f2l.grid.description')}</span>
           <span className="block">{t('grid.help')}</span>
