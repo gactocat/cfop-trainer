@@ -232,6 +232,37 @@ References: [password authentication](https://supabase.com/docs/guides/auth/pass
 [custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp),
 [row-level security](https://supabase.com/docs/guides/database/postgres/row-level-security).
 
+## Solves table (not applied yet)
+
+Timed solves from a scramble (`/solve/cfop`) are kept per row in
+`public.solves`, outside `account_data`, so older app versions are not
+affected. Until this migration runs, signed-in users keep their solves on the
+device, as before (the app treats a missing table as "not ready").
+
+To apply it, open **SQL Editor** in Supabase Studio for `cfop-trainer`, paste
+the whole of
+[the migration](../supabase/migrations/20261126000000_solves.sql) and run it
+once. It only adds the table, its read policy, an index and the functions
+`save_solves` and `delete_solves`; it does not touch `account_data` or
+`save_account_data`. Check that `public.solves` appears in **Table Editor**.
+PostgREST normally picks up the new table at once; if the app still keeps
+solves on the device after a reload, run `notify pgrst, 'reload schema';`.
+
+After it runs, signed-in users see their account's solves, are offered to add
+the device's solves once, and every change is saved to the account. Older app
+versions behave as before.
+
+To undo it (this deletes the solves kept in accounts; devices keep their own):
+
+```sql
+drop function public.delete_solves(uuid[], uuid);
+drop function public.save_solves(jsonb, uuid);
+drop table public.solves;
+```
+
+The app then goes back to keeping signed-in users' solves on the device.
+Changes waiting in a device's outbox stay there until the table exists again.
+
 ## Account deletion
 
 `delete-account` runs as a Supabase Edge Function so both static iOS builds and
