@@ -11,6 +11,8 @@ import { OLL_IDS, type OLLId } from '@/types/oll';
 import type { PllId } from '@/types/pll';
 
 const STAGES = { f2l: 'F2L', oll: 'OLL', pll: 'PLL' } as const;
+/** Solves from a scramble, under /solve. */
+const SOLVES: Record<string, string> = { cfop: 'CFOP' };
 type Stage = keyof typeof STAGES;
 const isStage = (segment: string | undefined): segment is Stage => !!segment && segment in STAGES;
 
@@ -33,6 +35,7 @@ function pageFor(pathname: string, t: Translate): Page | null {
   const [first, id] = pathname.split('/').filter(Boolean).map(decodeURIComponent);
   const home = { href: '/', label: HOME };
   if (first === 'privacy' || first === 'support') return { title: t(`${first}.title`), up: home };
+  if (first === 'solve') return id && id in SOLVES ? { title: SOLVES[id], up: home } : null;
   if (!isStage(first)) return null;
   const name = id ? caseName(first, id, t) : undefined;
   return name

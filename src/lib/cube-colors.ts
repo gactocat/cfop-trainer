@@ -18,6 +18,10 @@ const RED = '#ee6262';
 const ORANGE = '#f2a544';
 const GREEN = '#43bd89';
 
+/** The palette by colour, for cube drawings made without cubing.js. */
+export const STICKER_COLOURS = { white: '#ffffff', yellow: YELLOW, blue: BLUE, red: RED, orange: ORANGE, green: GREEN } as const;
+export type StickerColour = keyof typeof STICKER_COLOURS;
+
 // Sticker fills in cubing.js's 3x3x3 SVGs (white is left as is).
 const SVG_FILLS: Record<string, string> = {
   yellow: YELLOW,

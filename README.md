@@ -42,6 +42,11 @@ See [iOS development and release](docs/ios.md) for simulator and device setup.
   by turn; with no setup, the case is solved on a virtual cube that follows
   the cube. The timer starts with the first turn and stops when the case is
   solved, timed on the cube's clock
+- CFOP solves from random-state scrambles (two-phase search in a worker),
+  timed with the hold timer or a smart cube; with a cube, the scramble is
+  guided turn by turn and each solve is split into cross, four F2L pairs, OLL
+  and PLL with time, moves and TPS. Best, ao5 and ao12 over the solves kept on
+  the device. See [solves](docs/solve.md)
 
 ## Development
 
@@ -57,6 +62,8 @@ node --import ./scripts/register-src-alias.mjs scripts/verify-last-layer-setup.m
 node --import ./scripts/register-src-alias.mjs scripts/verify-practice-settings.mts
 # Verify the smart cube model, setup guide and trainer logic (against cubing.js):
 node --import ./scripts/register-src-alias.mjs scripts/verify-smart-cube.mts
+# Verify scrambles, ao5 / ao12, CFOP stage splits and the smart cube scramble guide:
+node --import ./scripts/register-src-alias.mjs scripts/verify-solve.mts
 ```
 
 Built with Next.js (App Router), React, TypeScript, Tailwind CSS, and

@@ -49,8 +49,9 @@ export function AccountBoundary({ children }: { children: ReactNode }) {
   const { t } = useT();
   const ready = state.mode === 'guest' || state.mode === 'account';
   // Public pages remain available even when account access fails. /account is
-  // the top page with the account dialog open.
-  if (['/', '/account', '/account/', '/privacy', '/privacy/', '/support', '/support/'].includes(pathname)) return children;
+  // the top page with the account dialog open. Solves from a scramble keep
+  // their records on the device, so they never wait for the account either.
+  if (['/', '/account', '/account/', '/privacy', '/privacy/', '/support', '/support/'].includes(pathname) || pathname.startsWith('/solve/')) return children;
   return <>
     <StorageStatus />
     <Fragment key={state.generation}>

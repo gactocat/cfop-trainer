@@ -27,6 +27,13 @@ html[data-locale-pending] body > * {
   visibility: hidden;
 }
 
+/* While the timer is held or running, the app's header and footer step
+   aside too (set by lib/timer-focus.ts). */
+html[data-timer-focus] body > header,
+html[data-timer-focus] body > footer {
+  visibility: hidden;
+}
+
 /* No-scramble trainer: the bar that fills while waiting for the cube to rest. */
 @keyframes no-scramble-settle {
   from { transform: scaleX(0); }
