@@ -9,9 +9,12 @@ import { createLocalStore } from '@/lib/local-store';
 import { createSelectionPresetsStore } from '@/lib/selection-presets-store';
 import { getSnapshot as getLocale, setLocale } from '@/lib/locale-store';
 import type { AccountData } from '@/lib/account-data';
-import { parseAccountData } from '@/lib/account-data';
+import { DATA_KEYS, parseAccountData } from '@/lib/account-data';
 
 const guest = new Map<string, string>();
+// Guest data is the account document's keys; device notes such as the solve
+// import choice (cfop:solve-import:v1) sit beside it.
+const guestData = (map: Map<string, string>) => new Map([...map].filter(([k]) => (DATA_KEYS as readonly string[]).includes(k)));
 Object.defineProperty(globalThis, 'window', { configurable: true, value: {
   localStorage: { getItem: (key: string) => guest.get(key) ?? null, setItem: (key: string, value: string) => guest.set(key, value) },
 } });
@@ -65,7 +68,8 @@ setLocale('en');
 await tick();
 assert.equal(server!.data[key], '[1,2]');
 assert.equal(server!.data['pll-app:locale:v1'], 'en');
-assert.deepEqual(guest, originalGuest, 'account changes never touch guest data');
+assert.deepEqual(guestData(guest), guestData(originalGuest), 'account changes never touch guest data');
+assert.equal(JSON.parse(guest.get('cfop:solve-import:v1') ?? '{}')['user-a'], 'wanted', 'importing device data brings the solves in too');
 
 setStorageOnline(false);
 assert.equal(canWriteData(), false);
@@ -122,7 +126,7 @@ assert.equal(expectedUsers.at(-1), 'user-a', 'in-flight writes stay bound to the
 assert.deepEqual(store.getSnapshot(), [1]);
 assert.equal(getLocale(), 'ja');
 assert.equal(presets.getSnapshot().length, 1);
-assert.deepEqual(guest, originalGuest);
+assert.deepEqual(guestData(guest), guestData(originalGuest));
 
 // Existing accounts always load the server copy, never import guest state.
 await activateAccountStorage('user-a', 'a@example.test', backend);
@@ -146,7 +150,7 @@ retryAccountSave();
 await tick();
 assert.equal(getPersistenceSnapshot().mode, 'account');
 assert.deepEqual(store.getSnapshot(), []);
-assert.deepEqual(guest, originalGuest);
+assert.deepEqual(guestData(guest), guestData(originalGuest));
 // Failed reads cannot fall back to a guest document or enable writes.
 activateGuestStorage();
 await activateAccountStorage('user-c', 'c@example.test', {
@@ -156,7 +160,7 @@ assert.equal(getPersistenceSnapshot().error, 'load');
 assert.equal(getPersistenceSnapshot().mode, 'loading');
 assert.equal(canWriteData(), false);
 assert.deepEqual(store.getSnapshot(), []);
-assert.deepEqual(guest, originalGuest);
+assert.deepEqual(guestData(guest), guestData(originalGuest));
 assert.throws(() => parseAccountData({ 'unrelated-secret': 'no' }));
 assert.throws(() => parseAccountData({ [key]: [] }));
 activateGuestStorage();

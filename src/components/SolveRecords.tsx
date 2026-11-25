@@ -2,10 +2,11 @@
 
 import { useMemo, useState } from 'react';
 import { useT } from '@/hooks/useT';
-import type { SolvesSnapshot } from '@/lib/solve-store';
+import { declineSolveImport, importDeviceSolves, retrySolveSync, type SolvesSnapshot } from '@/lib/solve-store';
 import { solveTps } from '@/lib/solve/cfop-split';
 import type { SolveRecord } from '@/lib/solve/solve-record';
-import { formatSolveTime, solveStats } from '@/lib/solve/solve-stats';
+import { countedMs, formatRecordTime, formatSolveTime, solveStats } from '@/lib/solve/solve-stats';
+import { PenaltyButtons } from './SolvePenalty';
 import { SolveStages } from './SolveStages';
 
 const PAGE = 50;
@@ -53,7 +54,10 @@ function SolveRow({ number, record, onDelete }: { number: number; record: SolveR
         <summary className="flex cursor-pointer list-none items-center gap-3 py-2 [&::-webkit-details-marker]:hidden">
           <span className="w-8 shrink-0 text-right font-mono text-xs tabular-nums text-zinc-400 dark:text-zinc-500">{number}</span>
           <span className="min-w-0 flex-1">
-            <span className="block font-mono text-base font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">{formatSolveTime(record.ms)}</span>
+            <span className="block font-mono text-base font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+              {formatRecordTime(record)}
+              {record.penalty === 'dnf' && <span className="ml-1.5 text-[11px] font-normal text-zinc-500 dark:text-zinc-400">({formatSolveTime(record.ms)})</span>}
+            </span>
             {summary && <span className="block font-mono text-[11px] text-zinc-500 dark:text-zinc-400">{summary}</span>}
           </span>
           <span className="flex shrink-0 flex-col items-end gap-1">
@@ -71,22 +75,71 @@ function SolveRow({ number, record, onDelete }: { number: number; record: SolveR
             <p className="mt-0.5 font-mono text-sm break-words text-zinc-700 dark:text-zinc-300">{record.scramble}</p>
           </div>
           <SolveStages record={record} />
-          <button
-            type="button"
-            onClick={() => { if (window.confirm(t('solve.history.confirmDelete'))) onDelete(); }}
-            className="rounded-md border border-zinc-300 px-3 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-          >
-            {t('common.delete')}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <PenaltyButtons record={record} />
+            <button
+              type="button"
+              onClick={() => { if (window.confirm(t('solve.history.confirmDelete'))) onDelete(); }}
+              className="rounded-md border border-zinc-300 px-3 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            >
+              {t('common.delete')}
+            </button>
+          </div>
         </div>
       </details>
     </li>
   );
 }
 
-// This device's solves: best single, the latest ao5 and ao12 (with the best
-// of each), and every solve, newest first, opening to its scramble, stages
-// and a delete button.
+// Where the solves are kept (this device or the account), what is not saved
+// yet, and the offer to bring this device's solves into the account.
+function SyncNote({ snapshot }: { snapshot: SolvesSnapshot }) {
+  const { t } = useT();
+  const link = 'font-medium text-emerald-700 underline hover:text-emerald-900 dark:text-emerald-300 dark:hover:text-emerald-100';
+  const { where, status, unsaved, failed } = snapshot;
+  const note = status === 'unavailable' ? 'solve.records.unavailable'
+    : where === 'account' ? 'solve.records.account'
+      : where === 'device-for-account' ? 'solve.records.deviceForAccount' : 'solve.records.device';
+  return (
+    <div className="mt-3 space-y-1 text-[11px] text-zinc-400 dark:text-zinc-500">
+      {status === 'error' ? (
+        <p role="alert" className="text-amber-800 dark:text-amber-200">
+          {t('solve.records.loadFailed')}{' '}
+          <button type="button" onClick={() => retrySolveSync('cfop')} className={link}>{t('solve.records.reload')}</button>
+        </p>
+      ) : <p>{t(note)}</p>}
+      {unsaved > 0 && (
+        <p className={failed ? 'text-amber-800 dark:text-amber-200' : ''}>
+          {t('solve.records.unsaved', { count: unsaved })}{' '}
+          {failed && <button type="button" onClick={() => retrySolveSync('cfop')} className={link}>{t('solve.records.retry')}</button>}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ImportOffer({ count }: { count: number }) {
+  const { t } = useT();
+  return (
+    <div className="mt-3 rounded-lg border border-zinc-200 p-3 text-xs dark:border-zinc-800">
+      <p className="text-zinc-700 dark:text-zinc-200">{t('solve.records.offer', { count })}</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <button type="button" onClick={() => void importDeviceSolves('cfop')}
+          className="rounded-md bg-emerald-600 px-3 py-1.5 font-semibold text-white hover:bg-emerald-700">
+          {t('solve.records.import')}
+        </button>
+        <button type="button" onClick={() => declineSolveImport('cfop')}
+          className="rounded-md border border-zinc-300 px-3 py-1.5 font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
+          {t('solve.records.skipImport')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// The solves: best single, the latest ao5 and ao12 (with the best of each),
+// counting +2 and DNF as the WCA does, and every solve, newest first, opening
+// to its scramble, stages, penalty buttons and a delete button.
 export function SolveRecords({ snapshot, onDelete, className = '' }: {
   snapshot: SolvesSnapshot;
   onDelete: (id: string) => void;
@@ -94,7 +147,7 @@ export function SolveRecords({ snapshot, onDelete, className = '' }: {
 }) {
   const { t, tn } = useT();
   const { solves, status } = snapshot;
-  const stats = useMemo(() => solveStats(solves.map((s) => s.ms)), [solves]);
+  const stats = useMemo(() => solveStats(solves.map(countedMs)), [solves]);
   const [shown, setShown] = useState(PAGE);
   const average = (ms: number | null) => formatSolveTime(ms, { average: true });
   return (
@@ -113,6 +166,7 @@ export function SolveRecords({ snapshot, onDelete, className = '' }: {
           {t('solve.records.bestAverages', { ao5: average(stats.bestAo5), ao12: average(stats.bestAo12) })}
         </p>
       )}
+      {snapshot.offer > 0 && <ImportOffer count={snapshot.offer} />}
       {status === 'loading' ? (
         <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">{t('common.loading')}</p>
       ) : solves.length === 0 ? (
@@ -133,9 +187,7 @@ export function SolveRecords({ snapshot, onDelete, className = '' }: {
           {t('solve.records.more', { count: Math.min(PAGE, solves.length - shown) })}
         </button>
       )}
-      <p className="mt-3 text-[11px] text-zinc-400 dark:text-zinc-500">
-        {t(status === 'unavailable' ? 'solve.records.unavailable' : 'solve.records.device')}
-      </p>
+      <SyncNote snapshot={snapshot} />
     </section>
   );
 }

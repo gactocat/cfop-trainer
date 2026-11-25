@@ -10,7 +10,7 @@
 
 import { tokenizeAlg, invertAlg } from '@/lib/invert-alg';
 import { applyTurn, type Amount, type CubeState, type Face } from '@/lib/smart-cube/cube-state';
-import { holdingFrame, rotateFrame, userNotation, type CubeHolding, type Frame } from '@/lib/smart-cube/holding';
+import { rotateFrame, toFrame, userNotation, type CubeHolding, type Frame } from '@/lib/smart-cube/holding';
 
 export interface SetupStep {
   /** Cube-frame quarter turns this step needs, per face (opposite faces for slices). */
@@ -55,12 +55,12 @@ function parseCount(suffix: string): number | null {
   return m[2] ? -n : n;
 }
 
-/** Plan a scramble for a holding. Null when it contains a token that cannot be followed. */
-export function planSetup(scramble: string, holding: CubeHolding): SetupPlan | null {
+/** Plan a scramble for a holding (named, or its frame). Null when it contains a token that cannot be followed. */
+export function planSetup(scramble: string, holding: CubeHolding | Frame): SetupPlan | null {
   const tokens = tokenizeAlg(scramble);
   const steps: SetupStep[] = [];
   const tokenEnds: number[] = [];
-  let frame = holdingFrame(holding);
+  let frame = toFrame(holding);
 
   // Consecutive turns of one cube face merge into one step, and cancel when
   // they add up to nothing: "R' z' U" turns the cube's U face both ways.

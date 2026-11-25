@@ -2,13 +2,10 @@
 
 import { useMemo } from 'react';
 import { useT } from '@/hooks/useT';
-import { STICKER_COLOURS, type StickerColour } from '@/lib/cube-colors';
+import { STICKER_COLOURS } from '@/lib/cube-colors';
 import { applyFaceTurns, FACES, SOLVED, type Face } from '@/lib/smart-cube/cube-state';
-import { holdingFrame, type CubeHolding } from '@/lib/smart-cube/holding';
+import { FACE_COLOUR, type Frame } from '@/lib/smart-cube/holding';
 import { facelets } from '@/lib/solve/cfop-split';
-
-/** The colour of each of the cube's own faces (white top, green front). */
-export const FACE_COLOUR: Record<Face, StickerColour> = { U: 'white', R: 'red', F: 'green', D: 'yellow', L: 'orange', B: 'blue' };
 
 // Where each face sits in the unfolded cube, in stickers: U above F, then L F R B, D below.
 const ORIGIN: Record<Face, [number, number]> = { U: [3, 0], L: [0, 3], F: [3, 3], R: [6, 3], B: [9, 3], D: [3, 6] };
@@ -17,7 +14,7 @@ const STEP = 10;
 // The scrambled cube unfolded, as the user holds it: the scramble is turned
 // on a cube whose top and front are the holding's colours, so the net shows
 // what each face should look like once scrambled.
-export function ScrambleNet({ scramble, holding, className = '' }: { scramble: string; holding: CubeHolding; className?: string }) {
+export function ScrambleNet({ scramble, frame, className = '' }: { scramble: string; frame: Frame; className?: string }) {
   const { t } = useT();
   const stickers = useMemo(() => {
     try {
@@ -27,7 +24,6 @@ export function ScrambleNet({ scramble, holding, className = '' }: { scramble: s
     }
   }, [scramble]);
   if (!stickers) return null;
-  const frame = holdingFrame(holding);
   return (
     <svg viewBox={`-1 -1 ${12 * STEP + 2} ${9 * STEP + 2}`} role="img" aria-label={t('solve.scramble.net')} className={className}>
       {FACES.map((face, f) => {

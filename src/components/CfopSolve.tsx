@@ -8,33 +8,29 @@ import { useMounted } from '@/hooks/useMounted';
 import { useKeepAwake, useNativeTimer } from '@/hooks/useNativeTimer';
 import { useScramble } from '@/hooks/useScramble';
 import { useSmartCube, useSmartCubeSettings } from '@/hooks/useSmartCube';
+import { useSolveSettings } from '@/hooks/useSolveSettings';
 import { useSolves } from '@/hooks/useSolves';
 import { useSpacebar } from '@/hooks/useSpacebar';
 import { useT } from '@/hooks/useT';
-import type { MessageKey } from '@/i18n/messages';
 import { openAppDialog } from '@/lib/app-dialog';
 import type { HoldPhase } from '@/lib/hold-timer';
 import { isNativeApp } from '@/lib/native';
-import type { CubeHolding } from '@/lib/smart-cube/holding';
 import { connect, connectLast, startScan, unsupportedReason } from '@/lib/smart-cube-store';
-import { addSolve, deleteSolve } from '@/lib/solve-store';
+import { deleteSolve, saveSolve } from '@/lib/solve-store';
 import { solveTps } from '@/lib/solve/cfop-split';
-import { handSolve, type SolveRecord } from '@/lib/solve/solve-record';
-import { formatSolveTime } from '@/lib/solve/solve-stats';
+import { inspectionCall, inspectionPenalty, inspectionShown } from '@/lib/solve/inspection';
+import { handSolve, type Penalty, type SolveRecord } from '@/lib/solve/solve-record';
+import { formatRecordTime, formatSolveTime } from '@/lib/solve/solve-stats';
 import { setTimerFocus } from '@/lib/timer-focus';
 import { ScrambleNet } from './ScrambleNet';
+import { PenaltyButtons, RecordTime } from './SolvePenalty';
 import { SolveRecords, TimerBadge } from './SolveRecords';
+import { SolveSettingsPanel } from './SolveSettingsPanel';
 import { SolveStages } from './SolveStages';
 import { PROBLEM, STATUS } from './SmartCubePanel';
 
 const CARD = 'rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900';
 const LABEL = 'text-[11px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400';
-
-const HOLDING: Record<CubeHolding, MessageKey> = {
-  'yellow-blue': 'smartCube.holding.yellowBlue',
-  'yellow-green': 'smartCube.holding.yellowGreen',
-  'white-green': 'smartCube.holding.whiteGreen',
-};
 
 // The timer's digits: red while held, green while running (as the practice timer).
 const DIGITS: Record<HoldPhase, string> = {
@@ -128,11 +124,14 @@ function CubeStatus({ screen, synced }: { screen: CubeSolveScreen | null; synced
   return <p className="text-sm text-zinc-500 dark:text-zinc-400">{t(screen.routeKind === 'reroute' ? 'solve.cube.reroute' : 'solve.cube.turn')}</p>;
 }
 
-/** The timer's digits: counting from `since` (performance.now() time) while running, otherwise `still`. */
-function TimerDigits({ since, still, className }: { since: number | null; still: number; className: string }) {
+/** What the timer shows: a time counting up, the inspection counting down, or a fixed text. */
+type Shown = { kind: 'running'; since: number } | { kind: 'inspection'; since: number } | { kind: 'still'; text: string };
+
+/** Redraws every frame while `on`; returns performance.now(). */
+function useNow(on: boolean): number {
   const [now, setNow] = useState(0);
   useEffect(() => {
-    if (since === null) return;
+    if (!on) return;
     let frame = 0;
     const tick = () => {
       setNow(performance.now());
@@ -140,10 +139,29 @@ function TimerDigits({ since, still, className }: { since: number | null; still:
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [since]);
+  }, [on]);
+  return now;
+}
+
+// The timer's digits. During the inspection: the whole seconds left, then
+// +2 and DNF, with the 8 and 12 second calls below in small type.
+function TimerDisplay({ shown, className }: { shown: Shown; className: string }) {
+  const { t } = useT();
+  const now = useNow(shown.kind !== 'still');
+  const digits = 'font-mono text-7xl font-bold tabular-nums leading-none transition-colors sm:text-8xl';
+  if (shown.kind === 'still') return <div className={`${digits} ${className}`} aria-live="off">{shown.text}</div>;
+  const ms = Math.max(0, now - shown.since);
+  if (shown.kind === 'running') return <div className={`${digits} ${className}`} aria-live="off">{formatSolveTime(ms)}</div>;
+  const left = inspectionShown(ms);
+  const call = inspectionCall(ms);
   return (
-    <div className={`font-mono text-7xl font-bold tabular-nums leading-none transition-colors sm:text-8xl ${className}`} aria-live="off">
-      {formatSolveTime(since === null ? still : Math.max(0, now - since))}
+    <div className="flex flex-col items-center gap-2">
+      <div className={`${digits} ${className}`} aria-live="off">
+        {'seconds' in left ? left.seconds : left.penalty === 'plus2' ? '+2' : 'DNF'}
+      </div>
+      <div className="h-5 text-sm font-medium text-amber-700 dark:text-amber-300" aria-live="polite">
+        {call !== null && t('solve.inspection.call', { seconds: call })}
+      </div>
     </div>
   );
 }
@@ -157,7 +175,8 @@ function Figure({ label, value, big = false }: { label: string; value: string; b
   );
 }
 
-// The solve just finished: time, moves and TPS, and for a cube solve its stages.
+// The solve just finished: time (with its penalty), moves and TPS, the
+// penalty buttons, and for a cube solve its stages.
 function LatestSolve({ record, onUndo, className }: { record: SolveRecord; onUndo: () => void; className: string }) {
   const { t } = useT();
   const connected = useSmartCube().status === 'connected';
@@ -165,21 +184,32 @@ function LatestSolve({ record, onUndo, className }: { record: SolveRecord; onUnd
   const tps = cube ? solveTps(record.moveCount!, record.ms) : null;
   return (
     <section aria-labelledby="latest-solve" className={`${CARD} p-4 sm:p-5 ${className}`}>
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id="latest-solve" className="flex items-center gap-2">
           <span className={LABEL}>{t('solve.result.title')}</span>
           <TimerBadge record={record} />
         </h2>
-        <button type="button" onClick={onUndo}
-          className="rounded-md border border-zinc-300 px-3 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
-          {t('solve.result.undo')}
-        </button>
+        <span className="flex items-center gap-2">
+          <PenaltyButtons record={record} />
+          <button type="button" onClick={onUndo}
+            className="rounded-md border border-zinc-300 px-3 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
+            {t('solve.result.undo')}
+          </button>
+        </span>
       </div>
-      <dl className="mt-3 grid grid-cols-3 items-end gap-2">
-        <Figure label={t('solve.time')} value={formatSolveTime(record.ms)} big />
+      <dl className="mt-3 grid grid-cols-3 items-start gap-2">
+        <div className="flex flex-col items-center gap-0.5">
+          <dt className={LABEL}>{t('solve.time')}</dt>
+          <dd><RecordTime record={record} className="font-mono text-3xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-50" /></dd>
+        </div>
         <Figure label={t('solve.moves')} value={cube ? String(record.moveCount) : '-'} />
         <Figure label="TPS" value={tps === null ? '-' : tps.toFixed(2)} />
       </dl>
+      {record.inspectionMs !== undefined && (
+        <p className="mt-2 text-center font-mono text-xs text-zinc-500 dark:text-zinc-400">
+          {t('solve.result.inspection', { seconds: (record.inspectionMs / 1000).toFixed(2) })}
+        </p>
+      )}
       {!cube && <p className="mt-2 text-center text-xs text-zinc-500 dark:text-zinc-400">{t(connected ? 'solve.result.byHand' : 'solve.result.noCube')}</p>}
       <SolveStages record={record} className="mt-4" />
     </section>
@@ -188,86 +218,121 @@ function LatestSolve({ record, onUndo, className }: { record: SolveRecord; onUnd
 
 const MemoRecords = memo(SolveRecords);
 
-// A CFOP solve from a random-state scramble. Without a smart cube: hold the
-// timer to get ready, let go to start, press anywhere to stop. With one: the
-// scramble is guided turn by turn, the first turn from the scrambled state
-// starts the timer and solving the cube stops it, and the solve is split
-// into its stages. Every solve is kept on this device; the next scramble
-// comes as soon as one is recorded.
+// A CFOP solve from a random-state scramble, held as set for CFOP (top and
+// front colours). Without a smart cube: with inspection, a tap starts it;
+// then hold the timer to get ready, let go to start, press anywhere to stop.
+// With one: the scramble is guided turn by turn, the cube in the scrambled
+// state starts the inspection, its first turn starts the timer and solving
+// stops it, and the solve is split into its stages. Starting after 15 s of
+// inspection adds +2, after 17 s DNF; either can be changed afterwards.
+// Solves are kept on the device, or in the account when signed in.
 export function CfopSolve() {
   const { t } = useT();
   const mounted = useMounted();
-  const { holding } = useSmartCubeSettings();
+  const settings = useSolveSettings('cfop');
+  const inspectionOn = mounted && settings.inspection;
   const cube = useSmartCube();
   const connected = mounted && cube.status === 'connected';
   const { scramble, failed, next } = useScramble();
   const solves = useSolves('cfop');
+  // The inspection before a solve without the cube (performance.now() it began).
+  const [inspecting, setInspecting] = useState<number | null>(null);
   // The attempt being timed, by the on-screen timer or by the cube.
-  const [timer, setTimer] = useState<{ by: 'hand' | 'cube'; since: number; scramble: string } | null>(null);
+  const [timer, setTimer] = useState<{
+    by: 'hand' | 'cube';
+    since: number;
+    scramble: string;
+    penalty?: Penalty;
+    inspectionMs?: number;
+  } | null>(null);
   const [latestId, setLatestId] = useState<string | null>(null);
   const latest = latestId === null ? null : solves.solves.find((s) => s.id === latestId) ?? null;
 
+  // When the last solve stopped: the press that stopped it must not start the next inspection.
+  const stoppedAt = useRef(-Infinity);
   const record = useCallback((solve: SolveRecord) => {
-    // Shown at once; kept for this visit only when the device cannot store it.
-    addSolve(solve).catch(() => {});
+    stoppedAt.current = performance.now();
+    // Shown at once; kept for this visit only when it cannot be stored.
+    saveSolve(solve).catch(() => {});
     setLatestId(solve.id);
     setTimer(null);
     next();
   }, [next]);
 
-  const begin = (by: 'hand' | 'cube') => {
-    if (scramble) setTimer({ by, since: performance.now(), scramble });
+  // The inspection's outcome when the solve starts: its length and any penalty.
+  const fromInspection = (ms: number | null) => (ms === null || !inspectionOn ? {} : {
+    inspectionMs: ms,
+    ...(inspectionPenalty(ms) ? { penalty: inspectionPenalty(ms)! } : {}),
+  });
+  const begin = (by: 'hand' | 'cube', inspectionMs: number | null) => {
+    if (!scramble) return;
+    setInspecting(null);
+    setTimer({ by, since: performance.now(), scramble, ...fromInspection(inspectionMs) });
   };
   // Stopped on screen: a cube solve stopped this way is timed on screen too.
   const stopByHand = () => {
-    if (timer) record(handSolve(timer.scramble, performance.now() - timer.since));
+    if (timer) record(handSolve(timer.scramble, performance.now() - timer.since, { penalty: timer.penalty, inspectionMs: timer.inspectionMs }));
   };
 
   // With a smart cube: guided scramble, then the cube starts and stops.
-  const byCube = connected && timer?.by !== 'hand';
+  const byCube = connected && timer?.by !== 'hand' && inspecting === null;
   const cubeSolve = useCubeSolve({
     active: byCube,
     scramble,
-    holding,
-    onStart: () => begin('cube'),
-    onStop: record,
+    holding: settings,
+    onStart: (inspectionMs) => begin('cube', inspectionMs),
+    onStop: (solve) => record({ ...solve, ...(timer?.penalty ? { penalty: timer.penalty } : {}), ...(timer?.inspectionMs !== undefined ? { inspectionMs: Math.round(timer.inspectionMs) } : {}) }),
   });
   const abortCube = () => {
     setTimer(null);
     cubeSolve.restart();
   };
+  const screen = cubeSolve.screen;
+  const cubeInspecting = byCube && inspectionOn && screen?.phase === 'ready' && screen.readySince !== null;
 
-  // Without one: hold, let go, press to stop.
+  // Without one: a tap starts the inspection (when on); then hold, let go, press to stop.
+  const tapToInspect = mounted && !byCube && inspectionOn && inspecting === null && timer === null && scramble !== null;
+  const startInspection = useCallback(() => {
+    const now = performance.now();
+    if (now - stoppedAt.current > 500) setInspecting(now);
+  }, []);
   const hold = useHoldTimer({
-    active: mounted && scramble !== null && !byCube,
+    active: mounted && scramble !== null && !byCube && !tapToInspect,
     state: timer?.by === 'hand' ? 'running' : 'idle',
     pressOnNext: false,
-    onStart: () => begin('hand'),
+    onStart: () => begin('hand', inspecting === null ? null : performance.now() - inspecting),
     onStop: stopByHand,
     onAbort: () => setTimer(null),
     onNext: () => {},
   });
+  useSpacebar(startInspection, tapToInspect);
 
   const cubeRunning = timer?.by === 'cube';
-  // While the cube times, everything but the timer steps aside as well.
-  useEffect(() => {
-    if (!cubeRunning) return;
-    setTimerFocus(true);
-    return () => setTimerFocus(false);
-  }, [cubeRunning]);
+  // While inspecting, held or timing, everything but the timer steps aside
+  // (after the hold timer's own effect, so this one has the last word).
+  const focus = inspecting !== null || cubeInspecting || hold.phase === 'armed' || hold.phase === 'running' || cubeRunning;
+  useEffect(() => { setTimerFocus(focus); }, [focus, hold.phase]);
+  useEffect(() => () => setTimerFocus(false), []);
+
   // Stable handlers for the key and app listeners, reading this render's state.
   const latestHandlers = useRef({ stopByHand, abortCube, abandon: () => {} });
   useEffect(() => {
-    latestHandlers.current = { stopByHand, abortCube, abandon: cubeRunning ? abortCube : () => setTimer(null) };
+    latestHandlers.current = {
+      stopByHand,
+      abortCube,
+      abandon: cubeRunning ? abortCube : () => { setTimer(null); setInspecting(null); },
+    };
   });
   const onSpace = useCallback(() => latestHandlers.current.stopByHand(), []);
   const onEscape = useCallback(() => latestHandlers.current.abortCube(), []);
   const onLeave = useCallback(() => latestHandlers.current.abandon(), []);
-  // Space stops a cube solve by hand; Escape abandons it.
+  const cancelInspection = useCallback(() => setInspecting(null), []);
+  // Space stops a cube solve by hand; Escape abandons it, or the inspection.
   useSpacebar(onSpace, cubeRunning);
   useEscapeKey(onEscape, cubeRunning);
+  useEscapeKey(cancelInspection, inspecting !== null && hold.phase === 'idle');
   // Leaving the iOS app abandons the attempt; a connected cube keeps the screen on.
-  useNativeTimer(timer !== null, onLeave);
+  useNativeTimer(timer !== null || inspecting !== null, onLeave);
   useKeepAwake(connected);
   const onUndo = useCallback(() => {
     if (latestId) void deleteSolve('cfop', latestId).catch(() => {});
@@ -278,15 +343,21 @@ export function CfopSolve() {
     setLatestId((current) => (current === id ? null : current));
   }, []);
 
-  const focus = hold.phase === 'armed' || hold.phase === 'running' || cubeRunning;
   const aside = focus ? 'invisible' : '';
   const phase: HoldPhase = byCube ? (cubeRunning ? 'running' : 'idle') : hold.phase;
-  const still = hold.phase === 'pressed' || hold.phase === 'armed' ? 0 : latest?.ms ?? 0;
+  const shown: Shown = timer ? { kind: 'running', since: timer.since }
+    : inspecting !== null ? { kind: 'inspection', since: inspecting }
+      : cubeInspecting ? { kind: 'inspection', since: screen!.readySince! }
+        : { kind: 'still', text: hold.phase === 'pressed' || hold.phase === 'armed' || !latest ? formatSolveTime(0) : formatRecordTime(latest) };
 
-  const screen = cubeSolve.screen;
   const rerouted = byCube && screen?.routeKind === 'reroute';
   const tokens = rerouted ? screen!.tokens : scramble?.split(' ') ?? [];
   const done = !byCube || !screen ? null : screen.phase === 'ready' ? tokens.length : screen.routeKind === null ? null : screen.doneTokens;
+  const pressDown = byCube ? (cubeRunning ? stopByHand : undefined)
+    : tapToInspect ? (event: { preventDefault: () => void }) => { event.preventDefault(); startInspection(); }
+      : hold.pressProps.onPointerDown;
+  const hint = byCube ? t(screen?.phase === 'ready' ? 'smartCube.trainer.ready' : 'solve.cube.hint')
+    : t(tapToInspect ? 'solve.inspection.start' : 'trainer.hold.start');
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
@@ -305,7 +376,7 @@ export function CfopSolve() {
             </div>
           </div>
           {mounted && <CubeProblem />}
-          <div className="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:gap-6">
+          <div className="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-6">
             <div className="flex min-w-0 flex-1 flex-col items-center gap-3 text-center sm:items-start sm:text-left">
               <p aria-live="polite" className="min-h-[2.5em] w-full font-mono text-2xl font-semibold leading-relaxed tracking-wide break-words text-zinc-900 sm:text-3xl dark:text-zinc-50">
                 {scramble ? <Tokens tokens={tokens} done={done} /> : (
@@ -315,27 +386,27 @@ export function CfopSolve() {
               {rerouted && scramble && (
                 <p className="font-mono text-xs text-zinc-500 dark:text-zinc-400">{t('solve.cube.scrambleWas', { scramble })}</p>
               )}
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('solve.scramble.holding', { holding: t(HOLDING[holding]) })}</p>
               {byCube && scramble && <CubeStatus screen={screen} synced={cube.state !== null} />}
+              {mounted && <SolveSettingsPanel settings={settings} disabled={timer !== null || inspecting !== null} />}
             </div>
-            {scramble && <ScrambleNet scramble={scramble} holding={holding} className="w-32 shrink-0 sm:w-40" />}
+            {scramble && <ScrambleNet scramble={scramble} frame={settings.frame} className="w-32 shrink-0 sm:mt-2 sm:w-40" />}
           </div>
         </section>
 
         <div
-          onPointerDown={byCube ? (cubeRunning ? stopByHand : undefined) : hold.pressProps.onPointerDown}
+          onPointerDown={pressDown}
           onContextMenu={hold.pressProps.onContextMenu}
           role="button"
           tabIndex={-1}
-          aria-label={cubeRunning || hold.phase === 'running' ? t('trainer.tapToStopAria') : byCube ? t('solve.cube.timerAria') : t('trainer.hold.aria')}
+          aria-label={cubeRunning || hold.phase === 'running' ? t('trainer.tapToStopAria')
+            : inspecting !== null ? t('solve.inspection.aria')
+              : byCube ? t('solve.cube.timerAria') : t(tapToInspect ? 'solve.inspection.start' : 'trainer.hold.aria')}
           className={`${CARD} flex min-h-[36vh] flex-col items-center justify-center gap-3 p-6 select-none touch-none [-webkit-touch-callout:none] [-webkit-user-select:none] sm:min-h-[20rem] ${byCube ? '' : 'cursor-pointer'}`}
         >
-          <TimerDigits since={timer?.since ?? null} still={still} className={DIGITS[phase]} />
+          <TimerDisplay shown={shown} className={shown.kind === 'inspection' && phase === 'idle' ? 'text-zinc-700 dark:text-zinc-200' : DIGITS[phase]} />
           <p className={`text-center text-sm text-zinc-600 dark:text-zinc-300 ${aside}`}>
-            {byCube ? t(screen?.phase === 'ready' ? 'smartCube.trainer.ready' : 'solve.cube.hint') : <>
-              {t('trainer.hold.start')}
-              <kbd className="ml-2 hidden font-mono text-[10px] opacity-70 sm:inline">Space</kbd>
-            </>}
+            {hint}
+            {!byCube && <kbd className="ml-2 hidden font-mono text-[10px] opacity-70 sm:inline">Space</kbd>}
           </p>
         </div>
 

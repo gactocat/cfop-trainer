@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useSmartCube } from '@/hooks/useSmartCube';
 import { stateEquals, type CubeState } from '@/lib/smart-cube/cube-state';
-import type { CubeHolding } from '@/lib/smart-cube/holding';
+import { colourFrame, holdingFrame, type ColourHolding } from '@/lib/smart-cube/holding';
 import {
   cubeSolveResync,
   cubeSolveTurn,
@@ -22,6 +22,8 @@ import { cubeSolve, type SolveRecord } from '@/lib/solve/solve-record';
 export interface CubeSolveScreen extends CubeSolveView {
   /** No legal route from the cube's state (it was misread, or a piece is twisted). */
   routeFailed: boolean;
+  /** performance.now() when the cube reached the scrambled state; the inspection runs from here. */
+  readySince: number | null;
 }
 
 // The current attempt, outside React so the cube's turns can drive it as they
@@ -32,6 +34,7 @@ class SolveHolder {
   /** The last route asked for: from this state to this target. */
   private requested: { from: CubeState; to: CubeState } | null = null;
   private failedFor: CubeState | null = null;
+  readySince: number | null = null;
   private listeners = new Set<() => void>();
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
@@ -40,8 +43,14 @@ class SolveHolder {
   getSnapshot = () => this.screen;
   set(session: CubeSolveSession | null) {
     if (session === this.session) return;
+    if (session?.phase !== 'ready' && session?.phase !== 'running') this.readySince = null;
+    else if (session.phase === 'ready' && this.session?.phase !== 'ready') this.readySince = performance.now();
     this.session = session;
-    this.screen = session && { ...cubeSolveView(session), routeFailed: this.failedFor !== null && stateEquals(this.failedFor, session.state) };
+    this.screen = session && {
+      ...cubeSolveView(session),
+      routeFailed: this.failedFor !== null && stateEquals(this.failedFor, session.state),
+      readySince: this.readySince,
+    };
     this.listeners.forEach((l) => l());
     if (session && needsRoute(session) && (this.requested?.from !== session.state || this.requested.to !== session.target)) this.askRoute(session);
   }
@@ -59,7 +68,7 @@ class SolveHolder {
       if (next === current) {
         // No legal route: the cube's state is misread or a piece is twisted.
         this.failedFor = from;
-        this.screen = { ...cubeSolveView(current), routeFailed: true };
+        this.screen = { ...cubeSolveView(current), routeFailed: true, readySince: this.readySince };
         this.listeners.forEach((l) => l());
         return;
       }
@@ -82,8 +91,10 @@ const serverScreen = () => null;
 export function useCubeSolve({ active, scramble, holding, onStart, onStop }: {
   active: boolean;
   scramble: string | null;
-  holding: CubeHolding;
-  onStart: () => void;
+  /** How the cube is held: the scramble is turned and the stages are read in it. */
+  holding: ColourHolding;
+  /** The first turn from the scrambled state: how long after reaching it (the inspection). */
+  onStart: (inspectionMs: number) => void;
   /** Solved: the record of the solve, timed on the cube's clock. */
   onStop: (record: SolveRecord) => void;
 }): { screen: CubeSolveScreen | null; restart: () => void } {
@@ -94,12 +105,16 @@ export function useCubeSolve({ active, scramble, holding, onStart, onStop }: {
   const callbacks = useRef({ onStart, onStop });
   useEffect(() => { callbacks.current = { onStart, onStop }; });
   const on = active && synced && scramble !== null;
+  const { top, front } = holding;
+  const frame = useMemo(() => colourFrame({ top, front }) ?? holdingFrame('yellow-blue'), [top, front]);
+  const colours = useRef(holding);
+  useEffect(() => { colours.current = holding; });
 
   // A new attempt for each scramble, holding and connection.
   useEffect(() => {
     const state = getCubeSnapshot().state;
-    holder.set(on && scramble && state ? startCubeSolve(scramble, holding, state) : null);
-  }, [holder, on, scramble, holding]);
+    holder.set(on && scramble && state ? startCubeSolve(scramble, frame, state) : null);
+  }, [holder, on, scramble, frame]);
 
   useEffect(() => {
     if (!on) return;
@@ -112,10 +127,15 @@ export function useCubeSolve({ active, scramble, holding, onStart, onStop }: {
         holder.set(startCubeSolve(session.scramble, session.holding, turn.state));
         return;
       }
+      const readySince = holder.readySince;
       holder.set(result.session);
-      if (result.event === 'start') callbacks.current.onStart();
+      if (result.event === 'start') {
+        // The inspection on the screen's clock, as its countdown showed it
+        // (the cube's clock is for the solve itself).
+        callbacks.current.onStart(readySince === null ? 0 : performance.now() - readySince);
+      }
       if (result.event === 'stop') {
-        callbacks.current.onStop(cubeSolve({ scramble: session.scramble, holding: session.holding, start: session.target, turns: result.session.turns }));
+        callbacks.current.onStop(cubeSolve({ scramble: session.scramble, holding: colours.current, start: session.target, turns: result.session.turns }));
       }
     });
     // The cube's state can change without a turn (it resyncs about once a

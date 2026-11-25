@@ -9,7 +9,7 @@
 // from that holding (`scrambleState`).
 
 import { applyTurn, SOLVED, stateEquals, type Amount, type CubeState } from '@/lib/smart-cube/cube-state';
-import { holdingFrame, userNotation, type CubeHolding } from '@/lib/smart-cube/holding';
+import { toFrame, userNotation, type CubeHolding, type Frame } from '@/lib/smart-cube/holding';
 import { applyPlan, planSetup } from '@/lib/smart-cube/setup-guide';
 import {
   cryptoRandom,
@@ -35,7 +35,7 @@ export function generateScramble(random: () => number = cryptoRandom): string {
 }
 
 /** The state (in the cube's own frame) a scramble turned in this holding leaves a solved cube in. */
-export function scrambleState(scramble: string, holding: CubeHolding): CubeState {
+export function scrambleState(scramble: string, holding: CubeHolding | Frame): CubeState {
   const plan = planSetup(scramble, holding);
   if (!plan) throw new Error(`Not a scramble: ${scramble}`);
   return applyPlan(SOLVED, plan);
@@ -80,8 +80,8 @@ export function routeBetween(from: CubeState, to: CubeState, timeLimitMs = 200):
 }
 
 /** Cube-frame turns in the user's notation for a holding (face turns keep their direction). */
-export function movesInHolding(moves: readonly { face: SolverMove['face']; amount: Amount }[], holding: CubeHolding): string {
-  const frame = holdingFrame(holding);
+export function movesInHolding(moves: readonly { face: SolverMove['face']; amount: Amount }[], holding: CubeHolding | Frame): string {
+  const frame = toFrame(holding);
   return moves.map((m) => userNotation(frame, m.face, m.amount)).join(' ');
 }
 

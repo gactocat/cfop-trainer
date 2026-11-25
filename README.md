@@ -45,8 +45,9 @@ See [iOS development and release](docs/ios.md) for simulator and device setup.
 - CFOP solves from random-state scrambles (two-phase search in a worker),
   timed with the hold timer or a smart cube; with a cube, the scramble is
   guided turn by turn and each solve is split into cross, four F2L pairs, OLL
-  and PLL with time, moves and TPS. Best, ao5 and ao12 over the solves kept on
-  the device. See [solves](docs/solve.md)
+  and PLL with time, moves and TPS. Holding colours per kind of solve, WCA
+  inspection with automatic +2 / DNF, penalties set by hand, best / ao5 /
+  ao12, and solves saved to the account when signed in. See [solves](docs/solve.md)
 
 ## Development
 

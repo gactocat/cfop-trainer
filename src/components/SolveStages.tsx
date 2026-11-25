@@ -4,11 +4,10 @@ import { useMemo } from 'react';
 import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
 import { STICKER_COLOURS } from '@/lib/cube-colors';
-import { holdingFrame, userNotation, DEFAULT_HOLDING } from '@/lib/smart-cube/holding';
+import { FACE_COLOUR, userNotation } from '@/lib/smart-cube/holding';
 import { cfopStages, type CfopStage } from '@/lib/solve/cfop-split';
-import type { SolveRecord } from '@/lib/solve/solve-record';
+import { recordFrame, type SolveRecord } from '@/lib/solve/solve-record';
 import { formatSolveTime } from '@/lib/solve/solve-stats';
-import { FACE_COLOUR } from './ScrambleNet';
 
 const STAGE_LABEL: Record<CfopStage, MessageKey> = {
   cross: 'solve.stage.cross',
@@ -41,7 +40,7 @@ export function SolveStages({ record, className = '' }: { record: SolveRecord; c
     [record],
   );
   if (!record.split || stages.length === 0) return null;
-  const frame = holdingFrame(record.holding ?? DEFAULT_HOLDING);
+  const frame = recordFrame(record);
   const crossColour = FACE_COLOUR[record.split.cross];
   const th = 'px-2 py-1.5 font-medium';
   return (

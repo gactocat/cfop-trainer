@@ -1,5 +1,6 @@
 import { DATA_KEYS, type AccountData, parseAccountData } from '@/lib/account-data';
 import { readGuestValue, writeGuestValue } from '@/lib/guest-storage';
+import { rememberSolveImport } from '@/lib/solve/solve-import';
 
 export type PersistenceState = {
   mode: 'boot' | 'guest' | 'loading' | 'choice' | 'account';
@@ -129,6 +130,8 @@ export async function initializeAccount(importGuest: boolean) {
       }
     } catch { update({ error: 'local' }); return; }
   }
+  // Solves live outside this document; the same choice brings them in (solve-library.ts).
+  if (state.userId) rememberSolveImport(state.userId, importGuest ? 'wanted' : 'declined');
   data = imported;
   update({ dirty: true, error: null });
   await flushAccount();

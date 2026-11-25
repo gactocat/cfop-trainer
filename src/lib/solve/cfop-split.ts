@@ -5,10 +5,8 @@
 // end on the same turn (an X-cross, an OLL or PLL skip) take no time and no
 // moves.
 //
-// The cross may be on any face (colour neutral): the face whose F2L was
-// finished first, which in a CFOP solve is the face the solver built on. On
-// a tie (F2L and the last layer finished on one turn) the bottom face of the
-// user's holding wins.
+// The cross is on the bottom face of the user's holding for the solve (the
+// face opposite the chosen top colour), and the last layer is the top face.
 //
 // States are in the cube's own frame (white U, green F). Rotations of the
 // whole cube are not turns, so they never count.
@@ -21,7 +19,7 @@ export type CfopStage = (typeof CFOP_STAGES)[number];
 
 /** Where each stage ended. */
 export interface CfopSplit {
-  /** Cube-frame face the cross was built on. */
+  /** Cube-frame face the cross was built on (the bottom of the holding). */
   cross: Face;
   /**
    * For each stage reached, in order, the index of the turn that completed
@@ -97,46 +95,15 @@ export function cfopLevel(state: CubeState, cross: Face): number {
 }
 
 /**
- * Split a solve into its stages. `states` are the states after each turn;
- * `start` the state before the first. `preferred` is the cross face to use on
- * a tie (the bottom of the user's holding).
+ * Split a solve into its stages, with the cross on cube face `cross`.
+ * `states` are the states after each turn; `start` the state before the first.
  */
-export function splitCfop(start: CubeState, states: readonly CubeState[], preferred: Face): CfopSplit {
-  const all = [start, ...states];
-  // For each face, where each level was first reached (index into `all`).
-  const firstReached = (face: Face) => {
-    const first: (number | undefined)[] = new Array(8).fill(undefined);
-    all.forEach((state, i) => {
-      const level = cfopLevel(state, face);
-      for (let l = 1; l <= level; l++) first[l] ??= i;
-    });
-    return first;
-  };
-  const byFace = new Map(FACES.map((face) => [face, firstReached(face)]));
-  const order = [preferred, ...FACES.filter((f) => f !== preferred)];
-  const highest = (face: Face) => {
-    const first = byFace.get(face)!;
-    let level = 0;
-    while (level < 7 && first[level + 1] !== undefined) level++;
-    return level;
-  };
-  // The face whose F2L was done first; without one, the furthest along.
-  let cross = order[0];
-  let bestKey: [number, number, number] | null = null;
-  for (const face of order) {
-    const first = byFace.get(face)!;
-    const level = highest(face);
-    const key: [number, number, number] = level >= 5
-      ? [0, first[5]!, first[1]!]
-      : [1, -level, level > 0 ? first[level]! : Infinity];
-    if (!bestKey || key[0] < bestKey[0] || (key[0] === bestKey[0] && (key[1] < bestKey[1] || (key[1] === bestKey[1] && key[2] < bestKey[2])))) {
-      bestKey = key;
-      cross = face;
-    }
-  }
-  const first = byFace.get(cross)!;
+export function splitCfop(start: CubeState, states: readonly CubeState[], cross: Face): CfopSplit {
   const ends: number[] = [];
-  for (let level = 1; level <= highest(cross); level++) ends.push(first[level]! - 1);
+  [start, ...states].forEach((state, i) => {
+    const level = cfopLevel(state, cross);
+    while (ends.length < level) ends.push(i - 1);
+  });
   return { cross, ends };
 }
 

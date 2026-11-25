@@ -9,7 +9,7 @@
 // starts the timer and solving it stops the timer. Times are cube-clock ms.
 
 import { SOLVED, stateEquals, type CubeState, type Face } from '@/lib/smart-cube/cube-state';
-import { holdingFrame, userNotation, type CubeHolding } from '@/lib/smart-cube/holding';
+import { toFrame, userNotation, type CubeHolding, type Frame } from '@/lib/smart-cube/holding';
 import { mergeTurns } from '@/lib/smart-cube/solve-record';
 import {
   advanceGuide,
@@ -49,7 +49,8 @@ export interface CubeSolveTurn {
 }
 
 export interface CubeSolveSession {
-  holding: CubeHolding;
+  /** How the user holds the cube: the scramble and routes are turned in it. */
+  holding: Frame;
   scramble: string;
   /** The scrambled state, in the cube's frame. */
   target: CubeState;
@@ -71,7 +72,7 @@ export interface CubeSolveSession {
 
 export type CubeSolveEvent = 'ready' | 'start' | 'stop' | null;
 
-function routeOf(moves: string, holding: CubeHolding, base: CubeState, kind: SolveRoute['kind']): SolveRoute {
+function routeOf(moves: string, holding: Frame, base: CubeState, kind: SolveRoute['kind']): SolveRoute {
   const plan = planSetup(moves, holding);
   if (!plan) throw new Error(`Not a route: ${moves}`);
   return { moves, plan, base, kind };
@@ -87,7 +88,7 @@ function guideFrom(session: CubeSolveSession, state: CubeState, fallback: string
 const mod4 = (n: number) => ((n % 4) + 4) % 4;
 
 /** From where the guide stands: take back the wrong turns, then finish the route. */
-function undoThenRest(route: SolveRoute, progress: GuideProgress, holding: CubeHolding): string {
+function undoThenRest(route: SolveRoute, progress: GuideProgress, holding: Frame): string {
   const turns: { face: Face; amount: number }[] = [...progress.wrong].reverse().map((w) => ({ face: w.face, amount: mod4(-w.amount) }));
   route.plan.steps.slice(progress.step).forEach((step, i) => {
     for (const [face, amount] of Object.entries(step.turns) as [Face, number][]) {
@@ -95,13 +96,13 @@ function undoThenRest(route: SolveRoute, progress: GuideProgress, holding: CubeH
       if (left) turns.push({ face, amount: left });
     }
   });
-  const frame = holdingFrame(holding);
-  return mergeTurns(turns).map((t) => userNotation(frame, t.face, t.amount)).join(' ');
+  return mergeTurns(turns).map((t) => userNotation(holding, t.face, t.amount)).join(' ');
 }
 
 const moveCount = (moves: string) => moves.split(' ').filter(Boolean).length;
 
-export function startCubeSolve(scramble: string, holding: CubeHolding, state: CubeState): CubeSolveSession {
+export function startCubeSolve(scramble: string, held: CubeHolding | Frame, state: CubeState): CubeSolveSession {
+  const holding = toFrame(held);
   const session: CubeSolveSession = {
     holding, scramble, target: scrambleState(scramble, holding), state, phase: 'scramble',
     route: null, fallback: null, progress: GUIDE_START, turns: [], elapsedMs: null,
@@ -135,7 +136,8 @@ export function cubeSolveTurn(session: CubeSolveSession, turn: CubeSolveTurn): {
   switch (session.phase) {
     case 'scramble': {
       if (stateEquals(state, session.target)) {
-        return { session: { ...session, state, phase: 'ready', progress: session.route ? { step: session.route.plan.steps.length, acc: {}, wrong: [] } : GUIDE_START }, event: 'ready' };
+        const progress = session.route ? { step: session.route.plan.steps.length, acc: {}, wrong: [] } : GUIDE_START;
+        return { session: { ...session, state, phase: 'ready', progress }, event: 'ready' };
       }
       if (!session.route) return { session: guideFrom(session, state), event: null };
       const progress = advanceGuide(session.route.plan, session.progress, turn.face, turn.amount);

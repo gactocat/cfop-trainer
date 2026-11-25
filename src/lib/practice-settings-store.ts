@@ -1,5 +1,7 @@
 import { readStoredValue } from '@/lib/persistence';
 import { createLocalStore } from '@/lib/local-store';
+import { CUBE_COLOURS, fitsTop, type ColourHolding, type CubeColour } from '@/lib/smart-cube/holding';
+import { SOLVE_EVENTS, type SolveEvent } from '@/lib/solve/solve-record';
 import type { Practice } from '@/types/practice';
 
 export type AufDisplay = 'cube' | 'prefix';
@@ -24,6 +26,16 @@ export interface PracticeSettings {
    */
   alignAuf?: boolean;
   colorTheme?: 'light' | 'dark';
+  /**
+   * Solves from a scramble, per kind: how the cube is held and whether there
+   * is inspection. Absent in older versions, which drop it when they save;
+   * each kind then starts again from its defaults.
+   */
+  solves?: Partial<Record<SolveEvent, Partial<SolveSettings>>>;
+}
+
+export interface SolveSettings extends ColourHolding {
+  inspection: boolean;
 }
 
 export const DEFAULT_PRACTICE_SETTINGS: PracticeSettings = {
@@ -44,6 +56,24 @@ function validAufDisplays(raw: unknown): Partial<Pick<PracticeSettings, 'aufDisp
     : {};
 }
 
+const isColour = (value: unknown): value is CubeColour => CUBE_COLOURS.includes(value as CubeColour);
+
+function validSolves(raw: unknown): Partial<Pick<PracticeSettings, 'solves'>> {
+  if (typeof raw !== 'object' || raw === null) return {};
+  const value = raw as Record<string, Record<string, unknown> | null>;
+  const solves: NonNullable<PracticeSettings['solves']> = {};
+  for (const event of SOLVE_EVENTS) {
+    const entry = value[event];
+    if (typeof entry !== 'object' || entry === null) continue;
+    const kept: Partial<SolveSettings> = {
+      ...(isColour(entry.top) && isColour(entry.front) && fitsTop(entry.top, entry.front) ? { top: entry.top, front: entry.front } : {}),
+      ...(typeof entry.inspection === 'boolean' ? { inspection: entry.inspection } : {}),
+    };
+    if (Object.keys(kept).length) solves[event] = kept;
+  }
+  return Object.keys(solves).length ? { solves } : {};
+}
+
 function validSettings(raw: unknown): Partial<PracticeSettings> {
   if (typeof raw !== 'object' || raw === null) return {};
   const value = raw as Partial<PracticeSettings>;
@@ -54,6 +84,7 @@ function validSettings(raw: unknown): Partial<PracticeSettings> {
     ...(typeof value.randomAuf === 'boolean' ? { randomAuf: value.randomAuf } : {}),
     ...(typeof value.alignAuf === 'boolean' ? { alignAuf: value.alignAuf } : {}),
     ...(value.colorTheme === 'light' || value.colorTheme === 'dark' ? { colorTheme: value.colorTheme } : {}),
+    ...validSolves(value.solves),
   };
 }
 
@@ -110,4 +141,23 @@ export function setAufDisplay(practice: Practice, display: AufDisplay): void {
   store.mutate((prev) => aufDisplayOf(prev, practice) === display
     ? prev
     : { ...prev, aufDisplays: { ...prev.aufDisplays, [practice]: display } });
+}
+
+/**
+ * One kind of solve's settings: its own choices, else the holding given
+ * (the smart cube's) and inspection on.
+ */
+export function solveSettingsOf(settings: Pick<PracticeSettings, 'solves'>, event: SolveEvent, holding: ColourHolding): SolveSettings {
+  const own = settings.solves?.[event];
+  return {
+    ...(own?.top && own.front ? { top: own.top, front: own.front } : holding),
+    inspection: own?.inspection ?? true,
+  };
+}
+
+/** Change one kind of solve's settings. A front colour that no longer fits the top is moved next to it. */
+export function setSolveSettings(event: SolveEvent, current: SolveSettings, patch: Partial<SolveSettings>): void {
+  const next = { ...current, ...patch };
+  if (!fitsTop(next.top, next.front)) next.front = CUBE_COLOURS.find((colour) => fitsTop(next.top, colour))!;
+  store.mutate((prev) => ({ ...prev, solves: { ...prev.solves, [event]: next } }));
 }
