@@ -28,5 +28,6 @@ jobs:
       - run: node scripts/verify-account-deletion.mts
       - run: node --import ./scripts/register-src-alias.mjs scripts/verify-account-storage.mts
       - run: node --import ./scripts/register-src-alias.mjs scripts/verify-practice-settings.mts
+      - run: node --import ./scripts/register-src-alias.mjs scripts/verify-solve.mts
       - run: npm run build
       - run: npm run build:ios:web
