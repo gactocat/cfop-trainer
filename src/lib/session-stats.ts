@@ -1,5 +1,6 @@
-// Per-case figures for one practice session on a smart cube: recognition and
-// solving, each as a mean and a best, over the solves that were kept.
+// Figures for one practice session: the whole session (mean time, moves and
+// TPS) and case by case (recognition and solving as a mean and a best, moves
+// and TPS), over the solves that were kept.
 
 export interface SessionSolve {
   caseId: string;
@@ -7,6 +8,9 @@ export interface SessionSolve {
   seconds: number;
   /** Null when the attempt had no recognition time (started by hand). */
   recognitionMs: number | null;
+  /** Null when the moves are unknown (no algorithm for the case). */
+  moveCount: number | null;
+  tps: number | null;
   /** Taken back with undo. */
   undone: boolean;
 }
@@ -14,6 +18,16 @@ export interface SessionSolve {
 export interface MeanBest {
   mean: number;
   best: number;
+}
+
+export interface SessionTotals {
+  count: number;
+  /** Seconds; null before the first solve. */
+  meanSeconds: number | null;
+  /** Over the solves whose moves are known; null when none are. */
+  meanMoves: number | null;
+  /** The mean of each solve's TPS; null when none is known. */
+  meanTps: number | null;
 }
 
 export interface CaseSummary {
@@ -24,11 +38,29 @@ export interface CaseSummary {
   recognition: MeanBest | null;
   /** Seconds. */
   solve: MeanBest;
+  moves: number | null;
+  tps: number | null;
 }
+
+const mean = (values: number[]) => (values.length ? values.reduce((a, v) => a + v, 0) / values.length : null);
 
 function meanBest(values: number[]): MeanBest | null {
   if (values.length === 0) return null;
-  return { mean: values.reduce((a, v) => a + v, 0) / values.length, best: Math.min(...values) };
+  return { mean: mean(values)!, best: Math.min(...values) };
+}
+
+const kept = (results: readonly SessionSolve[]) => results.filter((r) => !r.undone);
+const known = (values: (number | null)[]) => values.filter((v): v is number => v !== null);
+
+/** The whole session: undone solves do not count. */
+export function summarizeSession(results: readonly SessionSolve[]): SessionTotals {
+  const solves = kept(results);
+  return {
+    count: solves.length,
+    meanSeconds: mean(solves.map((r) => r.seconds)),
+    meanMoves: mean(known(solves.map((r) => r.moveCount))),
+    meanTps: mean(known(solves.map((r) => r.tps))),
+  };
 }
 
 /**
@@ -37,26 +69,26 @@ function meanBest(values: number[]): MeanBest | null {
  */
 export function summarizeByCase(results: readonly SessionSolve[]): CaseSummary[] {
   const order: string[] = [];
-  const byCase = new Map<string, { name: string; seconds: number[]; recognition: number[] }>();
-  for (const result of results) {
-    if (result.undone) continue;
+  const byCase = new Map<string, SessionSolve[]>();
+  for (const result of kept(results)) {
     let entry = byCase.get(result.caseId);
     if (!entry) {
-      entry = { name: result.name, seconds: [], recognition: [] };
+      entry = [];
       byCase.set(result.caseId, entry);
       order.push(result.caseId);
     }
-    entry.seconds.push(result.seconds);
-    if (result.recognitionMs !== null) entry.recognition.push(result.recognitionMs / 1000);
+    entry.push(result);
   }
   return order.map((caseId) => {
-    const entry = byCase.get(caseId)!;
+    const solves = byCase.get(caseId)!;
     return {
       caseId,
-      name: entry.name,
-      count: entry.seconds.length,
-      recognition: meanBest(entry.recognition),
-      solve: meanBest(entry.seconds)!,
+      name: solves[0].name,
+      count: solves.length,
+      recognition: meanBest(known(solves.map((r) => (r.recognitionMs === null ? null : r.recognitionMs / 1000)))),
+      solve: meanBest(solves.map((r) => r.seconds))!,
+      moves: mean(known(solves.map((r) => r.moveCount))),
+      tps: mean(known(solves.map((r) => r.tps))),
     };
   });
 }

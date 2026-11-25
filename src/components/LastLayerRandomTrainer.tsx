@@ -1,13 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useHoldTimer } from '@/hooks/useHoldTimer';
 import { useMounted } from '@/hooks/useMounted';
 import { useSpacebar } from '@/hooks/useSpacebar';
 import { useNativeTimer } from '@/hooks/useNativeTimer';
 import { recordSmartSolve, type SmartSolve } from '@/hooks/useSmartCubeTrainer';
 import { useNoScrambleTrainer } from '@/hooks/useNoScrambleTrainer';
 import { usePracticeLog } from '@/hooks/usePracticeLog';
+import { usePracticeRun } from '@/hooks/usePracticeRun';
 import { useSmartSetupPractice } from '@/hooks/useSmartSetupPractice';
 import { useSmartCubeSettings } from '@/hooks/useSmartCube';
 import { useTrainerMode } from '@/hooks/useTrainerMode';
@@ -17,6 +19,9 @@ import { useLastLayerSolver } from '@/hooks/useLastLayerSolver';
 import { pickAlternativeSetup } from '@/lib/last-layer-alternatives';
 import { alignedOffset, buildLastLayerSetup, type LastLayerAlgorithm, type LastLayerSetup } from '@/lib/last-layer-setup';
 import { aufStartOf, caseOffset } from '@/lib/auf-start';
+import { movesPerSecond, solutionMoves } from '@/lib/move-count';
+import type { CaseTimes } from '@/lib/practice-log';
+import { doneCases, nextRoundCase, roundPosition, shuffled } from '@/lib/practice-round';
 import type { LastLayerPractice } from '@/types/practice';
 import { aufDisplayOf, type PracticeSettings } from '@/lib/practice-settings-store';
 import { pickStaleWeighted } from '@/lib/stale-weighted-pick';
@@ -24,7 +29,10 @@ import { deleteSmartSolve } from '@/lib/smart-solve-store';
 import { formatSeconds } from '@/lib/stats';
 import { LastLayerPlayer } from './LastLayerPlayer';
 import { NoScrambleStage } from './NoScrambleStage';
+import { RoundComplete } from './RoundComplete';
+import { SessionStats } from './SessionStats';
 import { SmartSetupStage } from './SmartSetupStage';
+import { TapStage } from './TapStage';
 
 type TrainerState = 'idle' | 'running' | 'stopped';
 interface Pick<Id> {
@@ -46,24 +54,18 @@ interface Props<Id extends string> {
   // inverse setup.
   alternativesFor: (id: Id) => readonly string[];
   nameFor: (id: Id) => string;
-  lastRecorded: Map<Id, number>;
-  add: (id: Id, seconds: number) => string | null;
-  remove: (solveId: string) => void;
-  bestFor: (id: Id) => number | null;
-  ao5For: (id: Id) => number | null;
-  solvesFor: (id: Id) => unknown[];
-  /** Case practice: one case, recorded to one algorithm, so no selection note. */
-  single?: boolean;
+  /** Case practice: one case, its solves saved to the algorithm. Random practice keeps them in the session only. */
+  caseTimes?: CaseTimes;
 }
 
 export function LastLayerRandomTrainer<Id extends string>({
-  practice, ids, selected, algorithmFor, alternativesFor, nameFor, lastRecorded, add, remove, bestFor, ao5For, solvesFor,
-  single = false,
+  practice, ids, selected, algorithmFor, alternativesFor, nameFor, caseTimes,
 }: Props<Id>) {
   const { t, tn } = useT();
   const { settings } = usePracticeSettings();
+  const single = caseTimes !== undefined;
   // Fixed when the practice started (see TrainerFlavorContext). No setup runs
-  // on the virtual cube with a smart cube and as the tap timer without one;
+  // on the virtual cube with a smart cube and as the hold timer without one;
   // with setup is guided on the cube with one, and applied by hand without.
   const mode = useTrainerMode();
   const noScramble = mode === 'no-scramble';
@@ -83,11 +85,30 @@ export function LastLayerRandomTrainer<Id extends string>({
   // A cube-driven practice without a connected cube has nothing to solve, so Space waits.
   const startBlockedRef = useRef(false);
 
+  // This session's solves, in memory only: closing the practice or starting
+  // it again begins empty.
+  const { log, results, settle } = usePracticeLog();
+  const latest = results[0];
+  const pool = useMemo(() => ids.filter((id) => selected.has(id)), [ids, selected]);
+  // Each selected case once, in an order dealt when the session starts.
+  const run = usePracticeRun();
+  const eachOnce = run.eachOnce && !single;
+  const [order] = useState(() => shuffled(pool));
+  const complete = eachOnce && state === 'idle' && nextRoundCase(order, results) === null;
+  // Cases not solved yet in this session come up more often.
+  const lastSolved = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of results) if (!r.undone && !map.has(r.caseId)) map.set(r.caseId, r.at);
+    return map;
+  }, [results]);
+
   // Snapshot the solution, settings and offset together. The scramble
   // remains identical from the setup screen through recording the solve.
-  const pickRandom = useCallback((): Pick<Id> => {
-    const pool = ids.filter((id) => selected.has(id));
-    const id = pickStaleWeighted(pool.length ? pool : ids, (id) => lastRecorded.get(id), Date.now());
+  const pickRandom = useCallback((): Pick<Id> | null => {
+    const id = eachOnce
+      ? nextRoundCase(order, results)
+      : pickStaleWeighted(pool.length ? pool : ids, (id) => lastSolved.get(id), Date.now());
+    if (id === null) return null;
     const algorithm = algorithmFor(id);
     const aufDisplay = aufDisplayOf(settings, practice);
     const offset = caseOffset(aufStartOf(settings), alignedOffset(algorithm, aufDisplay));
@@ -96,7 +117,7 @@ export function LastLayerRandomTrainer<Id extends string>({
         ? pickAlternativeSetup(solver, practice, plain, alternativesFor(id))
         : plain);
     return { id, setup, settings, withSolver: solver !== null, inverse };
-  }, [ids, selected, lastRecorded, settings, algorithmFor, alternativesFor, solver, practice, inverse]);
+  }, [eachOnce, order, results, pool, ids, lastSolved, settings, algorithmFor, alternativesFor, solver, practice, inverse]);
 
   const noneSelected = mounted && selected.size === 0;
 
@@ -113,24 +134,23 @@ export function LastLayerRandomTrainer<Id extends string>({
   }, [state]);
 
   // Refresh only while idle when the selection or settings change.
-  if (mounted && state === 'idle' && drawAhead && !noneSelected &&
+  if (mounted && state === 'idle' && drawAhead && !noneSelected && !complete &&
       (!current || !selected.has(current.id) || current.settings !== settings ||
         current.withSolver !== (solver !== null) || current.inverse !== inverse)) {
     setCurrent(pickRandom());
   }
 
   const start = useCallback(() => {
-    if (!mounted || noneSelected) return;
-    if (!drawAhead || !current) setCurrent(pickRandom());
+    if (!mounted || noneSelected || complete) return;
+    if (!drawAhead || !current) {
+      const next = pickRandom();
+      if (!next) return;
+      setCurrent(next);
+    }
     startRef.current = Date.now();
     setElapsed(0);
     setState('running');
-  }, [pickRandom, mounted, noneSelected, drawAhead, current]);
-
-  const stop = useCallback(() => {
-    setElapsed((Date.now() - startRef.current) / 1000);
-    setState('stopped');
-  }, []);
+  }, [pickRandom, mounted, noneSelected, complete, drawAhead, current]);
 
   // Stop with a time measured elsewhere (the smart cube's clock).
   const stopWith = useCallback((seconds: number) => {
@@ -138,23 +158,42 @@ export function LastLayerRandomTrainer<Id extends string>({
     setState('stopped');
   }, []);
 
-  // Abandon the attempt but keep the case (no-scramble reset while timing).
+  // Abandon the attempt but keep the case (a reset while timing, Escape, leaving the app).
   const abort = useCallback(() => {
     setState('idle');
     setElapsed(0);
   }, []);
 
-  const discard = useCallback(() => {
+  // On to the next case.
+  const next = useCallback(() => {
     setState('idle');
     setElapsed(0);
     setCurrent(null);
   }, []);
 
+  // Without a cube: stopping records the solve in the session at once (and,
+  // in case practice, in the algorithm's times); Undo takes it back.
+  const stop = useCallback(() => {
+    const seconds = (Date.now() - startRef.current) / 1000;
+    stopWith(seconds);
+    if (!current || seconds <= 0) return;
+    const moveCount = solutionMoves(current.setup.effectiveAuf, current.setup.body);
+    const timeId = caseTimes?.add(seconds) ?? null;
+    log.add({
+      caseId: current.id,
+      name: nameFor(current.id),
+      solution: current.setup.solution,
+      seconds,
+      recognitionMs: null,
+      moveCount,
+      tps: moveCount === null ? null : movesPerSecond(moveCount, seconds),
+    }, timeId && caseTimes ? () => caseTimes.remove(timeId) : null);
+  }, [current, caseTimes, log, nameFor, stopWith]);
+
   // With a smart cube, either flow runs from the cube: solves are recorded in
   // this session's log as they stop, and the next case follows on Next, or by
   // itself once the cube rests when auto-advance is on.
   const { autoAdvance } = useSmartCubeSettings();
-  const { log, results, settle } = usePracticeLog();
   const cubeFlow = {
     practice,
     scramble: current ? current.setup.scramble : null,
@@ -162,12 +201,14 @@ export function LastLayerRandomTrainer<Id extends string>({
     autoAdvance,
     log,
     describe: () => current && { caseId: current.id, name: nameFor(current.id), solution: current.setup.solution },
+    // The cube's record of the solve stays on this device as before; random
+    // practice saves no time of its own.
     record: (caseId: string, seconds: number, solve: SmartSolve | null) => {
-      const solveId = add(caseId as Id, seconds);
+      const timeId = caseTimes?.add(seconds) ?? null;
       const smartId = solve ? recordSmartSolve(solve, caseId) : null;
-      if (!solveId && !smartId) return null;
+      if (!timeId && !smartId) return null;
       return () => {
-        if (solveId) remove(solveId);
+        if (timeId) caseTimes?.remove(timeId);
         if (smartId) void deleteSmartSolve(smartId);
       };
     },
@@ -177,7 +218,7 @@ export function LastLayerRandomTrainer<Id extends string>({
       stopWith(settled);
       return settled;
     },
-    onAdvance: discard,
+    onAdvance: next,
   };
   // No setup: the case on a virtual cube, moved by the smart cube's turns.
   const virtual = useNoScrambleTrainer({ ...cubeFlow, active: noScramble, onAbort: abort });
@@ -186,97 +227,40 @@ export function LastLayerRandomTrainer<Id extends string>({
   const cube = noScramble ? virtual : guided;
   useEffect(() => { startBlockedRef.current = cubeDriven && !cube.connected; });
 
-  // Leaving the app abandons a cube-driven attempt (it is recorded on its own otherwise).
-  useNativeTimer(state === 'running', noScramble ? virtual.reset : smartSetup ? abort : stop);
+  // Leaving the app abandons the attempt (a cube-driven solve is recorded on its own otherwise).
+  useNativeTimer(state === 'running', noScramble ? virtual.reset : abort);
 
-  const record = useCallback(() => {
-    if (current && elapsed > 0) add(current.id, elapsed);
-    setState('idle');
-    setElapsed(0);
-    setCurrent(null);
-  }, [current, elapsed, add]);
-
-  // Keyboard: Space mirrors the tap action (idle → start, running → stop) and
-  // records on the result screen; Escape discards there. When the cube drives
-  // the practice the solve is already recorded, so Space goes on and Escape
-  // takes it back.
-  const latest = results[0];
+  // Without a cube: hold to start, let go to go, press to stop; Space too.
+  // Without a setup to make first, Space on the result holds for the next case at once.
+  const hold = useHoldTimer({
+    active: !cubeDriven && mounted && !noneSelected && !complete,
+    state, pressOnNext: !drawAhead, onStart: start, onStop: stop, onAbort: abort, onNext: next,
+  });
+  // With a cube, Space stops by hand while timing and goes on from the result.
   const onSpace = useCallback(() => {
     if (state === 'idle') {
       if (!noneSelected && !startBlockedRef.current) start();
-    } else if (state === 'running') {
-      if (cubeDriven) cube.stopByHand();
-      else stop();
-    } else if (cubeDriven) cube.next();
-    else record();
-  }, [state, start, stop, record, noneSelected, cubeDriven, cube]);
-  useSpacebar(onSpace);
-  useEscapeKey(
-    cubeDriven ? () => { if (latest && !latest.undone) log.undo(latest.key); } : discard,
-    state === 'stopped',
-  );
+    } else if (state === 'running') cube.stopByHand();
+    else cube.next();
+  }, [state, start, noneSelected, cube]);
+  useSpacebar(onSpace, cubeDriven && !complete);
+  // Escape takes back the latest solve on the result screen.
+  useEscapeKey(() => { if (latest && !latest.undone) log.undo(latest.key); }, state === 'stopped');
 
-  // The tap trainers' result screen (standard and inverse setup).
-  const previousSolves = current ? solvesFor(current.id).length : 0;
-  const resultInfo = current && (
-    <div className="text-center sm:text-left">
-      <div className="text-sm uppercase tracking-wider text-amber-700 dark:text-amber-300">
-        {nameFor(current.id)}
-      </div>
-      <div className="font-mono text-6xl sm:text-7xl font-bold tabular-nums text-amber-700 dark:text-amber-300">
-        {elapsed.toFixed(3)}
-      </div>
-      {previousSolves > 0 && (
-        <div className="mt-1 text-xs font-mono text-amber-700/80 dark:text-amber-300/80">
-          {t(single ? 'detail.caseStats' : 'detail.randomStats', {
-            best: formatSeconds(bestFor(current.id)),
-            ao5: formatSeconds(ao5For(current.id)),
-            solves: tn('common.solves', previousSolves),
-          })}
-        </div>
-      )}
-    </div>
-  );
-  const resultRest = current && (
-    <>
-      <div className="max-w-2xl w-full text-center font-mono text-sm break-words text-zinc-700 dark:text-zinc-300">
-        <p>
-          {aufDisplayOf(current.settings, practice) === 'prefix' ? current.setup.solution : <>
-            <span className="inline-block min-w-[2.5em] mr-2 px-1.5 py-0.5 text-[10px] rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 align-middle">
-              {current.setup.effectiveAuf}
-            </span>
-            {current.setup.body}
-          </>}
-        </p>
-      </div>
-      <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={record}
-          className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 font-semibold"
-        >
-          ✓ {t('common.record')}
-          <kbd className="hidden sm:inline ml-2 text-[10px] font-mono font-normal opacity-70">Space</kbd>
-        </button>
-        <button
-          type="button"
-          onClick={discard}
-          className="rounded-md border border-zinc-300 dark:border-zinc-700 px-6 py-2.5 font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800"
-        >
-          ✗ {t('common.discard')}
-          <kbd className="hidden sm:inline ml-2 text-[10px] font-mono font-normal opacity-70">Esc</kbd>
-        </button>
-      </div>
-    </>
-  );
+  if (complete) return <RoundComplete total={order.length} results={results} onBack={run.finish} />;
 
-  const selectedNote = mounted && !single ? t('trainer.selectedCount', { count: selected.size, total: ids.length }) : '';
+  const showingKept = state === 'stopped' && !!latest && !latest.undone;
+  const progress = eachOnce
+    ? t('practice.round.progress', { n: roundPosition(doneCases(order, results).size, order.length, showingKept), total: order.length })
+    : undefined;
+  const selectedNote = mounted && !single && !eachOnce ? t('trainer.selectedCount', { count: selected.size, total: ids.length }) : '';
+  const sessionNote = [selectedNote, single ? '' : t('trainer.session.notKept')].filter(Boolean).join(' · ');
 
   if (noScramble && !noneSelected) {
     return (
       <NoScrambleStage
         state={state} view={virtual.view} connected={virtual.connected} log={{ results, settle }}
-        elapsed={elapsed} selectedNote={selectedNote}
+        elapsed={elapsed} selectedNote={sessionNote} progress={progress}
         onReset={virtual.reset} onStop={virtual.stopByHand} onNext={virtual.next} onUndo={(key) => log.undo(key)}
       />
     );
@@ -286,47 +270,9 @@ export function LastLayerRandomTrainer<Id extends string>({
     return (
       <SmartSetupStage
         practice={practice} state={state} view={guided.view} connected={guided.connected} log={{ results, settle }}
-        elapsed={elapsed} selectedNote={selectedNote}
+        elapsed={elapsed} selectedNote={sessionNote} progress={progress}
         onStop={guided.stopByHand} onNext={guided.next} onUndo={(key) => log.undo(key)}
       />
-    );
-  }
-
-  if (state === 'stopped' && current) {
-    return (
-      <div className="w-full flex-1 rounded-lg border border-amber-400 dark:border-amber-500 bg-amber-50 dark:bg-amber-950/30 p-6 flex flex-col items-center justify-center gap-6 select-none">
-        <div className="flex flex-col sm:flex-row items-center gap-6">
-          <div className="rounded-md p-2 bg-zinc-100 dark:bg-zinc-900">
-            <LastLayerPlayer practice={practice} setupAlg={current.setup.scramble} size={220} />
-          </div>
-          {resultInfo}
-        </div>
-        {resultRest}
-      </div>
-    );
-  }
-
-  if (state === 'running' && current) {
-    return (
-      <button
-        type="button"
-        onPointerDown={stop}
-        className="w-full flex-1 min-h-[280px] rounded-lg flex flex-col items-center justify-center gap-4 sm:gap-8 transition-colors select-none touch-none bg-rose-500 hover:bg-rose-600 text-white"
-        aria-label={t('trainer.tapToStopAria')}
-      >
-        <div className="rounded-md p-2 bg-white/15">
-          <LastLayerPlayer practice={practice} setupAlg={current.setup.scramble} size={220} />
-        </div>
-        <div
-          className="font-mono text-6xl sm:text-8xl font-bold tabular-nums leading-none"
-          aria-live="polite"
-        >
-          {elapsed.toFixed(3)}
-        </div>
-        <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
-          {t('trainer.tapOrSpaceToStop')}
-        </div>
-      </button>
     );
   }
 
@@ -341,42 +287,33 @@ export function LastLayerRandomTrainer<Id extends string>({
     );
   }
 
-  if (inverse) {
-    return (
-      <button
-        type="button"
-        onPointerDown={start}
-        className="w-full flex-1 min-h-[200px] rounded-lg flex flex-col items-center justify-center gap-4 px-6 transition-colors select-none touch-none text-white bg-emerald-500 hover:bg-emerald-600"
-        aria-label={t('trainer.tapToStartAria')}
-      >
-        <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
-          {t('trainer.applyToCube')}
-        </div>
-        <div className="max-w-2xl w-full text-center font-mono text-3xl sm:text-4xl font-bold break-words leading-snug">
-          {current?.setup.scramble || '…'}
-        </div>
-        <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
-          {t('trainer.tapOrSpaceToStart')}
-        </div>
-        <div className="text-xs opacity-75">{selectedNote}</div>
-      </button>
-    );
-  }
-
   return (
-    <button
-      type="button"
-      onPointerDown={start}
-      className="w-full flex-1 min-h-[200px] rounded-lg flex flex-col items-center justify-center gap-3 transition-colors select-none touch-none bg-emerald-500 hover:bg-emerald-600 text-white"
-      aria-label={t('trainer.tapToStartAria')}
-    >
-      <div className="font-mono text-6xl sm:text-8xl font-bold tabular-nums leading-none">
-        0.000
-      </div>
-      <div className="text-sm font-medium opacity-90 uppercase tracking-wider">
-        {t('trainer.tapOrSpaceToStart')}
-      </div>
-      <div className="text-xs opacity-75">{selectedNote}</div>
-    </button>
+    <TapStage
+      phase={hold.phase} pressProps={hold.pressProps} elapsed={elapsed}
+      setup={inverse ? (current?.setup.scramble ?? '') : null}
+      caseView={current && <LastLayerPlayer practice={practice} setupAlg={current.setup.scramble} size={220} />}
+      caseBox="w-[236px] h-[236px]"
+      note={eachOnce ? undefined : selectedNote}
+      progress={progress}
+      result={state === 'stopped' ? latest : undefined}
+      solution={current && (
+        <p className="max-w-2xl w-full text-center font-mono text-sm break-words text-zinc-700 dark:text-zinc-300">
+          {aufDisplayOf(current.settings, practice) === 'prefix' ? current.setup.solution : <>
+            <span className="inline-block min-w-[2.5em] mr-2 px-1.5 py-0.5 text-[10px] rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 align-middle">
+              {current.setup.effectiveAuf}
+            </span>
+            {current.setup.body}
+          </>}
+        </p>
+      )}
+      extra={caseTimes && caseTimes.count > 0 && (
+        <div className="text-xs font-mono text-zinc-500 dark:text-zinc-400">
+          {t('detail.caseStats', { best: formatSeconds(caseTimes.best), ao5: formatSeconds(caseTimes.ao5), solves: tn('common.solves', caseTimes.count) })}
+        </div>
+      )}
+      onNext={next}
+      onUndo={(key) => log.undo(key)}
+      session={<SessionStats results={results} note={single ? undefined : t('trainer.session.notKept')} />}
+    />
   );
 }

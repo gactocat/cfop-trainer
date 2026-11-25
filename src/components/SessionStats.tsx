@@ -1,0 +1,95 @@
+'use client';
+
+import { useMemo } from 'react';
+import { useT } from '@/hooks/useT';
+import type { PracticeResult } from '@/lib/practice-log';
+import { summarizeByCase, summarizeSession } from '@/lib/session-stats';
+
+const seconds2 = (value: number | null) => (value === null ? '-' : value.toFixed(2));
+const moves1 = (value: number | null) => (value === null ? '-' : value.toFixed(1));
+
+function Figure({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{label}</span>
+      <span className="font-mono text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">{value}</span>
+    </div>
+  );
+}
+
+// This session as a whole (mean time, moves and TPS), and behind "Details",
+// case by case: recognition and solving (mean, with the best below), moves
+// and TPS. `open` shows the details from the start (the end of a round).
+export function SessionStats({ results, note, open = false, className = '' }: {
+  results: readonly PracticeResult[];
+  note?: string;
+  open?: boolean;
+  className?: string;
+}) {
+  const { t } = useT();
+  const totals = useMemo(() => summarizeSession(results), [results]);
+  const rows = useMemo(() => summarizeByCase(results), [results]);
+  const withRecognition = rows.some((row) => row.recognition !== null);
+  const th = 'px-1 py-1 font-normal';
+  const best = (value: number) => (
+    <span className="block text-[10px] text-zinc-400 dark:text-zinc-500">{t('trainer.session.best', { value: value.toFixed(2) })}</span>
+  );
+  return (
+    <aside className={`w-full max-w-md rounded-lg border border-zinc-200 bg-white p-4 text-sm dark:border-zinc-800 dark:bg-zinc-900 xl:w-96 ${className}`}>
+      <h3 className="flex items-baseline justify-between gap-2 text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+        {t('trainer.noScramble.session')}
+        {totals.count > 0 && <span className="normal-case tracking-normal">{t('trainer.session.count', { count: totals.count })}</span>}
+      </h3>
+      {totals.count === 0 ? (
+        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">{t('trainer.noScramble.empty')}</p>
+      ) : (
+        <>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            <Figure label={t('trainer.session.meanTime')} value={seconds2(totals.meanSeconds)} />
+            <Figure label={t('trainer.session.meanMoves')} value={moves1(totals.meanMoves)} />
+            <Figure label={t('trainer.session.meanTps')} value={seconds2(totals.meanTps)} />
+          </div>
+          <details open={open} className="group mt-3 border-t border-zinc-100 pt-2 dark:border-zinc-800">
+            <summary className="flex cursor-pointer list-none items-center gap-1 text-xs font-medium text-emerald-700 hover:underline dark:text-emerald-300 [&::-webkit-details-marker]:hidden">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                aria-hidden="true" className="size-3.5 transition-transform group-open:rotate-90">
+                <path d="m9 6 6 6-6 6" />
+              </svg>
+              {t('trainer.session.details')}
+            </summary>
+            <table className="mt-2 w-full table-fixed text-right">
+              <thead className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                <tr>
+                  <th className={`${th} w-[32%] text-left`}>{t('trainer.session.case')}</th>
+                  {withRecognition && <th className={`${th} text-sky-700 dark:text-sky-300`}>{t('trainer.cube.recognition')}</th>}
+                  <th className={th}>{t('trainer.cube.solve')}</th>
+                  <th className={th}>{t('trainer.session.moves')}</th>
+                  <th className={th}>TPS</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 font-mono text-xs tabular-nums dark:divide-zinc-800">
+                {rows.map((row) => (
+                  <tr key={row.caseId} className="align-top">
+                    <td className="px-1 py-1 text-left font-sans">
+                      <span className="block truncate text-zinc-700 dark:text-zinc-200">{row.name}</span>
+                      <span className="text-[10px] text-zinc-400 dark:text-zinc-500">{t('trainer.session.count', { count: row.count })}</span>
+                    </td>
+                    {withRecognition && (
+                      <td className="px-1 py-1 text-sky-700 dark:text-sky-300">
+                        {row.recognition ? <>{seconds2(row.recognition.mean)}{row.count > 1 && best(row.recognition.best)}</> : '-'}
+                      </td>
+                    )}
+                    <td className="px-1 py-1">{seconds2(row.solve.mean)}{row.count > 1 && best(row.solve.best)}</td>
+                    <td className="px-1 py-1">{moves1(row.moves)}</td>
+                    <td className="px-1 py-1">{seconds2(row.tps)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </details>
+        </>
+      )}
+      {note && <p className="mt-3 text-[11px] text-zinc-400 dark:text-zinc-500">{note}</p>}
+    </aside>
+  );
+}

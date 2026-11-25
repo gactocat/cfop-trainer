@@ -1,7 +1,7 @@
-// The solves of one practice session driven by a smart cube (no setup on the
-// virtual cube, or with setup on the cube itself), newest first, with the way
-// to take each back, and the wait for the cube to rest before the next case.
-// Plain store: the trainer creates one per session (usePracticeLog).
+// The solves of one practice session, newest first, with the way to take
+// each back, and (with a smart cube) the wait for the cube to rest before the
+// next case. Kept in memory only: the trainer creates one per session
+// (usePracticeLog), so closing the practice or starting it again begins empty.
 
 /** With auto-advance, the next case comes once the cube has been still this long after a solve. */
 export const SETTLE_MS = 1500;
@@ -22,6 +22,8 @@ export interface PracticeResult extends PracticeCase {
   tps: number | null;
   /** Taken back with undo: no longer recorded. */
   undone: boolean;
+  /** Epoch ms it was recorded. */
+  at: number;
 }
 
 export interface PracticeLogSnapshot {
@@ -50,11 +52,14 @@ export class PracticeLog {
     this.listeners.forEach((l) => l());
   }
 
-  /** Add a recorded solve; `undo` takes the record back, null when nothing was recorded. */
-  add(result: Omit<PracticeResult, 'key' | 'undone'>, undo: (() => void) | null) {
+  /**
+   * Add a solve; `undo` also takes back what was saved elsewhere (a case
+   * practice's time, a smart cube record), null when nothing was.
+   */
+  add(result: Omit<PracticeResult, 'key' | 'undone' | 'at'>, undo: (() => void) | null) {
     const key = ++this.resultKeys;
-    if (undo) this.undos.set(key, undo);
-    this.publish({ results: [{ ...result, key, undone: false }, ...this.snapshot.results] });
+    this.undos.set(key, undo ?? (() => {}));
+    this.publish({ results: [{ ...result, key, undone: false, at: Date.now() }, ...this.snapshot.results] });
   }
 
   undo(key: number) {
@@ -81,4 +86,18 @@ export class PracticeLog {
     this.settleTimer = null;
     if (this.snapshot.settle) this.publish({ settle: null });
   }
+}
+
+/**
+ * Case practice saves each solve to the practised algorithm's times (random
+ * practice keeps its solves in the session only): how to add and take back
+ * a time, and the algorithm's figures for the result screen.
+ */
+export interface CaseTimes {
+  /** Returns the time's id, or null when nothing was saved. */
+  add: (seconds: number) => string | null;
+  remove: (timeId: string) => void;
+  best: number | null;
+  ao5: number | null;
+  count: number;
 }

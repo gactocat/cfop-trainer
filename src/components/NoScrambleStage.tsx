@@ -3,7 +3,8 @@
 import { useT } from '@/hooks/useT';
 import type { NoScrambleView } from '@/hooks/useNoScrambleTrainer';
 import type { PracticeLogSnapshot } from '@/lib/practice-log';
-import { ConnectPrompt, CubeStage, RecognitionTimer, SessionTable, SolveTimer, StageResult, type StageRing } from './CubeStage';
+import { ConnectPrompt, CubeStage, RecognitionTimer, SolveTimer, StageResult, type StageRing } from './CubeStage';
+import { SessionStats } from './SessionStats';
 import { VirtualCube } from './VirtualCube';
 
 type TrainerState = 'idle' | 'running' | 'stopped';
@@ -13,13 +14,15 @@ const RING: Record<TrainerState, StageRing> = { idle: 'ready', running: 'running
 // No-scramble practice, driven by the cube alone: the case on a virtual cube
 // that the smart cube's turns move, the recognition and solving timers or the
 // result beside it, and this session's figures per case.
-export function NoScrambleStage({ state, view, connected, log, elapsed, selectedNote, onReset, onStop, onNext, onUndo }: {
+export function NoScrambleStage({ state, view, connected, log, elapsed, selectedNote, progress, onReset, onStop, onNext, onUndo }: {
   state: TrainerState;
   view: NoScrambleView | null;
   connected: boolean;
   log: PracticeLogSnapshot;
   elapsed: number;
   selectedNote: string;
+  /** Which case of a round is on screen, e.g. 3/21. */
+  progress?: string;
   onReset: () => void;
   onStop: () => void;
   onNext: () => void;
@@ -46,7 +49,8 @@ export function NoScrambleStage({ state, view, connected, log, elapsed, selected
           className="w-full h-full"
         />
       )}
-      session={<SessionTable results={log.results} note={selectedNote} />}
+      progress={progress}
+      session={<SessionStats results={log.results} note={selectedNote} />}
     >
       {!connected ? (
         <ConnectPrompt />

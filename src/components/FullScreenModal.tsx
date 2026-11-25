@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useSyncExternalStore, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useT } from '@/hooks/useT';
+import { getTimerFocus, getTimerFocusServerSnapshot, subscribeTimerFocus } from '@/lib/timer-focus';
 import { StorageStatus, WritableArea } from './AccountBoundary';
 import { InfoTip } from './InfoTip';
 
@@ -19,6 +20,8 @@ interface FullScreenModalProps {
 // backdrop-blur (a containing block for fixed elements) doesn't trap it.
 export function FullScreenModal({ open, onClose, title, info, children }: FullScreenModalProps) {
   const { t } = useT();
+  // The title bar steps aside while the timer is held or running.
+  const focus = useSyncExternalStore(subscribeTimerFocus, getTimerFocus, getTimerFocusServerSnapshot);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -38,7 +41,7 @@ export function FullScreenModal({ open, onClose, title, info, children }: FullSc
       aria-label={title}
       className="fixed inset-0 z-50 flex flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] bg-zinc-50 dark:bg-zinc-950"
     >
-      <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+      <div className={`shrink-0 flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 ${focus ? 'invisible' : ''}`}>
         <h2 className="flex items-center gap-1 text-base font-semibold">
           {title}
           {info && <InfoTip>{info}</InfoTip>}

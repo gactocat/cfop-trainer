@@ -6,7 +6,8 @@ import { useT } from '@/hooks/useT';
 import type { PracticeLogSnapshot } from '@/lib/practice-log';
 import { displayRotation } from '@/lib/smart-cube/holding';
 import type { TrainerPractice } from '@/lib/smart-cube/trainer-session';
-import { ConnectPrompt, CubeStage, RecognitionTimer, SessionTable, SolveTimer, StageResult, type StageRing } from './CubeStage';
+import { ConnectPrompt, CubeStage, RecognitionTimer, SolveTimer, StageResult, type StageRing } from './CubeStage';
+import { SessionStats } from './SessionStats';
 import { SmartCubeSetupStatus, SmartCubeSetupTokens } from './SmartCubeSetupGuide';
 import { VirtualCube } from './VirtualCube';
 
@@ -24,7 +25,7 @@ function ringOf(state: TrainerState, view: SmartTrainerView | null): StageRing {
 // until the first turn, then the solving timer until the goal. The cube in
 // the frame shows what the cube should look like: the setup done so far, then
 // the solving turns.
-export function SmartSetupStage({ practice, state, view, connected, log, elapsed, selectedNote, onStop, onNext, onUndo }: {
+export function SmartSetupStage({ practice, state, view, connected, log, elapsed, selectedNote, progress, onStop, onNext, onUndo }: {
   practice: TrainerPractice;
   state: TrainerState;
   view: SmartTrainerView | null;
@@ -32,6 +33,8 @@ export function SmartSetupStage({ practice, state, view, connected, log, elapsed
   log: PracticeLogSnapshot;
   elapsed: number;
   selectedNote: string;
+  /** Which case of a round is on screen, e.g. 3/21. */
+  progress?: string;
   onStop: () => void;
   onNext: () => void;
   onUndo: (key: number) => void;
@@ -54,7 +57,8 @@ export function SmartSetupStage({ practice, state, view, connected, log, elapsed
           className="w-full h-full"
         />
       )}
-      session={<SessionTable results={log.results} note={selectedNote} />}
+      progress={progress}
+      session={<SessionStats results={log.results} note={selectedNote} />}
     >
       {!connected ? (
         <ConnectPrompt />

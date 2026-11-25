@@ -1,7 +1,8 @@
 // Run with Node 24:
 // node --import ./scripts/register-src-alias.mjs scripts/verify-practice.mts
 //
-// Session figures per case, and the AUF a case starts with.
+// Session figures (the whole session and per case), the AUF a case starts
+// with, the hold-to-start timer, each selected case once, and move counts.
 import assert from 'node:assert/strict';
 import { cube3x3x3 } from 'cubing/puzzles';
 import { F2L_PRESET_ALGORITHMS } from '@/data/f2l-preset-algorithms';
@@ -12,8 +13,11 @@ import { aufStartOf, aufStartPatch, caseOffset, type AufStart } from '@/lib/auf-
 import { rotationNeutral } from '@/lib/cube-rotation';
 import { appendUTurn, splitF2LAuf } from '@/lib/f2l-auf';
 import { buildF2LSetup, seededRandom } from '@/lib/f2l-scramble';
+import { holdStep, type HoldInput, type HoldPhase } from '@/lib/hold-timer';
+import { countMoves, movesPerSecond, solutionMoves } from '@/lib/move-count';
+import { doneCases, nextRoundCase, roundPosition, shuffled } from '@/lib/practice-round';
 import { alignedOffset, buildLastLayerSetup } from '@/lib/last-layer-setup';
-import { summarizeByCase, type SessionSolve } from '@/lib/session-stats';
+import { summarizeByCase, summarizeSession, type SessionSolve } from '@/lib/session-stats';
 import type { F2LId } from '@/types/f2l';
 import { AUFS } from '@/types/pll';
 
@@ -22,8 +26,8 @@ const ok = (condition: boolean, message: string) => { assert.ok(condition, messa
 const near = (a: number | undefined, b: number, message: string) => ok(a !== undefined && Math.abs(a - b) < 1e-9, `${message}: ${a} vs ${b}`);
 
 // --- Session figures per case
-const solve = (caseId: string, seconds: number, recognitionMs: number | null, undone = false): SessionSolve =>
-  ({ caseId, name: `${caseId} Perm`, seconds, recognitionMs, undone });
+const solve = (caseId: string, seconds: number, recognitionMs: number | null, undone = false, moveCount: number | null = null): SessionSolve =>
+  ({ caseId, name: `${caseId} Perm`, seconds, recognitionMs, undone, moveCount, tps: moveCount === null ? null : movesPerSecond(moveCount, seconds) });
 // Newest first, as the session log keeps them.
 const rows = summarizeByCase([
   solve('T', 1.5, 900),
@@ -49,6 +53,75 @@ ok(summarizeByCase([]).length === 0, 'empty session');
 ok(summarizeByCase([solve('T', 2, 800, true), solve('T', 1, 600)]).map((r) => r.count).join() === '1', 'undone solves are not counted');
 ok(summarizeByCase([solve('T', 2, 800, true), solve('Aa', 1, 600), solve('T', 3, 900)]).map((r) => r.caseId).join() === 'Aa,T',
   'an undone latest solve does not move its case to the top');
+
+// --- The whole session: mean time, moves and TPS over the kept solves
+const session = [
+  solve('T', 2.0, null, false, 14),
+  solve('Ua', 9.0, null, true, 11),
+  solve('Aa', 1.5, null, false, 9),
+  solve('T', 3.0, null, false, null),
+];
+const totals = summarizeSession(session);
+ok(totals.count === 3, 'an undone solve is not counted');
+near(totals.meanSeconds ?? undefined, (2.0 + 1.5 + 3.0) / 3, 'mean time over kept solves');
+near(totals.meanMoves ?? undefined, (14 + 9) / 2, 'mean moves over solves whose moves are known');
+near(totals.meanTps ?? undefined, (7 + 6) / 2, 'mean TPS: the mean of each solve\'s TPS');
+const empty = summarizeSession([]);
+ok(empty.count === 0 && empty.meanSeconds === null && empty.meanMoves === null && empty.meanTps === null, 'an empty session has no figures');
+const byCase = summarizeByCase(session);
+ok(byCase.map((r) => r.caseId).join() === 'T,Aa', 'per case, newest first, undone left out');
+near(byCase[0].moves ?? undefined, 14, 'per case moves over the known ones');
+near(byCase[0].tps ?? undefined, 7, 'per case TPS');
+ok(byCase[1].recognition === null, 'no recognition without a cube');
+
+// --- Move counts: face and wide turns 1, slices 2, rotations 0, groups times their repeat
+ok(countMoves("R U R' U'") === 4, 'plain turns');
+ok(countMoves("R U2 R' U2") === 4, 'a half turn is one move');
+ok(countMoves("y R U R'") === 3 && countMoves("x2 z' R") === 1, 'rotations are not moves');
+ok(countMoves("r U r' M2") === 5, 'a wide turn is one, a slice two');
+ok(countMoves("Rw U Rw' 2R") === 4, 'Rw-style wide turns and layer prefixes');
+ok(countMoves("(R U R' U')2") === 8 && countMoves("(R U R' U')'") === 4, 'groups count times their repeat');
+ok(countMoves('') === 0 && solutionMoves('U0', '') === null, 'no algorithm, no moves');
+ok(solutionMoves('U0', "R U R'") === 3 && solutionMoves("U'", "R U R'") === 4, 'an AUF needed first is one more move');
+ok(movesPerSecond(12, 2) === 6 && movesPerSecond(10, 3) === 3.33 && movesPerSecond(5, 0) === null, 'TPS to two decimals');
+
+// --- The hold-to-start timer
+const walk = (inputs: HoldInput[], from: HoldPhase = 'idle', pressOnNext = false) => {
+  let phase = from;
+  const effects: string[] = [];
+  for (const input of inputs) {
+    const step = holdStep(phase, input, { pressOnNext });
+    phase = step.phase;
+    if (step.effect) effects.push(step.effect);
+  }
+  return { phase, effects: effects.join() };
+};
+ok(walk(['press', 'release']).phase === 'idle' && walk(['press', 'release']).effects === '', 'letting go too soon does not start');
+ok(walk(['press', 'held']).phase === 'armed', 'held long enough arms');
+ok(walk(['press', 'held', 'release']).effects === 'start' && walk(['press', 'held', 'release']).phase === 'running', 'letting go when armed starts');
+ok(walk(['press', 'held', 'release', 'release']).phase === 'running', 'a stray release while running does nothing');
+ok(walk(['press', 'held', 'release', 'press']).effects === 'start,stop', 'a press while running stops');
+ok(walk(['press', 'held', 'release', 'press', 'release']).phase === 'stopped', 'the release after stopping does nothing');
+ok(walk(['press', 'cancel']).phase === 'idle' && walk(['press', 'held', 'cancel']).effects === '', 'Escape drops a hold without starting');
+ok(walk(['press', 'held', 'release', 'cancel']).effects === 'start,abort', 'Escape while running drops the attempt');
+ok(walk(['held', 'release'], 'idle').phase === 'idle', 'nothing happens without a press');
+ok(walk(['press'], 'stopped').effects === 'next' && walk(['press'], 'stopped').phase === 'idle', 'a press on the result goes on');
+ok(walk(['press', 'held', 'release'], 'stopped', true).effects === 'next,start', 'without a setup, holding on the result starts the next case');
+ok(walk(['press', 'release'], 'stopped', true).phase === 'idle', 'a short press on the result only goes on');
+
+// --- Each selected case once
+const cases = ['T', 'Aa', 'Ua', 'Z'];
+const order = shuffled(cases, seededRandom(7));
+ok([...order].sort().join() === [...cases].sort().join(), 'the round deals every case once');
+const orders = new Set(Array.from({ length: 20 }, (_, i) => shuffled(cases, seededRandom(i + 1)).join()));
+ok(orders.size > 1, 'the order is random');
+const dealt = (caseId: string, undone = false) => ({ caseId, undone });
+ok(nextRoundCase(order, []) === order[0], 'the round starts with its first case');
+ok(nextRoundCase(order, [dealt(order[0])]) === order[1], 'then the next');
+ok(nextRoundCase(order, [dealt(order[1]), dealt(order[0], true)]) === order[0], 'an undone case comes again');
+ok(doneCases(order, [dealt(order[0]), dealt(order[0]), dealt('Ga')]).size === 1, 'a case counts once, other cases not at all');
+ok(nextRoundCase(order, order.map((id) => dealt(id))) === null, 'done once every case has a kept solve');
+ok(roundPosition(2, 4, false) === 3 && roundPosition(3, 4, true) === 3 && roundPosition(4, 4, false) === 4, 'which case of the round is on screen');
 
 // --- The AUF choice
 ok(aufStartOf({ randomAuf: true }) === 'random', 'saved random AUF reads as random');
@@ -110,4 +183,4 @@ for (const [id, presets] of Object.entries(F2L_PRESET_ALGORITHMS) as [F2LId, rea
   });
 }
 
-console.log(`Verified ${checks} checks: session figures per case, the AUF choice, ${lastLayer} aligned last-layer cases and ${f2l} aligned F2L setups.`);
+console.log(`Verified ${checks} checks: session figures, move counts, the hold timer, each case once, the AUF choice, ${lastLayer} aligned last-layer cases and ${f2l} aligned F2L setups.`);

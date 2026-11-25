@@ -1,18 +1,17 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useT } from '@/hooks/useT';
 import { SETTLE_MS } from '@/lib/practice-log';
 import type { PracticeResult } from '@/lib/practice-log';
 import type { MessageKey } from '@/i18n/messages';
 import { openAppDialog } from '@/lib/app-dialog';
 import type { CubeHolding } from '@/lib/smart-cube/holding';
-import { summarizeByCase } from '@/lib/session-stats';
 
 // Shared parts of the practice screens driven by a smart cube (no setup on a
 // virtual cube, or with setup on the cube itself): a calm stage with the cube
 // in a frame whose colour shows the state, what to do or the result beside it,
-// and this session's figures per case.
+// and this session's figures (SessionStats).
 
 export type StageRing = 'waiting' | 'ready' | 'running' | 'stopped';
 
@@ -31,9 +30,11 @@ const HOLDING: Record<CubeHolding, MessageKey> = {
 
 // The cube's frame keeps its place in every state, so the same player (and
 // WebGL context) stays mounted and nothing moves under the solver's eyes.
-export function CubeStage({ ring, holding, action, cube, children, session }: {
+export function CubeStage({ ring, holding, progress, action, cube, children, session }: {
   ring: StageRing;
   holding: CubeHolding | null;
+  /** Which case of a round is on screen, e.g. 3/21. */
+  progress?: string;
   /** A small control above the cube, at the right (e.g. back to the case). */
   action?: ReactNode;
   cube: ReactNode;
@@ -49,8 +50,11 @@ export function CubeStage({ ring, holding, action, cube, children, session }: {
       <div className="flex flex-col items-center gap-4 md:flex-row md:items-start md:gap-8">
         <div className="flex flex-col items-center gap-2">
           <div className="flex w-full items-center justify-between gap-3 text-xs text-zinc-500 dark:text-zinc-400">
-            <span className="rounded-full bg-zinc-200/80 px-2.5 py-1 dark:bg-zinc-800">
-              {holding ? t(HOLDING[holding]) : ' '}
+            <span className="flex items-center gap-1.5">
+              <span className="rounded-full bg-zinc-200/80 px-2.5 py-1 dark:bg-zinc-800">
+                {holding ? t(HOLDING[holding]) : ' '}
+              </span>
+              {progress && <span className="rounded-full bg-emerald-100 px-2.5 py-1 font-medium tabular-nums text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">{progress}</span>}
             </span>
             {action}
           </div>
@@ -217,53 +221,5 @@ export function StageResult({ result, elapsed, settle, onNext, onUndo }: {
         {result?.undone && <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('trainer.noScramble.undone')}</p>}
       </div>
     </>
-  );
-}
-
-const seconds2 = (value: number) => value.toFixed(2);
-
-/** This session per case: recognition and solving, each as mean and best. */
-export function SessionTable({ results, note }: { results: readonly PracticeResult[]; note: string }) {
-  const { t } = useT();
-  const rows = useMemo(() => summarizeByCase(results), [results]);
-  const th = 'px-1 py-0.5 font-normal';
-  return (
-    <aside className="w-full max-w-sm rounded-lg border border-zinc-200 bg-white p-4 text-sm dark:border-zinc-800 dark:bg-zinc-900 xl:w-80">
-      <h3 className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{t('trainer.noScramble.session')}</h3>
-      {rows.length === 0 ? (
-        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">{t('trainer.noScramble.empty')}</p>
-      ) : (
-        <table className="mt-2 w-full table-fixed text-right">
-          <thead className="text-[10px] text-zinc-500 dark:text-zinc-400">
-            <tr>
-              <th className={`${th} w-[34%] text-left`} rowSpan={2}>{t('trainer.session.case')}</th>
-              <th className={`${th} text-center text-sky-700 dark:text-sky-300`} colSpan={2}>{t('trainer.cube.recognition')}</th>
-              <th className={`${th} text-center`} colSpan={2}>{t('trainer.cube.solve')}</th>
-            </tr>
-            <tr>
-              <th className={th}>{t('trainer.noScramble.mean')}</th>
-              <th className={th}>{t('trainer.noScramble.best')}</th>
-              <th className={th}>{t('trainer.noScramble.mean')}</th>
-              <th className={th}>{t('trainer.noScramble.best')}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-100 font-mono text-xs tabular-nums dark:divide-zinc-800">
-            {rows.map((row) => (
-              <tr key={row.caseId}>
-                <td className="px-1 py-1 text-left font-sans">
-                  <span className="block truncate text-zinc-700 dark:text-zinc-200">{row.name}</span>
-                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500">{t('trainer.session.count', { count: row.count })}</span>
-                </td>
-                <td className="px-1 py-1 text-sky-700 dark:text-sky-300">{row.recognition ? seconds2(row.recognition.mean) : '-'}</td>
-                <td className="px-1 py-1 text-sky-700 dark:text-sky-300">{row.recognition ? seconds2(row.recognition.best) : '-'}</td>
-                <td className="px-1 py-1">{seconds2(row.solve.mean)}</td>
-                <td className="px-1 py-1">{seconds2(row.solve.best)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      {note && <p className="mt-3 text-[11px] text-zinc-400 dark:text-zinc-500">{note}</p>}
-    </aside>
   );
 }
