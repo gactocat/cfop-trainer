@@ -5,7 +5,7 @@ import { useSmartCube, useSmartCubeSettings } from '@/hooks/useSmartCube';
 import { canWriteData } from '@/lib/persistence';
 import { lastLayerFace, userNotation, type CubeHolding } from '@/lib/smart-cube/holding';
 import { buildSmartSolve, type SmartSolveMode } from '@/lib/smart-cube/solve-record';
-import { guideView, planSetup, type SetupPlan } from '@/lib/smart-cube/setup-guide';
+import { guideView, planSetup, type SetupPlan, type GuideProgress } from '@/lib/smart-cube/setup-guide';
 import {
   manualStart,
   manualStop,
@@ -24,6 +24,8 @@ type TrainerState = 'idle' | 'running' | 'stopped';
 export interface SmartTrainerView {
   phase: SessionPhase;
   plan: SetupPlan;
+  /** Where the setup guide is (the test cube makes the rest from it). */
+  progress: GuideProgress;
   /** Setup tokens done, from the start. */
   doneTokens: number;
   /** Turns left on a half-done setup step, in the user's notation. */
@@ -85,6 +87,7 @@ class SessionHolder {
     this.view = session && {
       phase: session.phase,
       plan: session.plan,
+      progress: session.progress,
       recognitionMs: session.recognitionMs,
       readySince: this.readySince,
       moves: session.solveTurns.map((turn) => userNotation(session.plan.finalFrame, turn.face, turn.amount)),

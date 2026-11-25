@@ -38,6 +38,8 @@ export interface SmartCubeSnapshot {
   found: readonly FoundCube[];
   /** Counts "mark as solved", so a guide in progress can start again from the new state. */
   calibration: number;
+  /** The cube connected (or connecting) is the test cube, made in software (test-cube.ts). */
+  virtual: boolean;
 }
 
 export interface SmartCubeTurn {
@@ -54,7 +56,7 @@ export interface SmartCubeTurn {
 
 const INITIAL: SmartCubeSnapshot = {
   status: 'idle', problem: null, deviceName: null, battery: null, model: null, firmware: null, state: null, found: [],
-  calibration: 0,
+  calibration: 0, virtual: false,
 };
 /** No notification for this long means the link is gone (the cube streams gyro data about 10 times a second). */
 const SILENCE_MS = 3000;
@@ -70,6 +72,8 @@ interface ChosenCube {
   nativeId: string | null;
   /** iOS app: the MAC read from the scan, if any. */
   scannedMac: string | null;
+  /** The test cube rather than a cube over Bluetooth. */
+  virtual?: boolean;
   open(mac: string, handlers: GanConnectionHandlers): Promise<GanGen4Connection>;
 }
 
@@ -209,17 +213,20 @@ function onDisconnect() {
   endReason = null;
   lastMoveSerial = null;
   resetUntil = 0;
+  // The test cube is not offered again as the cube to reconnect.
+  if (snapshot.virtual) chosen = null;
   update({
     status: reason === 'wrong-mac' ? 'needs-mac' : 'idle',
     problem: reason === 'user' ? null : reason ?? 'lost',
     state: null,
+    virtual: false,
   });
 }
 
 async function connectWith(mac: string) {
   const cube = chosen;
   if (!cube) return;
-  update({ status: 'connecting', problem: null, deviceName: cube.name });
+  update({ status: 'connecting', problem: null, deviceName: cube.name, virtual: cube.virtual ?? false });
   pendingMac = mac;
   confirmed = false;
   valid = 0;
@@ -266,6 +273,7 @@ function knownMac(typedMac: string): string | null {
  * advertisements; otherwise the status becomes `needs-mac`.
  */
 export async function connect(typedMac = '') {
+  dropTestCube();
   if (connection || unsupportedReason()) return;
   if (isNativeApp()) return startScan();
   update({ status: 'choosing', problem: null });
@@ -295,6 +303,7 @@ export async function connect(typedMac = '') {
 
 /** Connect the cube already chosen, with a typed MAC (or the remembered one when empty). */
 export async function connectChosen(typedMac = '') {
+  dropTestCube();
   if (connection || !chosen) return;
   if (typedMac.trim() && !parseMac(typedMac)) {
     update({ status: 'needs-mac', problem: 'invalid-mac' });
@@ -310,6 +319,22 @@ export function disconnect() {
   if (!connection) return;
   endReason = 'user';
   connection.disconnect();
+}
+
+// One cube at a time: a real one replaces the test cube.
+function dropTestCube() {
+  if (snapshot.virtual) disconnect();
+}
+
+/**
+ * Connect a cube made in software (the test cube, see test-cube.ts) in place
+ * of any cube connected. From here on it is handled like a real one.
+ */
+export async function connectVirtual(name: string, mac: string, open: (handlers: GanConnectionHandlers) => GanGen4Connection) {
+  disconnect();
+  if (snapshot.status === 'scanning') await stopScan();
+  chosen = { name, nativeId: null, scannedMac: mac, virtual: true, open: async (_mac, handlers) => open(handlers) };
+  await connectWith(mac);
 }
 
 /**
@@ -352,6 +377,7 @@ function nativeCube(id: string, name: string, scannedMac: string | null): Chosen
 
 /** Scan for GAN cubes nearby; they appear in `found` as they advertise. Stops by itself. */
 export async function startScan() {
+  dropTestCube();
   if (connection || snapshot.status === 'scanning' || snapshot.status === 'connecting') return;
   update({ status: 'scanning', problem: null, found: [] });
   const found = new Map<string, FoundCube>();
@@ -390,6 +416,7 @@ export async function stopScan() {
 
 /** Connect a cube from `found`. */
 export async function connectFound(deviceId: string, typedMac = '') {
+  dropTestCube();
   const cube = snapshot.found.find((c) => c.deviceId === deviceId);
   if (!cube || connection || snapshot.status === 'connecting') return;
   await stopScan();
@@ -405,6 +432,7 @@ export async function connectFound(deviceId: string, typedMac = '') {
  * when iOS no longer knows it or no MAC is remembered for it.
  */
 export async function connectLast(typedMac = '') {
+  dropTestCube();
   const last = settings.getSnapshot().lastCube;
   if (!last || connection || snapshot.status === 'connecting' || snapshot.status === 'scanning') return;
   update({ status: 'connecting', problem: null, deviceName: last.name });

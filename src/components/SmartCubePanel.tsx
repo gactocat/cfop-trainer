@@ -23,6 +23,8 @@ import {
   type SmartCubeProblem,
   type SmartCubeStatus,
 } from '@/lib/smart-cube-store';
+import { connectTestCube } from '@/lib/test-cube-store';
+import { closeAppDialog } from '@/lib/app-dialog';
 import { forgetMac, setHolding } from '@/lib/smart-cube-settings-store';
 import { clearSmartSolves, MAX_SMART_SOLVES } from '@/lib/smart-solve-store';
 import { useSmartSolveCount } from '@/hooks/useSmartSolves';
@@ -91,6 +93,8 @@ export function SmartCubePanel() {
   const busy = cube.status === 'choosing' || scanning || cube.status === 'reading-mac' || cube.status === 'connecting';
   const connected = cube.status === 'connected';
   const askMac = cube.status === 'needs-mac';
+  // The test cube works where Bluetooth does not, so its part shows there too.
+  const testCube = cube.virtual && (connected || cube.status === 'connecting');
   // The app offers the last cube by name instead (connectLast).
   const canReconnect = !native && cube.status === 'idle' && hasChosenDevice();
   const state = cube.state === null
@@ -104,17 +108,20 @@ export function SmartCubePanel() {
         <p>{t('smartCube.usage')}</p>
       </div>
 
-      {unsupported ? (
+      {unsupported && (
         <p role="note" className="rounded-md bg-zinc-100 px-3 py-2 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
           {t(UNSUPPORTED[unsupported])}
         </p>
-      ) : (
+      )}
+      {(!unsupported || testCube) && (
         <>
           <div className="space-y-2">
             <div className="flex flex-wrap gap-2">
-              {connected ? (
+              {connected && (
                 <button type="button" className={button} onClick={disconnect}>{t('smartCube.disconnect')}</button>
-              ) : native ? (
+              )}
+              {/* A real cube can be connected in place of the test cube. */}
+              {unsupported || (connected && !cube.virtual) ? null : native ? (
                 <>
                   {lastCube && (
                     <button type="button" className={primary} disabled={busy} onClick={() => void connectLast(mac)}>
@@ -138,8 +145,8 @@ export function SmartCubePanel() {
             </div>
             <div aria-live="polite" className="space-y-1">
               <Row label={t('smartCube.device')}>
-                {cube.deviceName ?? '-'}
-                {connected && cube.model ? ` (${cube.model}${cube.firmware ? ` ${cube.firmware}` : ''})` : ''}
+                {cube.virtual ? t('smartCube.test.title') : cube.deviceName ?? '-'}
+                {connected && cube.model && !cube.virtual ? ` (${cube.model}${cube.firmware ? ` ${cube.firmware}` : ''})` : ''}
               </Row>
               <p className="text-zinc-700 dark:text-zinc-200">{t(STATUS[cube.status])}</p>
               {cube.problem && (
@@ -177,7 +184,7 @@ export function SmartCubePanel() {
             </div>
           </div>
 
-          <div className="space-y-2 border-t border-zinc-200 pt-3 dark:border-zinc-800">
+          {!unsupported && <div className="space-y-2 border-t border-zinc-200 pt-3 dark:border-zinc-800">
             <label className="block space-y-1">
               <span className="font-medium">{t('smartCube.mac.label')}</span>
               <input
@@ -200,7 +207,7 @@ export function SmartCubePanel() {
               </button>
             )}
             {forgot && Object.keys(macs).length === 0 && <p className="text-xs">{t('smartCube.forgotMacs')}</p>}
-          </div>
+          </div>}
 
           <div className="space-y-2 border-t border-zinc-200 pt-3 dark:border-zinc-800">
             <h3 className="font-medium">{t('smartCube.holding.title')}</h3>
@@ -233,6 +240,16 @@ export function SmartCubePanel() {
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Closes the dialog, so the test cube's panel can be used at once. */}
+      {!testCube && (
+        <div className="space-y-1 border-t border-zinc-200 pt-3 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+          <button type="button" className="font-medium underline hover:text-zinc-900 dark:hover:text-zinc-100" onClick={() => { void connectTestCube(); closeAppDialog(); }}>
+            {t('smartCube.test.connect')}
+          </button>
+          <p>{t('smartCube.test.help')}</p>
         </div>
       )}
     </div>

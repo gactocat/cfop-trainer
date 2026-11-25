@@ -56,7 +56,8 @@ export function FullScreenModal({ open, onClose, title, info, children }: FullSc
           ✕
         </button>
       </div>
-      <div className="flex-1 min-h-0 flex flex-col p-3 sm:p-4">
+      {/* Room at the bottom for the test cube's panel while it is out (see TestCubePanel). */}
+      <div className="flex-1 min-h-0 flex flex-col p-3 pb-[max(0.75rem,var(--test-cube-inset,0px))] sm:p-4 sm:pb-[max(1rem,var(--test-cube-inset,0px))]">
         <StorageStatus />
         <WritableArea>{children}</WritableArea>
       </div>

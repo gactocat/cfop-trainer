@@ -30,21 +30,12 @@ export function SmartCubeConnect() {
   const { lastCube } = useSmartCubeSettings();
   if (!mounted) return null;
 
-  const unsupported = unsupportedReason();
-  if (unsupported) {
-    return (
-      <p role="note" className="rounded-md bg-zinc-100 px-3 py-2 text-xs text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
-        {t(UNSUPPORTED[unsupported])}
-      </p>
-    );
-  }
-
   if (cube.status === 'connected') {
     return (
       <div aria-live="polite" className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm dark:border-emerald-800 dark:bg-emerald-950/40">
         <span className="flex min-w-0 items-center gap-2">
           <span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
-          <span className="truncate font-medium text-emerald-900 dark:text-emerald-100">{cube.deviceName ?? t('smartCube.title')}</span>
+          <span className="truncate font-medium text-emerald-900 dark:text-emerald-100">{cube.virtual ? t('smartCube.test.title') : cube.deviceName ?? t('smartCube.title')}</span>
           <span className="shrink-0 text-xs text-emerald-800/80 dark:text-emerald-200/80">
             {cube.battery === null ? t('smartCube.status.connected') : t('practice.cube.battery', { level: cube.battery })}
           </span>
@@ -59,6 +50,16 @@ export function SmartCubeConnect() {
           </button>
         </span>
       </div>
+    );
+  }
+
+  // Checked after the connected cube: the test cube connects where Bluetooth cannot.
+  const unsupported = unsupportedReason();
+  if (unsupported) {
+    return (
+      <p role="note" className="rounded-md bg-zinc-100 px-3 py-2 text-xs text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
+        {t(UNSUPPORTED[unsupported])}
+      </p>
     );
   }
 

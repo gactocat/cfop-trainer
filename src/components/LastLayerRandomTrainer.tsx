@@ -10,6 +10,7 @@ import { recordSmartSolve, type SmartSolve } from '@/hooks/useSmartCubeTrainer';
 import { useNoScrambleTrainer } from '@/hooks/useNoScrambleTrainer';
 import { usePracticeLog } from '@/hooks/usePracticeLog';
 import { usePracticeRun } from '@/hooks/usePracticeRun';
+import { useOfferTestCubeMoves } from '@/hooks/useTestCube';
 import { useSmartSetupPractice } from '@/hooks/useSmartSetupPractice';
 import { useSmartCubeSettings } from '@/hooks/useSmartCube';
 import { useTrainerMode } from '@/hooks/useTrainerMode';
@@ -25,6 +26,7 @@ import { doneCases, nextRoundCase, roundPosition, shuffled } from '@/lib/practic
 import type { LastLayerPractice } from '@/types/practice';
 import { aufDisplayOf, type PracticeSettings } from '@/lib/practice-settings-store';
 import { pickStaleWeighted } from '@/lib/stale-weighted-pick';
+import { guideTurns, remainingGuide } from '@/lib/test-cube-hints';
 import { deleteSmartSolve } from '@/lib/smart-solve-store';
 import { formatSeconds } from '@/lib/stats';
 import { LastLayerPlayer } from './LastLayerPlayer';
@@ -33,6 +35,7 @@ import { RoundComplete } from './RoundComplete';
 import { SessionStats } from './SessionStats';
 import { SmartSetupStage } from './SmartSetupStage';
 import { TapStage } from './TapStage';
+import { holdingFrame } from '@/lib/smart-cube/holding';
 
 type TrainerState = 'idle' | 'running' | 'stopped';
 interface Pick<Id> {
@@ -193,7 +196,7 @@ export function LastLayerRandomTrainer<Id extends string>({
   // With a smart cube, either flow runs from the cube: solves are recorded in
   // this session's log as they stop, and the next case follows on Next, or by
   // itself once the cube rests when auto-advance is on.
-  const { autoAdvance } = useSmartCubeSettings();
+  const { autoAdvance, holding: cubeHolding } = useSmartCubeSettings();
   const cubeFlow = {
     practice,
     scramble: current ? current.setup.scramble : null,
@@ -222,6 +225,13 @@ export function LastLayerRandomTrainer<Id extends string>({
   const guided = useSmartSetupPractice({ ...cubeFlow, active: smartSetup });
   const cube = noScramble ? virtual : guided;
   useEffect(() => { startBlockedRef.current = cubeDriven && !cube.connected; });
+  // For the test cube: the setup still to make and the case's solution, in one tap.
+  useOfferTestCubeMoves(!current ? [] : [
+    ...(smartSetup && guided.view ? [{
+      kind: 'setup' as const, alg: remainingGuide(guided.view.plan.tokens, guided.view), ...guideTurns(guided.view.plan, guided.view.progress),
+    }] : []),
+    ...(cubeDriven ? [{ kind: 'solution' as const, alg: current.setup.solution, grip: holdingFrame(cubeHolding) }] : []),
+  ]);
 
   // Leaving the app abandons the attempt (a cube-driven solve is recorded on its own otherwise).
   useNativeTimer(state === 'running', noScramble ? virtual.reset : abort);

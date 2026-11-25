@@ -28,6 +28,9 @@ import { SolveRecords, TimerBadge } from './SolveRecords';
 import { SolveSettingsPanel } from './SolveSettingsPanel';
 import { SolveStages } from './SolveStages';
 import { PROBLEM, STATUS } from './SmartCubePanel';
+import { useOfferTestCubeMoves } from '@/hooks/useTestCube';
+import { invertAlg } from '@/lib/invert-alg';
+import { remainingGuide } from '@/lib/test-cube-hints';
 
 const CARD = 'rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900';
 const LABEL = 'text-[11px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400';
@@ -56,8 +59,8 @@ function CubeConnection() {
   const { t } = useT();
   const cube = useSmartCube();
   const { lastCube } = useSmartCubeSettings();
-  if (unsupportedReason() !== null) return null;
   const chip = 'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium';
+  // A connected cube shows even where Bluetooth cannot connect one (the test cube).
   if (cube.status === 'connected') {
     return (
       <button type="button" onClick={() => openAppDialog('smartCube')}
@@ -68,6 +71,7 @@ function CubeConnection() {
       </button>
     );
   }
+  if (unsupportedReason() !== null) return null;
   const busy = ['choosing', 'scanning', 'reading-mac', 'connecting'].includes(cube.status);
   const onConnect = () => {
     if (cube.status === 'needs-mac') {
@@ -283,6 +287,11 @@ export function CfopSolve() {
     onStart: (inspectionMs) => begin('cube', inspectionMs),
     onStop: (solve) => record({ ...solve, ...(timer?.penalty ? { penalty: timer.penalty } : {}), ...(timer?.inspectionMs !== undefined ? { inspectionMs: Math.round(timer.inspectionMs) } : {}) }),
   });
+  // For the test cube: the scramble still to make, and the way back to solved.
+  useOfferTestCubeMoves(!byCube || !scramble ? [] : [
+    { kind: 'scramble', alg: cubeSolve.screen?.phase === 'scramble' ? remainingGuide(cubeSolve.screen.tokens, cubeSolve.screen) : '', grip: settings.frame },
+    { kind: 'unscramble', alg: invertAlg(scramble), grip: settings.frame },
+  ]);
   const abortCube = () => {
     setTimer(null);
     cubeSolve.restart();

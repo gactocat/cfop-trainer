@@ -13,16 +13,18 @@ import { PRESET_ALGORITHMS } from '@/data/preset-algorithms';
 import { rotationNeutral } from '@/lib/cube-rotation';
 import { invertAlg } from '@/lib/invert-alg';
 import {
-  SOLVED, applyFaceTurns, applyTurn, isF2LSolved, isLastLayerOriented, isSolvedUpToLastLayerTurn, stateEquals,
+  SOLVED, applyFaceTurns, applyTurn, isF2LSolved, isLastLayerOriented, isSolvedUpToLastLayerTurn, stateEquals, stateFromArrays,
   type Amount, type CubeState, type Face,
 } from '@/lib/smart-cube/cube-state';
-import { GanGen4Cipher, createCommandMessage, macFromCompanyData, parseMac, toKociembaFacelets, type GanCubeEvent } from '@/lib/smart-cube/gan-gen4';
+import { GanGen4Cipher, createCommandMessage, isValidGanGen4Packet, macFromCompanyData, parseMac, toKociembaFacelets, type GanCubeEvent } from '@/lib/smart-cube/gan-gen4';
 import { MAC_FORMAT_ERROR, startGanGen4Session, type GanTrafficRecord } from '@/lib/smart-cube/gan-gen4-session';
 import { CUBE_HOLDINGS, lastLayerFace, userNotation, holdingFrame, type CubeHolding } from '@/lib/smart-cube/holding';
 import { advanceGuide, applyPlan, guideView, planSetup, GUIDE_START, type SetupPlan } from '@/lib/smart-cube/setup-guide';
 import { manualStart, sessionMove, startSession, type TrainerSession } from '@/lib/smart-cube/trainer-session';
 import { smartCubeUnsupported } from '@/lib/smart-cube/support';
 import { faceletsDecision } from '@/lib/smart-cube/state-sync';
+import { TEST_CUBE_KEYS, TestCube, moveForKey, testCubeTurns } from '@/lib/smart-cube/test-cube';
+import { guideTurns, remainingGuide } from '@/lib/test-cube-hints';
 import { buildSmartSolve, mergeTurns, solveNotation, turnsPerSecond } from '@/lib/smart-cube/solve-record';
 import { isResetGesture, manualStartVirtual, resetVirtual, startVirtual, virtualMove, virtualNotation, type VirtualSession } from '@/lib/smart-cube/virtual-session';
 import { displayRotation } from '@/lib/smart-cube/holding';
@@ -473,5 +475,110 @@ eq(faceletsDecision({ reported: turned, serial: 9, lastMoveSerial: null, confirm
 eq(faceletsDecision({ reported: turned, serial: 5, lastMoveSerial: null, confirmingReset: true }), 'skip', 'an older report cannot undo the reset');
 eq(faceletsDecision({ reported: SOLVED, serial: 0, lastMoveSerial: null, confirmingReset: true }), 'confirm-reset', 'the cube confirms the reset');
 eq(faceletsDecision({ reported: SOLVED, serial: 3, lastMoveSerial: 7, confirmingReset: true }), 'confirm-reset', 'whatever its move counter');
+
+// --- The test cube: keys, moves in the user's notation, and a real session
+eq(moveForKey('i'), 'R', 'I turns R');
+eq(moveForKey('K'), "R'", 'keys ignore case');
+eq(moveForKey('z'), null, 'an unmapped key turns nothing');
+for (const [key, move] of Object.entries(TEST_CUBE_KEYS)) {
+  ok(testCubeTurns(move, holdingFrame('yellow-blue')) !== null, `key ${key} (${move}) can be made`);
+}
+for (const holding of CUBE_HOLDINGS) {
+  const home = holdingFrame(holding);
+  for (const alg of ["R U R' U'", "r U R' U' r' F R F'", "M2 U M U2 M' U M2", "y R U2 R' x' U z2 F", "(R U R' U')3 R2"]) {
+    const planned = testCubeTurns(alg, home)!;
+    const viaTurns = planned.turns.reduce((st, [face, amount]) => applyTurn(st, face, amount), SOLVED);
+    ok(stateEquals(viaTurns, applyPlan(SOLVED, planSetup(alg, holding)!)), `${holding}: "${alg}" turns the cube as the setup guide expects`);
+    ok(planned.turns.every(([, amount]) => amount === 1 || amount === 3), `${holding}: "${alg}" is made of quarter turns`);
+  }
+  const rotated = testCubeTurns('y', home)!;
+  eq(rotated.turns.length, 0, 'a rotation turns no face');
+  const after = testCubeTurns('R', rotated.frame)!;
+  eq(after.turns, testCubeTurns('y R', home)!.turns, `${holding}: a rotation changes the grip for the next move`);
+}
+eq(testCubeTurns('R Q', holdingFrame('yellow-blue')), null, 'an unknown move is refused');
+// Every preset's setup, made by the test cube, brings the guide to ready.
+let testCubeSetups = 0;
+for (const holding of CUBE_HOLDINGS) {
+  for (const [practice, presets] of [['pll', PRESET_ALGORITHMS], ['oll', OLL_PRESET_ALGORITHMS]] as const) {
+    for (const algs of Object.values(presets) as readonly (readonly string[])[]) {
+      for (const alg of algs) {
+        const setup = invertAlg(rotationNeutral(alg));
+        const plan = planSetup(setup, holding);
+        if (!plan) continue;
+        let session = startSession(practice, lastLayerFace(holding), plan, SOLVED);
+        let state = SOLVED;
+        let time = 0;
+        for (const [face, amount] of testCubeTurns(setup, holdingFrame(holding))!.turns) {
+          state = applyTurn(state, face, amount);
+          session = sessionMove(session, { face, amount, cubeTime: (time += 100), state }).session;
+        }
+        ok(session.phase === 'ready', `${holding} ${practice}: the test cube makes "${setup}"`);
+        testCubeSetups++;
+      }
+    }
+  }
+}
+console.log(`  ${testCubeSetups} preset setups made by the test cube reach ready.`);
+// The rest of a guide, from part way, with a wrong turn on the way: its turns reach ready.
+let guideRests = 0;
+for (const holding of CUBE_HOLDINGS) {
+  for (const algs of Object.values(OLL_PRESET_ALGORITHMS) as readonly (readonly string[])[]) {
+    const setup = invertAlg(rotationNeutral(algs[0]));
+    const plan = planSetup(setup, holding);
+    if (!plan) continue;
+    const all = testCubeTurns(setup, holdingFrame(holding))!.turns;
+    for (const cut of [0, 1, Math.floor(all.length / 2)]) {
+      let session = startSession('oll', lastLayerFace(holding), plan, SOLVED);
+      let state = SOLVED;
+      let time = 0;
+      const make = ([face, amount]: readonly [Face, 1 | 3]) => {
+        state = applyTurn(state, face, amount);
+        session = sessionMove(session, { face, amount, cubeTime: (time += 100), state }).session;
+      };
+      all.slice(0, cut).forEach(make);
+      if (cut === 1) make(['F', 1]);
+      if (session.phase !== 'setup') continue;
+      const rest = guideTurns(plan, session.progress);
+      rest.turns.forEach(make);
+      // `make` changes the session; read its phase afresh.
+      ok((session.phase as string) === 'ready', `${holding}: "${setup}" finished from turn ${cut}${cut === 1 ? ' after a wrong turn' : ''}`);
+      guideRests++;
+    }
+  }
+}
+console.log(`  ${guideRests} guides finished from part way by the test cube.`);
+eq(remainingGuide(['R', 'U', "R'"], { doneTokens: 1, remaining: '', undo: '' }), "U R'", 'what is left of a guide');
+eq(remainingGuide(['R2', 'U', "R'"], { doneTokens: 0, remaining: 'R', undo: "F'" }), "F' R U R'", 'with turns to take back and a step half done');
+
+{
+  const cube = new TestCube();
+  const events: GanCubeEvent[] = [];
+  const traffic: GanTrafficRecord[] = [];
+  let disconnected = false;
+  const conn = cube.open({ onEvent: (e) => events.push(e), onTraffic: (r) => traffic.push(r), onDisconnect: () => { disconnected = true; } });
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+  for (const type of ['REQUEST_FACELETS', 'REQUEST_HARDWARE', 'REQUEST_BATTERY'] as const) await conn.sendCommand({ type });
+  await settle();
+  const facelets = events.find((e) => e.type === 'FACELETS');
+  ok(facelets?.type === 'FACELETS' && facelets.facelets === toKociembaFacelets([0, 1, 2, 3, 4, 5, 6, 7], [0, 0, 0, 0, 0, 0, 0, 0], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], Array(12).fill(0)), 'the test cube reports itself solved');
+  const hardware = events.find((e) => e.type === 'HARDWARE');
+  ok(hardware?.type === 'HARDWARE' && hardware.hardwareName === 'Test cube', 'it names itself, not as a GAN cube (no MAC is remembered)');
+  ok(events.some((e) => e.type === 'BATTERY' && e.batteryLevel === 100), 'it reports a full battery');
+  for (const [face, amount] of testCubeTurns("R U' F2", holdingFrame('white-green'))!.turns) cube.turn(face, amount);
+  await settle();
+  const moves = events.filter((e) => e.type === 'MOVE').map((e) => (e.type === 'MOVE' ? e.move : ''));
+  eq(moves, ['R', "U'", 'F', 'F'], 'turns arrive as the driver reads a real cube\'s');
+  await conn.sendCommand({ type: 'REQUEST_FACELETS' });
+  await settle();
+  const reported = events.filter((e) => e.type === 'FACELETS').pop();
+  ok(reported?.type === 'FACELETS' && stateEquals(stateFromArrays(reported.state.CP, reported.state.CO, reported.state.EP, reported.state.EO)!, applyFaceTurns(SOLVED, "R U' F2")), 'its state report follows the turns');
+  await conn.sendCommand({ type: 'REQUEST_RESET' });
+  ok(stateEquals(cube.state, SOLVED), 'the reset makes it solved');
+  ok(traffic.filter((r) => r.op === 'notify').every((r) => r.valid), 'every notification passes the packet check');
+  ok(traffic.filter((r) => r.op === 'notify').every((r) => isValidGanGen4Packet(Buffer.from(r.plain, 'hex'))), 'and decrypts with the cube\'s MAC');
+  conn.disconnect();
+  ok(disconnected && !cube.connected, 'disconnecting ends the link');
+}
 
 console.log(`All ${checks} smart cube checks passed.`);

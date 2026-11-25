@@ -14,6 +14,7 @@ import { recordSmartSolve, type SmartSolve } from '@/hooks/useSmartCubeTrainer';
 import { useNoScrambleTrainer } from '@/hooks/useNoScrambleTrainer';
 import { usePracticeLog } from '@/hooks/usePracticeLog';
 import { usePracticeRun } from '@/hooks/usePracticeRun';
+import { useOfferTestCubeMoves } from '@/hooks/useTestCube';
 import { useSmartSetupPractice } from '@/hooks/useSmartSetupPractice';
 import { useSmartCubeSettings } from '@/hooks/useSmartCube';
 import { useTrainerMode } from '@/hooks/useTrainerMode';
@@ -26,6 +27,7 @@ import { saveCubeSolve, type CaseTimes } from '@/lib/practice-log';
 import { doneCases, nextRoundCase, roundPosition, shuffled } from '@/lib/practice-round';
 import { aufDisplayOf } from '@/lib/practice-settings-store';
 import { pickStaleWeighted } from '@/lib/stale-weighted-pick';
+import { guideTurns, remainingGuide } from '@/lib/test-cube-hints';
 import { deleteSmartSolve } from '@/lib/smart-solve-store';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import { F2L_IDS, type F2LAlgorithmRecord, type F2LId } from '@/types/f2l';
@@ -36,6 +38,7 @@ import { RoundComplete } from './RoundComplete';
 import { SessionStats } from './SessionStats';
 import { SmartSetupStage } from './SmartSetupStage';
 import { TapStage } from './TapStage';
+import { holdingFrame } from '@/lib/smart-cube/holding';
 
 type TrainerState = 'idle' | 'running' | 'stopped';
 
@@ -232,7 +235,7 @@ export function F2LTrainer({ ids, selected, algorithmFor, caseTimes }: F2LTraine
   // With a smart cube, either flow runs from the cube: solves are recorded in
   // this session's log as they stop, and the next case follows on Next, or by
   // itself once the cube rests when auto-advance is on.
-  const { autoAdvance } = useSmartCubeSettings();
+  const { autoAdvance, holding: cubeHolding } = useSmartCubeSettings();
   const cubeFlow = {
     practice: 'f2l' as const,
     scramble: shown ? shown.setup.scramble : null,
@@ -267,6 +270,13 @@ export function F2LTrainer({ ids, selected, algorithmFor, caseTimes }: F2LTraine
   // Leaving the app abandons the attempt (a cube-driven solve is recorded on its own otherwise).
   useNativeTimer(state === 'running', noScramble ? virtual.reset : abort);
   useEffect(() => { startBlockedRef.current = cubeDriven && !cube.connected; });
+  // For the test cube: the setup still to make and the case's solution, in one tap.
+  useOfferTestCubeMoves(!shown ? [] : [
+    ...(smartSetup && guided.view ? [{
+      kind: 'setup' as const, alg: remainingGuide(guided.view.plan.tokens, guided.view), ...guideTurns(guided.view.plan, guided.view.progress),
+    }] : []),
+    ...(cubeDriven && shown.body ? [{ kind: 'solution' as const, alg: prefixAuf(shown.effectiveAuf, shown.body), grip: holdingFrame(cubeHolding) }] : []),
+  ]);
 
   // Without a cube: hold to start, let go to go, press to stop; Space too.
   // Without a setup to make first, Space on the result holds for the next case at once.

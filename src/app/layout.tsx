@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { AppDialogs } from '@/components/AppDialogs';
+import { TestCubePanel } from '@/components/TestCubePanel';
 import { HtmlLang } from '@/components/HtmlLang';
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
 import { AccountBoundary, AccountSession } from '@/components/AccountBoundary';
@@ -79,10 +80,11 @@ export default function RootLayout({
           </div>
           <div id={HEADER_TOOLBAR_ID} />
         </header>
-        <main className="mx-auto w-full max-w-6xl pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] flex-1">
+        <main className="mx-auto w-full max-w-6xl pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom),var(--test-cube-inset,0px))] flex-1">
           <AccountBoundary>{children}</AccountBoundary>
         </main>
         <AppDialogs />
+        <TestCubePanel />
         <footer className="mx-auto w-full max-w-6xl px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]"><PublicLinks /></footer>
       </body>
     </html>

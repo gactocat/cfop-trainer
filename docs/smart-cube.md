@@ -128,6 +128,29 @@ cannot bring the old state back (`lib/smart-cube/state-sync.ts`). A guided
 setup starts again from solved; the solve page's scramble guide routes again
 from it. Practice without a setup does not use the cube's state.
 
+## Test cube
+
+For trying the smart cube screens without a cube (on cfop.app and in the iOS
+app too), the smart cube dialog ends with a small "Connect a test cube". The
+test cube (`lib/smart-cube/test-cube.ts`) stands where the Bluetooth stack
+would: it answers the session's encrypted commands and sends encrypted
+notifications (turns with its own clock, state reports, battery, a hardware
+report that is not GAN's, so no MAC is remembered), so everything from the
+protocol driver on runs as with a real cube, the reset of "Mark as solved"
+included. Connecting a real cube drops it, and the other way round.
+
+While it is connected, a panel over every page (`components/TestCubePanel.tsx`,
+`lib/test-cube-store.ts`) turns it: buttons for the outer faces, M and the
+rotations; keys in the layout common to virtual cubes (I/K R, J/F U, H/G F,
+D/E L, S/L D, W/O B, U/M r, V/R l, 5,6/X,. M, T,Y/B,N x, ;/A y, P/Q z) except
+while typing; a box that runs moves one at a time at a chosen interval; and
+the moves the screen offers in one tap (`lib/test-cube-hints.ts`): the rest
+of a guided setup or scramble, taken from the guide's own plan so rotations
+and groups are followed exactly, the case's solution, the scramble backwards.
+Moves are read like a setup (`planSetup`), from the holding and any rotation
+made since. Pages and the practice screen leave room at the bottom for the
+panel; it folds to a small tab.
+
 ## Recorded solves
 
 The result screen of a cube-timed solve shows the turns in the chosen
