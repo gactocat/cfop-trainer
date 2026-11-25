@@ -8,11 +8,12 @@
 // and connects the one picked, or the cube it connected last time.
 
 import { isNativeApp } from '@/lib/native';
-import { applyTurn, stateFromArrays, type CubeState, type Face } from '@/lib/smart-cube/cube-state';
+import { SOLVED, applyTurn, stateFromArrays, type CubeState, type Face } from '@/lib/smart-cube/cube-state';
 import { formatMac, parseMac, type GanCubeEvent } from '@/lib/smart-cube/gan-gen4';
 import type { GanConnectionHandlers, GanGen4Connection, GanTrafficRecord } from '@/lib/smart-cube/gan-gen4-session';
 import type { FoundCube } from '@/lib/smart-cube/gan-native-bluetooth';
 import { connectGanGen4, requestGanCube, watchGanMac } from '@/lib/smart-cube/gan-web-bluetooth';
+import { faceletsDecision } from '@/lib/smart-cube/state-sync';
 import { smartCubeUnsupported, type SmartCubeUnsupported } from '@/lib/smart-cube/support';
 import * as settings from '@/lib/smart-cube-settings-store';
 
@@ -35,6 +36,8 @@ export interface SmartCubeSnapshot {
   state: CubeState | null;
   /** iOS app: cubes found by the last scan, to pick from. */
   found: readonly FoundCube[];
+  /** Counts "mark as solved", so a guide in progress can start again from the new state. */
+  calibration: number;
 }
 
 export interface SmartCubeTurn {
@@ -51,11 +54,14 @@ export interface SmartCubeTurn {
 
 const INITIAL: SmartCubeSnapshot = {
   status: 'idle', problem: null, deviceName: null, battery: null, model: null, firmware: null, state: null, found: [],
+  calibration: 0,
 };
 /** No notification for this long means the link is gone (the cube streams gyro data about 10 times a second). */
 const SILENCE_MS = 3000;
 /** How long the iOS app scans before it stops by itself. */
 const SCAN_MS = 15000;
+/** After "mark as solved", how long only the cube's solved report counts (an older one may still be on its way). */
+const RESET_CONFIRM_MS = 2000;
 
 /** The cube picked in the browser dialog or from the app's scan, ready to connect. */
 interface ChosenCube {
@@ -82,6 +88,8 @@ let endReason: SmartCubeProblem | 'user' | null = null;
 let lastMoveSerial: number | null = null;
 // Cube clock minus host clock, for turns recovered from the cube's history.
 let clockOffset: number | null = null;
+// Until then (performance.now()), FACELETS reports wait for the cube to confirm a reset.
+let resetUntil = 0;
 
 function update(patch: Partial<SmartCubeSnapshot>) {
   snapshot = { ...snapshot, ...patch };
@@ -140,13 +148,23 @@ function onEvent(event: GanCubeEvent) {
       update({ battery: event.batteryLevel });
       break;
     case 'FACELETS': {
-      // Resync only when no turn is in flight; otherwise the turns already applied are newer.
-      if (lastMoveSerial !== null && event.serial !== lastMoveSerial) break;
+      // The cube's own state, reported on request and about once a second.
+      // Resync to it only when no turn is in flight (the turns applied are
+      // newer) and not while a reset is being confirmed (see markSolved).
       const state = stateFromArrays(event.state.CP, event.state.CO, event.state.EP, event.state.EO);
-      if (state) {
-        lastMoveSerial = event.serial;
-        update({ state });
+      if (!state) break;
+      const decision = faceletsDecision({
+        reported: state, serial: event.serial, lastMoveSerial, confirmingReset: performance.now() < resetUntil,
+      });
+      if (decision === 'skip') break;
+      if (decision === 'confirm-reset') {
+        // Solved, plus any turn made since the button, is already the state here.
+        resetUntil = 0;
+        lastMoveSerial ??= event.serial;
+        break;
       }
+      lastMoveSerial = event.serial;
+      update({ state });
       break;
     }
     case 'MOVE': {
@@ -190,6 +208,7 @@ function onDisconnect() {
   const reason = endReason;
   endReason = null;
   lastMoveSerial = null;
+  resetUntil = 0;
   update({
     status: reason === 'wrong-mac' ? 'needs-mac' : 'idle',
     problem: reason === 'user' ? null : reason ?? 'lost',
@@ -291,6 +310,30 @@ export function disconnect() {
   if (!connection) return;
   endReason = 'user';
   connection.disconnect();
+}
+
+/**
+ * The cube in hand is solved: reset the state the cube keeps (it reports that
+ * state about once a second, so resetting only the one tracked here would be
+ * undone), take solved here at once, and ask the cube to confirm. Until it
+ * does, for RESET_CONFIRM_MS, an older report cannot bring the old state back.
+ * False when the cube could not be reached.
+ */
+export async function markSolved(): Promise<boolean> {
+  const link = connection;
+  if (!link || snapshot.status !== 'connected') return false;
+  try {
+    await link.sendCommand({ type: 'REQUEST_RESET' });
+  } catch {
+    return false;
+  }
+  if (connection !== link) return false;
+  resetUntil = performance.now() + RESET_CONFIRM_MS;
+  // The cube may count its turns afresh after a reset: the next report sets the baseline.
+  lastMoveSerial = null;
+  update({ state: SOLVED, calibration: snapshot.calibration + 1 });
+  void link.sendCommand({ type: 'REQUEST_FACELETS' }).catch(() => {});
+  return true;
 }
 
 // --- iOS app: scan, pick, reconnect

@@ -6,6 +6,7 @@ import { useT } from '@/hooks/useT';
 import { openAppDialog } from '@/lib/app-dialog';
 import { isNativeApp } from '@/lib/native';
 import { connect, connectLast, disconnect, startScan, unsupportedReason } from '@/lib/smart-cube-store';
+import { MarkSolvedButton } from './MarkSolvedButton';
 import { PROBLEM, STATUS, UNSUPPORTED } from './SmartCubePanel';
 
 function CubeIcon() {
@@ -48,7 +49,8 @@ export function SmartCubeConnect() {
             {cube.battery === null ? t('smartCube.status.connected') : t('practice.cube.battery', { level: cube.battery })}
           </span>
         </span>
-        <span className="flex shrink-0 gap-3 text-xs">
+        <span className="flex shrink-0 flex-wrap items-center gap-x-3 text-xs text-emerald-800 dark:text-emerald-200">
+          <MarkSolvedButton variant="link" />
           <button type="button" onClick={() => openAppDialog('smartCube')} className="text-emerald-800 underline hover:text-emerald-950 dark:text-emerald-200 dark:hover:text-white">
             {t('practice.cube.settings')}
           </button>

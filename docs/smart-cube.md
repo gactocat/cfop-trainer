@@ -113,6 +113,21 @@ practice runs is fixed when it starts, so a cube lost mid-session leaves the
 no-scramble screen asking to reconnect rather than switching to the tap timer.
 Recorded solves carry `mode: 'no-scramble'`.
 
+## Mark as solved
+
+The cube keeps its own state and reports it on request and about once a
+second; the app resyncs to that report whenever no turn is in flight. When the
+screen no longer matches the cube in hand (a turn the cube missed, or one made
+while it slept), the smart cube dialog's "Mark as solved" (also beside the
+cube in the practice options, and above the cube while a setup is guided)
+is pressed with the cube solved. It sends the protocol's reset
+(`REQUEST_RESET`, as smartcube-web-bluetooth does) so the cube's own state is
+solved too, sets the tracked state to solved at once, and asks for a report.
+For two seconds only a solved report counts, so one sent before the reset
+cannot bring the old state back (`lib/smart-cube/state-sync.ts`). A guided
+setup starts again from solved; the solve page's scramble guide routes again
+from it. Practice without a setup does not use the cube's state.
+
 ## Recorded solves
 
 The result screen of a cube-timed solve shows the turns in the chosen

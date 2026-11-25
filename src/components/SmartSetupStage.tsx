@@ -6,6 +6,7 @@ import { useT } from '@/hooks/useT';
 import type { PracticeLogSnapshot } from '@/lib/practice-log';
 import { displayRotation } from '@/lib/smart-cube/holding';
 import type { TrainerPractice } from '@/lib/smart-cube/trainer-session';
+import { MarkSolvedButton } from './MarkSolvedButton';
 import { ConnectPrompt, CubeStage, RecognitionTimer, SolveTimer, StageResult, type StageRing } from './CubeStage';
 import { SessionStats } from './SessionStats';
 import { SmartCubeSetupStatus, SmartCubeSetupTokens } from './SmartCubeSetupGuide';
@@ -47,6 +48,7 @@ export function SmartSetupStage({ practice, state, view, connected, log, elapsed
     <CubeStage
       ring={ringOf(state, view)}
       holding={holding}
+      action={connected && state !== 'running' && <MarkSolvedButton variant="link" />}
       cube={view && (
         <VirtualCube
           practice={practice}

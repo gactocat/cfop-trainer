@@ -22,6 +22,7 @@ import { CUBE_HOLDINGS, lastLayerFace, userNotation, holdingFrame, type CubeHold
 import { advanceGuide, applyPlan, guideView, planSetup, GUIDE_START, type SetupPlan } from '@/lib/smart-cube/setup-guide';
 import { manualStart, sessionMove, startSession, type TrainerSession } from '@/lib/smart-cube/trainer-session';
 import { smartCubeUnsupported } from '@/lib/smart-cube/support';
+import { faceletsDecision } from '@/lib/smart-cube/state-sync';
 import { buildSmartSolve, mergeTurns, solveNotation, turnsPerSecond } from '@/lib/smart-cube/solve-record';
 import { isResetGesture, manualStartVirtual, resetVirtual, startVirtual, virtualMove, virtualNotation, type VirtualSession } from '@/lib/smart-cube/virtual-session';
 import { displayRotation } from '@/lib/smart-cube/holding';
@@ -461,5 +462,16 @@ eq(smartCubeUnsupported({ ...env, userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac 
 eq(smartCubeUnsupported({ ...env, userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14.0; rv:140.0) Gecko/20100101 Firefox/140.0' }), 'firefox', 'Firefox');
 eq(smartCubeUnsupported({ ...env, hasBluetooth: true, secureContext: false, userAgent: CHROME }), 'insecure', 'http');
 eq(smartCubeUnsupported({ ...env, nativeApp: true, hasBluetooth: false, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148' }), null, 'the iOS app connects through its plugin');
+
+// --- Mark as solved: the reset sent to the cube, and which state reports count
+const reset = createCommandMessage({ type: 'REQUEST_RESET' });
+eq(Buffer.from(reset).toString('hex'), 'd20d05397700000123456789ab00000000000000', 'the reset command, as smartcube-web-bluetooth sends it');
+const turned = applyFaceTurns(SOLVED, "R U");
+eq(faceletsDecision({ reported: turned, serial: 5, lastMoveSerial: 5, confirmingReset: false }), 'apply', 'a report with no turn in flight is taken');
+eq(faceletsDecision({ reported: turned, serial: 6, lastMoveSerial: 5, confirmingReset: false }), 'skip', 'a report ahead of the turns applied waits');
+eq(faceletsDecision({ reported: turned, serial: 9, lastMoveSerial: null, confirmingReset: false }), 'apply', 'after a reset the next report sets the baseline');
+eq(faceletsDecision({ reported: turned, serial: 5, lastMoveSerial: null, confirmingReset: true }), 'skip', 'an older report cannot undo the reset');
+eq(faceletsDecision({ reported: SOLVED, serial: 0, lastMoveSerial: null, confirmingReset: true }), 'confirm-reset', 'the cube confirms the reset');
+eq(faceletsDecision({ reported: SOLVED, serial: 3, lastMoveSerial: 7, confirmingReset: true }), 'confirm-reset', 'whatever its move counter');
 
 console.log(`All ${checks} smart cube checks passed.`);

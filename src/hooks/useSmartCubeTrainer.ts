@@ -130,6 +130,8 @@ export function useSmartCubeTrainer({ practice, scramble, trainerState, onStart,
   const { holding } = useSmartCubeSettings();
   const connected = cube.status === 'connected';
   const synced = cube.state !== null;
+  // Bumped by "mark as solved": a guide in progress starts again from solved.
+  const calibration = cube.calibration;
   const plan = useMemo(() => (connected && scramble ? planSetup(scramble, holding) : null), [connected, scramble, holding]);
   const ll = lastLayerFace(holding);
   const [holder] = useState(() => new SessionHolder());
@@ -143,7 +145,7 @@ export function useSmartCubeTrainer({ practice, scramble, trainerState, onStart,
     if (!plan) holder.set(null, holding);
     else if (trainerState === 'idle') holder.set(startSession(practice, ll, plan, getCubeSnapshot().state), holding);
     else if (holder.session) holder.set(trainerState === 'running' ? manualStart(holder.session) : manualStop(holder.session), holding);
-  }, [holder, plan, practice, ll, holding, trainerState, synced]);
+  }, [holder, plan, practice, ll, holding, trainerState, synced, calibration]);
 
   useEffect(() => {
     if (!plan) return;
