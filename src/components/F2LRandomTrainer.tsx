@@ -22,7 +22,7 @@ import { combineAuf, invertAuf, prefixAuf, splitF2LAuf } from '@/lib/f2l-auf';
 import { buildF2LSetup, seededRandom } from '@/lib/f2l-scramble';
 import { aufStartOf } from '@/lib/auf-start';
 import { movesPerSecond, solutionMoves } from '@/lib/move-count';
-import type { CaseTimes } from '@/lib/practice-log';
+import { saveCubeSolve, type CaseTimes } from '@/lib/practice-log';
 import { doneCases, nextRoundCase, roundPosition, shuffled } from '@/lib/practice-round';
 import { aufDisplayOf } from '@/lib/practice-settings-store';
 import { pickStaleWeighted } from '@/lib/stale-weighted-pick';
@@ -244,17 +244,13 @@ export function F2LTrainer({ ids, selected, algorithmFor, caseTimes }: F2LTraine
       name: nameOf(current),
       solution: shown.body ? prefixAuf(shown.effectiveAuf, shown.body) : '',
     },
-    // The cube's record of the solve stays on this device as before; random
-    // practice saves no time of its own.
-    record: (caseId: string, seconds: number, solve: SmartSolve | null) => {
-      const timeId = caseTimes?.add(seconds) ?? null;
-      const smartId = solve ? recordSmartSolve(solve, caseId) : null;
-      if (!timeId && !smartId) return null;
-      return () => {
-        if (timeId) caseTimes?.remove(timeId);
-        if (smartId) void deleteSmartSolve(smartId);
-      };
-    },
+    // Random practice keeps its solves in the session only; case practice
+    // also saves the time and the cube's record of the solve.
+    record: (caseId: string, seconds: number, solve: SmartSolve | null) => saveCubeSolve({
+      caseTimes, seconds, solve,
+      saveSmart: (smart) => recordSmartSolve(smart, caseId),
+      deleteSmart: (id) => { void deleteSmartSolve(id); },
+    }),
     onStart: start,
     onStop: (seconds: number | null) => {
       const settled = seconds ?? (Date.now() - startRef.current) / 1000;

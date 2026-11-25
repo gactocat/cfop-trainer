@@ -14,6 +14,7 @@ import { rotationNeutral } from '@/lib/cube-rotation';
 import { appendUTurn, splitF2LAuf } from '@/lib/f2l-auf';
 import { buildF2LSetup, seededRandom } from '@/lib/f2l-scramble';
 import { holdStep, type HoldInput, type HoldPhase } from '@/lib/hold-timer';
+import { saveCubeSolve, type CaseTimes } from '@/lib/practice-log';
 import { countMoves, movesPerSecond, solutionMoves } from '@/lib/move-count';
 import { doneCases, nextRoundCase, roundPosition, shuffled } from '@/lib/practice-round';
 import { alignedOffset, buildLastLayerSetup } from '@/lib/last-layer-setup';
@@ -122,6 +123,25 @@ ok(nextRoundCase(order, [dealt(order[1]), dealt(order[0], true)]) === order[0], 
 ok(doneCases(order, [dealt(order[0]), dealt(order[0]), dealt('Ga')]).size === 1, 'a case counts once, other cases not at all');
 ok(nextRoundCase(order, order.map((id) => dealt(id))) === null, 'done once every case has a kept solve');
 ok(roundPosition(2, 4, false) === 3 && roundPosition(3, 4, true) === 3 && roundPosition(4, 4, false) === 4, 'which case of the round is on screen');
+
+// --- What a cube-timed solve saves: case practice its time and the cube's
+// record; random practice nothing (the session only)
+const saved: string[] = [];
+const caseTimes: CaseTimes = {
+  add: (seconds) => { saved.push(`time ${seconds}`); return 't1'; },
+  remove: (id) => { saved.push(`remove ${id}`); },
+  best: null, ao5: null, count: 0,
+};
+const smartSaves = { saveSmart: (solve: string) => { saved.push(`smart ${solve}`); return 's1'; }, deleteSmart: (id: string) => { saved.push(`delete ${id}`); } };
+ok(saveCubeSolve({ caseTimes: undefined, seconds: 1.2, solve: 'turns', ...smartSaves }) === null && saved.length === 0,
+  'random practice saves neither a time nor the cube record');
+const undoCase = saveCubeSolve({ caseTimes, seconds: 1.2, solve: 'turns', ...smartSaves });
+ok(saved.join() === 'time 1.2,smart turns', 'case practice saves the time and the cube record');
+undoCase?.();
+ok(saved.join() === 'time 1.2,smart turns,remove t1,delete s1', 'undo takes both back');
+saved.length = 0;
+saveCubeSolve({ caseTimes, seconds: 2, solve: null, ...smartSaves });
+ok(saved.join() === 'time 2', 'a solve stopped by hand saves its time only');
 
 // --- The AUF choice
 ok(aufStartOf({ randomAuf: true }) === 'random', 'saved random AUF reads as random');

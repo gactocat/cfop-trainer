@@ -4,9 +4,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { getOLLDefinition } from '@/data/oll-definitions';
 import { useOLLAlgorithms } from '@/hooks/useOLLAlgorithms';
-import { useOLLRandomSolves } from '@/hooks/useOLLRandomSolves';
 import { useT } from '@/hooks/useT';
-import { formatSeconds } from '@/lib/stats';
 import { type OLLId } from '@/types/oll';
 import { OLLAlgorithmForm } from './OLLAlgorithmForm';
 import { OLLAlgorithmRow } from './OLLAlgorithmRow';
@@ -40,11 +38,6 @@ export function OLLDetail({ ollId }: OLLDetailProps) {
     addTime,
     removeTime,
   } = useOLLAlgorithms();
-  const {
-    bestFor: randomBestFor,
-    ao5For: randomAo5For,
-    solvesFor: randomSolvesFor,
-  } = useOLLRandomSolves();
 
   const records = useMemo(
     () =>
@@ -73,26 +66,16 @@ export function OLLDetail({ ollId }: OLLDetailProps) {
     );
   }
 
-  const randomSolves = ready ? randomSolvesFor(ollId).length : 0;
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
         <div className="space-y-2">
-          <h1 className="text-3xl font-semibold tracking-tight">{def.name}</h1>
+          {/* The header shows the case's name; the heading stays for screen readers. */}
+          <h1 className="sr-only">{def.name}</h1>
           <p className="text-sm text-zinc-500">{tn('common.algorithmsSaved', records.length)}</p>
           <a href={`https://www.speedcubedb.com/a/3x3/OLL/OLL_${def.number}`} target="_blank" rel="noreferrer" className="inline-block text-sm text-emerald-600 dark:text-emerald-400 hover:underline">
             {t('oll.source')}
           </a>
-          {randomSolves > 0 && (
-            <p className="text-xs text-zinc-500">
-              {t('detail.randomStats', {
-                best: formatSeconds(randomBestFor(ollId)),
-                ao5: formatSeconds(randomAo5For(ollId)),
-                solves: tn('common.solves', randomSolves),
-              })}
-            </p>
-          )}
         </div>
         <div className="flex flex-col items-center md:items-end gap-2">
           <div

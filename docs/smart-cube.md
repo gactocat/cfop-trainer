@@ -117,9 +117,10 @@ Recorded solves carry `mode: 'no-scramble'`.
 
 The result screen of a cube-timed solve shows the turns in the chosen
 holding's notation, the move count (consecutive turns of one face merged,
-cancellations dropped), TPS and recognition time. Recording the time also
-keeps that solve in IndexedDB (`cfop-smart-cube`, store `solves`) on this
-device: turns with cube times, recognition, execution, move count, TPS, the
+cancellations dropped), TPS and recognition time. In an algorithm's practice
+on its case page, recording the time also keeps that solve in IndexedDB
+(`cfop-smart-cube`, store `solves`) on this device (random practice keeps its
+solves for the session only and saves none): turns with cube times, recognition, execution, move count, TPS, the
 setup and the holding. Discarded attempts and hand-started timers are not
 kept. Each case's page lists its solves, newest first, with delete buttons;
 the settings panel shows the total and can delete everything. Beyond 2000

@@ -4,9 +4,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { getF2LDefinition } from '@/data/f2l-definitions';
 import { useF2LAlgorithms } from '@/hooks/useF2LAlgorithms';
-import { useF2LRandomSolves } from '@/hooks/useF2LRandomSolves';
 import { useT } from '@/hooks/useT';
-import { formatSeconds } from '@/lib/stats';
 import type { F2LId } from '@/types/f2l';
 import { F2LAlgorithmForm } from './F2LAlgorithmForm';
 import { F2LAlgorithmRow } from './F2LAlgorithmRow';
@@ -36,11 +34,6 @@ export function F2LDetail({ f2lId }: F2LDetailProps) {
     addTime,
     removeTime,
   } = useF2LAlgorithms();
-  const {
-    bestFor: randomBestFor,
-    ao5For: randomAo5For,
-    solvesFor: randomSolvesFor,
-  } = useF2LRandomSolves();
 
   const records = useMemo(
     () =>
@@ -69,25 +62,15 @@ export function F2LDetail({ f2lId }: F2LDetailProps) {
   }
 
   const displayAlg = star?.algorithm ?? def.primaryAlg;
-  const randomSolves = ready ? randomSolvesFor(f2lId).length : 0;
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
         <div className="space-y-2">
-          <h1 className="text-3xl font-semibold tracking-tight">
+          {/* The header shows the case's name; the heading stays for screen readers. */}
+          <h1 className="sr-only">
             {t('common.f2lCase', { number: def.number })}
           </h1>
           <p className="text-sm text-zinc-500">{tn('common.algorithmsSaved', records.length)}</p>
-          {randomSolves > 0 && (
-            <p className="text-xs text-zinc-500">
-              {t('detail.randomStats', {
-                best: formatSeconds(randomBestFor(f2lId)),
-                ao5: formatSeconds(randomAo5For(f2lId)),
-                solves: tn('common.solves', randomSolves),
-              })}
-            </p>
-          )}
         </div>
       </div>
 

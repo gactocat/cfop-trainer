@@ -101,3 +101,27 @@ export interface CaseTimes {
   ao5: number | null;
   count: number;
 }
+
+/**
+ * What a cube-timed solve saves outside the session, and how to take it back.
+ * Case practice saves the time to the algorithm and the cube's record of the
+ * solve (shown on the case page); random practice keeps its solves in the
+ * session only, so it saves neither. Null when nothing was saved.
+ */
+export function saveCubeSolve<Solve>({ caseTimes, seconds, solve, saveSmart, deleteSmart }: {
+  caseTimes: CaseTimes | undefined;
+  seconds: number;
+  /** The cube's record of the attempt; null when it was stopped by hand. */
+  solve: Solve | null;
+  saveSmart: (solve: Solve) => string;
+  deleteSmart: (id: string) => void;
+}): (() => void) | null {
+  if (!caseTimes) return null;
+  const timeId = caseTimes.add(seconds);
+  const smartId = solve ? saveSmart(solve) : null;
+  if (!timeId && !smartId) return null;
+  return () => {
+    if (timeId) caseTimes.remove(timeId);
+    if (smartId) deleteSmart(smartId);
+  };
+}

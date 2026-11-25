@@ -20,7 +20,7 @@ import { pickAlternativeSetup } from '@/lib/last-layer-alternatives';
 import { alignedOffset, buildLastLayerSetup, type LastLayerAlgorithm, type LastLayerSetup } from '@/lib/last-layer-setup';
 import { aufStartOf, caseOffset } from '@/lib/auf-start';
 import { movesPerSecond, solutionMoves } from '@/lib/move-count';
-import type { CaseTimes } from '@/lib/practice-log';
+import { saveCubeSolve, type CaseTimes } from '@/lib/practice-log';
 import { doneCases, nextRoundCase, roundPosition, shuffled } from '@/lib/practice-round';
 import type { LastLayerPractice } from '@/types/practice';
 import { aufDisplayOf, type PracticeSettings } from '@/lib/practice-settings-store';
@@ -201,17 +201,13 @@ export function LastLayerRandomTrainer<Id extends string>({
     autoAdvance,
     log,
     describe: () => current && { caseId: current.id, name: nameFor(current.id), solution: current.setup.solution },
-    // The cube's record of the solve stays on this device as before; random
-    // practice saves no time of its own.
-    record: (caseId: string, seconds: number, solve: SmartSolve | null) => {
-      const timeId = caseTimes?.add(seconds) ?? null;
-      const smartId = solve ? recordSmartSolve(solve, caseId) : null;
-      if (!timeId && !smartId) return null;
-      return () => {
-        if (timeId) caseTimes?.remove(timeId);
-        if (smartId) void deleteSmartSolve(smartId);
-      };
-    },
+    // Random practice keeps its solves in the session only; case practice
+    // also saves the time and the cube's record of the solve.
+    record: (caseId: string, seconds: number, solve: SmartSolve | null) => saveCubeSolve({
+      caseTimes, seconds, solve,
+      saveSmart: (smart) => recordSmartSolve(smart, caseId),
+      deleteSmart: (id) => { void deleteSmartSolve(id); },
+    }),
     onStart: start,
     onStop: (seconds: number | null) => {
       const settled = seconds ?? (Date.now() - startRef.current) / 1000;

@@ -4,9 +4,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { getPllDefinition } from '@/data/pll-definitions';
 import { useAlgorithms } from '@/hooks/useAlgorithms';
-import { useRandomSolves } from '@/hooks/useRandomSolves';
 import { useT } from '@/hooks/useT';
-import { formatSeconds } from '@/lib/stats';
 import { type PllId } from '@/types/pll';
 import { AlgorithmForm } from './AlgorithmForm';
 import { AlgorithmRow } from './AlgorithmRow';
@@ -40,11 +38,6 @@ export function PllDetail({ pllId }: PllDetailProps) {
     addTime,
     removeTime,
   } = useAlgorithms();
-  const {
-    bestFor: randomBestFor,
-    ao5For: randomAo5For,
-    solvesFor: randomSolvesFor,
-  } = useRandomSolves();
 
   const records = useMemo(
     () =>
@@ -73,23 +66,13 @@ export function PllDetail({ pllId }: PllDetailProps) {
     );
   }
 
-  const randomSolves = ready ? randomSolvesFor(pllId).length : 0;
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
         <div className="space-y-2">
-          <h1 className="text-3xl font-semibold tracking-tight">{def.name}</h1>
+          {/* The header shows the case's name; the heading stays for screen readers. */}
+          <h1 className="sr-only">{def.name}</h1>
           <p className="text-sm text-zinc-500">{tn('common.algorithmsSaved', records.length)}</p>
-          {randomSolves > 0 && (
-            <p className="text-xs text-zinc-500">
-              {t('detail.randomStats', {
-                best: formatSeconds(randomBestFor(pllId)),
-                ao5: formatSeconds(randomAo5For(pllId)),
-                solves: tn('common.solves', randomSolves),
-              })}
-            </p>
-          )}
         </div>
         <div className="flex flex-col items-center md:items-end gap-2">
           <div
