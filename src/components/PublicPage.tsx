@@ -14,6 +14,7 @@ export function PublicPage({ kind }: { kind: 'privacy' | 'support' }) {
     {sections.map((section) => <section key={section} className="space-y-2">
       <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{t(`${kind}.${section}.title` as Parameters<typeof t>[0])}</h2>
       <p className="whitespace-pre-line">{t(`${kind}.${section}.body` as Parameters<typeof t>[0])}</p>
+      {section === 'data' && <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noreferrer" className="inline-block text-emerald-700 underline dark:text-emerald-400">{t('privacy.data.vercelPolicy')}</a>}
       {section === 'delete' && <button type="button" onClick={openAccountDialog} className="text-emerald-700 underline dark:text-emerald-400">{t('account.open')}</button>}
     </section>)}
     <p><a href="mailto:gactocat@gmail.com" className="break-all text-emerald-700 underline dark:text-emerald-400">gactocat@gmail.com</a></p>

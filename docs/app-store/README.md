@@ -108,7 +108,7 @@ optional account use sends data to Supabase and service providers retain logs.
 | Other Data Types | Security data, including retained IP addresses | App Functionality | Yes | No |
 
 These declarations include provider processing; no advertising or analytics SDK
-is embedded. Account-linked authentication logs are not represented as anonymous.
+is embedded. The website's Vercel Web Analytics is left out of the iOS export. Account-linked authentication logs are not represented as anonymous.
 Update the answers if provider settings or application data practices change.
 Save each data type, then publish the complete privacy answers in App Store Connect.
 

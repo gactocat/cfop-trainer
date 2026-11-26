@@ -90,6 +90,11 @@ CI (`.github/workflows/ci.yml`) runs the same three steps on every PR.
   their `*_IDS` arrays.
 - `public/sw.js` — hand-written service worker (network-first navigations,
   stale-while-revalidate assets). Bump `CACHE_NAME` if you change what it caches.
+  It leaves `/_vercel/` (Web Analytics) to the network.
+- `src/components/WebAnalytics.tsx` — Vercel Web Analytics, page views only,
+  with the query and hash dropped. It renders nothing in the iOS export
+  (`NEXT_PUBLIC_NATIVE_APP`), which keeps the library out of the app and the
+  App Store privacy answers unchanged; the privacy policy says so too.
 - `ios/` — Capacitor project and native bridge. Generated public assets and
   config are ignored. Keep normal and native Next builds sequential.
 

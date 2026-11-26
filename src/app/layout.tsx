@@ -4,6 +4,7 @@ import { AppDialogs } from '@/components/AppDialogs';
 import { TestCubePanel } from '@/components/TestCubePanel';
 import { HtmlLang } from '@/components/HtmlLang';
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
+import { WebAnalytics } from '@/components/WebAnalytics';
 import { AccountBoundary, AccountSession } from '@/components/AccountBoundary';
 import { ColorTheme } from '@/components/ColorTheme';
 import { HeaderTitle } from '@/components/HeaderTitle';
@@ -70,6 +71,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
         <AccountSession />
         <ServiceWorkerRegister />
+        <WebAnalytics />
         <HtmlLang />
         <ColorTheme />
         <header className="pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur sticky top-0 z-10">
