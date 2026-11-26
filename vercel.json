@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    { "path": "/api/supabase-keepalive", "schedule": "0 0 * * *" },
+    { "path": "/api/supabase-keepalive", "schedule": "0 8 * * *" },
+    { "path": "/api/supabase-keepalive", "schedule": "0 16 * * *" }
+  ]
+}

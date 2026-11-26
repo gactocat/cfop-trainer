@@ -20,9 +20,15 @@ As of September 20, 2026:
   documented below.
 - Custom SMTP is not configured. The built-in sender only supports Supabase
   team member addresses; configure SMTP before inviting other users.
+- On November 26, 2026 the project was paused for inactivity and resumed by
+  hand. Since then Vercel Cron keeps it active; see
+  [Keep the Free project from pausing](#keep-the-free-project-from-pausing).
 
-Open the [connected resource](https://vercel.com/d/dashboard/integrations/supabase/icfg_HJnISW7o0qy1QLElwyaR1BvA/resources/store_cg9bz95kXUJgmTiL)
-to access Supabase Studio. Authentication configuration is documented below.
+Open the project in the
+[Supabase dashboard](https://supabase.com/dashboard/project/lwlsbgcksljmonggtiex)
+(Supabase Studio). From Vercel, the same project is reached through the
+`cfop-trainer` resource under the team's **Storage** (Vercel's old direct link
+to the resource no longer opens). Authentication configuration is documented below.
 
 ## Create Supabase through Vercel
 
@@ -262,6 +268,55 @@ drop table public.solves;
 
 The app then goes back to keeping signed-in users' solves on the device.
 Changes waiting in a device's outbox stay there until the table exists again.
+
+## Keep the Free project from pausing
+
+Supabase pauses a Free plan project that shows low database activity over
+7 days; a few requests to the database each day are enough to keep it
+running ([free project pausing](https://supabase.com/docs/guides/platform/free-project-pausing)).
+Supabase emails a warning about a week before pausing and again once paused.
+While paused, sign-in and account saves fail; guest mode keeps working.
+
+To keep it active without real users, Vercel Cron calls
+`/api/supabase-keepalive` on the production deployment three times a day, at
+00:00, 08:00 and 16:00 UTC (09:00, 17:00 and 01:00 in Japan). On the Hobby
+plan each run may start anywhere within that hour. The jobs are in
+[`vercel.json`](../vercel.json) and the route is
+[`src/app/api/supabase-keepalive/route.web.ts`](../src/app/api/supabase-keepalive/route.web.ts).
+
+Each call sends one read with the public key,
+`GET /rest/v1/account_data?select=user_id&limit=1`. The anonymous role may not
+read that table, so Postgres answers "permission denied" (`42501`). That answer
+comes from the database itself, so every call is a request the database
+handles; the route treats it, or a `200`, as success. The
+route changes nothing, returns no data and needs no secret: it is the request
+any visitor's browser can already send. It is a web-only route, left out of the
+iOS static export.
+
+To check by hand, open <https://cfop.app/api/supabase-keepalive>:
+
+| Response | Meaning |
+| -------- | ------- |
+| `200 {"ok":true}` | The database answered. |
+| `503 {"ok":false,"status":<HTTP status>,"reason":...}` | Supabase answered, but not from the database; the project may be paused or restoring. |
+| `503 {"ok":false,"status":null,"reason":"TimeoutError"}` | No answer within 15 seconds. |
+| `503 {"ok":false,"status":null,"reason":"not configured"}` | The deployment has no Supabase variables. |
+
+The jobs and their logs are in the Vercel project: open **Schedules** in the
+sidebar, then the **Cron Jobs** tab; each job has **View Logs**. Vercel does not
+retry a failed run; the next one comes about 8 hours later. Removing the
+`crons` entries from `vercel.json` and deploying stops the runs.
+
+If the project is paused anyway (for example, the runs failed for a week):
+
+1. Open the [Supabase dashboard for `cfop-trainer`](https://supabase.com/dashboard/project/lwlsbgcksljmonggtiex).
+2. Select **Resume project** and confirm. Restoring takes a few minutes; data
+   and settings come back as they were. A paused project can be restored for up
+   to a year.
+3. Open <https://cfop.app/api/supabase-keepalive> and wait for `{"ok":true}`,
+   then sign in at <https://cfop.app/account> to confirm.
+
+Paid Supabase plans are not paused for inactivity.
 
 ## Account deletion
 
