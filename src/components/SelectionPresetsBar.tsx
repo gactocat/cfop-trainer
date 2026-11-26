@@ -71,7 +71,7 @@ export function SelectionPresetsBar<Id extends string>({
       )}
       {selectionMode && selected.size > 0 && (
         <button type="button" onClick={saveAs} className={BUTTON}>
-          {t('selection.saveAs')}
+          {t('selection.save')}
         </button>
       )}
       {selectionMode && active && (

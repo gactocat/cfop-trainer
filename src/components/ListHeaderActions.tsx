@@ -96,7 +96,9 @@ export function ListHeaderActions<Id extends string>({
       )}
       {toolbar && selectionMode && createPortal(
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-3 pb-3 text-sm sm:px-4">
-          <span className="text-zinc-500">{t('grid.selectedForRandom', { count: selection.count, total })}</span>
+          <span className="tabular-nums text-zinc-500" title={t('grid.selectedForRandom', { count: selection.count, total })}>
+            {t('grid.shown', { count: selection.count, total })}
+          </span>
           <button type="button" onClick={selection.selectAll} className={OUTLINE}>{t('common.selectAll')}</button>
           <button type="button" onClick={selection.clear} className={OUTLINE}>{t('common.clear')}</button>
           <SelectionPresetsBar

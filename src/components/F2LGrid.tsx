@@ -32,8 +32,7 @@ const CATEGORY_KEYS: Record<F2LCategory, MessageKey> = {
   'pieces-in-slot': 'f2l.category.pieces-in-slot',
 };
 
-function timeBadgeClasses(seconds: number | null): string {
-  if (seconds === null) return 'bg-zinc-200 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400';
+function timeBadgeClasses(seconds: number): string {
   if (seconds < 2.5) return 'bg-emerald-500 text-white';
   if (seconds < 4) return 'bg-emerald-300 text-emerald-950';
   if (seconds < 6) return 'bg-amber-300 text-amber-950';
@@ -144,11 +143,11 @@ export function F2LGrid({ onRandom }: { onRandom: () => void }) {
                           {t('common.f2lCase', { number: f2l.number })}
                         </span>
                       </span>
-                      <span
-                        className={`text-xs font-mono px-1.5 py-0.5 rounded ${timeBadgeClasses(best)}`}
-                      >
-                        {formatSeconds(best)}
-                      </span>
+                      {best !== null && (
+                        <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${timeBadgeClasses(best)}`}>
+                          {formatSeconds(best)}
+                        </span>
+                      )}
                     </div>
                     <div className="flex justify-center mb-2">
                       <div className="w-[144px] h-[144px]">

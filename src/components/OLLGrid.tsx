@@ -42,8 +42,7 @@ const CATEGORY_KEYS: Record<OLLCategory, MessageKey> = {
 
 const CATEGORY_ORDER: OLLCategory[] = ["dot-case", "square-shapes", "lightning-shapes", "fish-shapes", "knight-move-shapes", "ocll", "all-corners-oriented", "awkward-shapes", "p-shapes", "t-shapes", "c-shapes", "w-shapes", "l-shapes", "line-shapes"];
 
-function timeBadgeClasses(seconds: number | null): string {
-  if (seconds === null) return 'bg-zinc-200 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400';
+function timeBadgeClasses(seconds: number): string {
   if (seconds < 2.5) return 'bg-emerald-500 text-white';
   if (seconds < 3.5) return 'bg-emerald-300 text-emerald-950';
   if (seconds < 4.5) return 'bg-amber-300 text-amber-950';
@@ -153,11 +152,11 @@ export function OLLGrid({ onRandom }: { onRandom: () => void }) {
                         )}
                         <span className="font-medium text-sm">{oll.name}</span>
                       </span>
-                      <span
-                        className={`text-xs font-mono px-1.5 py-0.5 rounded ${timeBadgeClasses(best)}`}
-                      >
-                        {formatSeconds(best)}
-                      </span>
+                      {best !== null && (
+                        <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${timeBadgeClasses(best)}`}>
+                          {formatSeconds(best)}
+                        </span>
+                      )}
                     </div>
                     <div className="flex justify-center mb-2">
                       <OLLLLView ollId={oll.id} auf={displayAuf} algorithm={star?.algorithm} size={144} />

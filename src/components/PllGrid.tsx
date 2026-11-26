@@ -31,8 +31,7 @@ const CATEGORY_KEYS: Record<PllCategory, MessageKey> = {
 
 const CATEGORY_ORDER: PllCategory[] = ['epll', 'cpll', 'ec-pll'];
 
-function timeBadgeClasses(seconds: number | null): string {
-  if (seconds === null) return 'bg-zinc-200 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400';
+function timeBadgeClasses(seconds: number): string {
   if (seconds < 2.5) return 'bg-emerald-500 text-white';
   if (seconds < 3.5) return 'bg-emerald-300 text-emerald-950';
   if (seconds < 4.5) return 'bg-amber-300 text-amber-950';
@@ -142,11 +141,11 @@ export function PllGrid({ onRandom }: { onRandom: () => void }) {
                         )}
                         <span className="font-medium text-sm">{pll.name}</span>
                       </span>
-                      <span
-                        className={`text-xs font-mono px-1.5 py-0.5 rounded ${timeBadgeClasses(best)}`}
-                      >
-                        {formatSeconds(best)}
-                      </span>
+                      {best !== null && (
+                        <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${timeBadgeClasses(best)}`}>
+                          {formatSeconds(best)}
+                        </span>
+                      )}
                     </div>
                     <div className="flex justify-center mb-2">
                       <PllLLView pllId={pll.id} auf={displayAuf} algorithm={star?.algorithm} size={144} />
