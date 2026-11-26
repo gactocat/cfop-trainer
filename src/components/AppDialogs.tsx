@@ -18,9 +18,11 @@ const DIALOG_TITLES = {
   smartCube: 'smartCube.title',
 } as const satisfies Record<NonNullable<AppDialog>, MessageKey>;
 
-// The account, data and smart cube dialogs, opened from the top page's
-// settings and from anywhere else that needs them (a practice's cube prompt,
-// an email link to /account, the iOS app).
+// The account and smart cube dialogs, opened from the top page's settings and
+// from anywhere else that needs them (a practice's cube prompt, an email link
+// to /account, the iOS app). The data dialog (algorithm export and import)
+// has no entry on screen since the top page's settings dropped it; it stays
+// here so one can be added again.
 export function AppDialogs() {
   const { t } = useT();
   const state = usePersistence();

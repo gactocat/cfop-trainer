@@ -11,7 +11,8 @@ Guests save to the browser's `localStorage` and can work offline. With Supabase
 configured, email/password accounts save settings, algorithms and times to
 PostgreSQL and can use them across devices. Signed-in accounts require a
 connection to save. See [account setup](docs/accounts.md) for deployment steps.
-Algorithms can also be exported and imported as JSON from Data in the settings on the top page.
+Algorithm export and import as JSON is kept in the code
+(`src/components/AlgorithmTransfer.tsx`) but has no entry on screen.
 The app is installable as a PWA and includes a Capacitor iOS app.
 See [iOS development and release](docs/ios.md) for simulator and device setup.
 

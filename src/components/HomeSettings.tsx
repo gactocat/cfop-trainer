@@ -51,12 +51,11 @@ const icon = (children: ReactNode) => (
 );
 const CUBE_ICON = icon(<><path d="M12 2 21 7v10l-9 5-9-5V7z" /><path d="M3 7l9 5 9-5M12 12v10" /></>);
 const ACCOUNT_ICON = icon(<><circle cx="12" cy="8" r="4" /><path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2" /></>);
-const DATA_ICON = icon(<><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5v14a9 3 0 0 0 18 0V5M3 12a9 3 0 0 0 18 0" /></>);
 
 // The app's settings, on the top page below the F2L / OLL / PLL entries:
-// language and dark mode in place, and the smart cube, the account and the
-// algorithm data in their dialogs. Each list keeps its own AUF display,
-// changed while selecting its cases (see ListHeaderActions).
+// language and dark mode in place, and the smart cube and the account in
+// their dialogs. Each list keeps its own AUF display, changed while selecting
+// its cases (see ListHeaderActions).
 export function HomeSettings() {
   const { t } = useT();
   const mounted = useMounted();
@@ -85,7 +84,6 @@ export function HomeSettings() {
           <DialogRow icon={CUBE_ICON} label="smartCube.title" onClick={() => openAppDialog('smartCube')}
             detail={mounted && t(cube.status === 'connected' ? 'smartCube.status.connected' : 'smartCube.status.idle')} />
           <DialogRow icon={ACCOUNT_ICON} label="account.title" onClick={openAccountDialog} detail={mounted && account} />
-          <DialogRow icon={DATA_ICON} label="common.data" onClick={() => openAppDialog('data')} detail={t('home.settings.dataHelp')} />
         </div>
       </div>
     </section>

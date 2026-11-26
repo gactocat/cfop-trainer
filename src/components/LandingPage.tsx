@@ -5,11 +5,6 @@ import Link from 'next/link';
 import { HOME_GROUPS, type HomeEntryArt } from '@/data/home-entries';
 import { useT } from '@/hooks/useT';
 import { HomeSettings } from './HomeSettings';
-import { ShuffleIcon } from './ShuffleIcon';
-
-function Arrow({ className = '' }: { className?: string }) {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`size-5 ${className}`}><path d="M5 12h14m-6-6 6 6-6 6" /></svg>;
-}
 
 // Equal tiles on three isometric planes echo the app icon without a WebGL player.
 // A stage lights up its stickers; a solve, the whole cube.
@@ -34,19 +29,6 @@ function Cube({ stage }: { stage: HomeEntryArt }) {
   );
 }
 
-function UseCaseIcon({ kind }: { kind: 'algorithms' | 'times' | 'random' }) {
-  if (kind === 'random') return <ShuffleIcon className="size-5" />;
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="size-5">
-      {kind === 'algorithms' ? (
-        <><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M8 8h8m-8 4h8m-8 4h5" /></>
-      ) : (
-        <><circle cx="12" cy="14" r="8" /><path d="M12 10v4l3 2M9 2h6m-3 0v4m6 1 2-2" /></>
-      )}
-    </svg>
-  );
-}
-
 export function LandingPage() {
   const { t } = useT();
   return (
@@ -64,11 +46,10 @@ export function LandingPage() {
         <nav key={group.id} id={group.id} aria-labelledby={`${group.id}-heading`} className={index > 0 ? 'mt-8 sm:mt-10' : ''}>
           <h2 id={`${group.id}-heading`} className="mb-3 text-sm font-medium text-zinc-600 dark:text-zinc-400">{t(group.title)}</h2>
           <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
-            {group.entries.map(({ id, href, name, art, detail }) => (
-              <Link key={id} href={href} className="group relative flex items-center gap-4 rounded-xl border border-zinc-200 bg-white p-5 transition-colors hover:border-emerald-600 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-600 sm:block sm:p-6 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-emerald-500">
+            {group.entries.map(({ id, href, name, art }) => (
+              <Link key={id} href={href} className="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white p-5 transition-colors hover:border-emerald-600 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-600 sm:block sm:p-6 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-emerald-500">
                 <div className="h-20 w-20 shrink-0 sm:mb-5 sm:h-24 sm:w-24"><Cube stage={art} /></div>
-                <div className="min-w-0 flex-1"><div className="flex flex-wrap items-baseline gap-x-3 gap-y-1"><h3 className="text-2xl font-semibold tracking-tight">{name}</h3><span className="text-xs text-zinc-500 dark:text-zinc-400">{t(detail.key, detail.params)}</span></div></div>
-                <Arrow className="shrink-0 text-zinc-400 transition-transform group-hover:translate-x-1 group-hover:text-emerald-700 motion-reduce:transform-none sm:absolute sm:right-6 sm:top-6 dark:text-zinc-500 dark:group-hover:text-emerald-400" />
+                <h3 className="min-w-0 text-2xl font-semibold tracking-tight">{name}</h3>
               </Link>
             ))}
           </div>
@@ -76,18 +57,6 @@ export function LandingPage() {
       ))}
 
       <HomeSettings />
-
-      <section aria-labelledby="use-cases-heading" className="mt-10 sm:mt-14">
-        <h2 id="use-cases-heading" className="mb-4 text-sm font-medium text-zinc-600 dark:text-zinc-400">{t('landing.useCases')}</h2>
-        <ul className="grid gap-5 sm:grid-cols-3 sm:gap-6">
-          {(['algorithms', 'times', 'random'] as const).map((kind) => (
-            <li key={kind} className="flex items-start gap-3 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-              <span className="mt-0.5 shrink-0 text-emerald-700 dark:text-emerald-400"><UseCaseIcon kind={kind} /></span>
-              <span>{t(`landing.useCase.${kind}`)}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
     </div>
   );
 }
