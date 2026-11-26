@@ -2,9 +2,11 @@
 // Strategy: stale-while-revalidate for navigations and static assets, so the
 // app loads instantly from cache and the network refresh updates the cache
 // for next time. Account traffic must never enter the offline cache, and
-// Vercel's own endpoints (/_vercel/, Web Analytics) go straight to the network.
+// Vercel's own scripts and endpoints go straight to the network: Web Analytics
+// is served from /_vercel/insights/ or, once enabled for the project, from a
+// per-project path such as /<hash>/script.js.
 
-const CACHE_NAME = 'pll-manager-v7';
+const CACHE_NAME = 'pll-manager-v8';
 const APP_SHELL = ['/', '/manifest.webmanifest', '/icon.svg', '/logo.svg'];
 
 self.addEventListener('install', (event) => {
@@ -55,6 +57,8 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
   if (url.pathname === '/account' || url.pathname.startsWith('/auth/') || url.pathname.startsWith('/api/')) return;
   if (url.pathname.startsWith('/_vercel/')) return;
+  // The app's own scripts are all under /_next/; any other script is Vercel's.
+  if (req.destination === 'script' && !url.pathname.startsWith('/_next/')) return;
 
   // Navigation requests (HTML): network-first so deploys propagate quickly,
   // fall back to cache when offline.

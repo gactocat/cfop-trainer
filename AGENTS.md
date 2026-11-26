@@ -90,7 +90,8 @@ CI (`.github/workflows/ci.yml`) runs the same three steps on every PR.
   their `*_IDS` arrays.
 - `public/sw.js` — hand-written service worker (network-first navigations,
   stale-while-revalidate assets). Bump `CACHE_NAME` if you change what it caches.
-  It leaves `/_vercel/` (Web Analytics) to the network.
+  It leaves `/_vercel/` and scripts outside `/_next/` (Web Analytics, served
+  from a per-project path on cfop.app) to the network.
 - `src/components/WebAnalytics.tsx` — Vercel Web Analytics, page views only,
   with the query and hash dropped. It renders nothing in the iOS export
   (`NEXT_PUBLIC_NATIVE_APP`), which keeps the library out of the app and the
