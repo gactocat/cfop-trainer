@@ -7,8 +7,8 @@ import { markSolved } from '@/lib/smart-cube-store';
 
 // "Mark as solved": when the screen no longer matches the cube in hand and
 // that cube is solved, reset what the cube and the app take its state to be.
-// `button` in the smart cube dialog, `link` beside a cube's name or on a
-// practice screen. Shown only while a cube is connected.
+// `button` in the smart cube dialog, the one place for a real cube; `link` in
+// the test cube's panel. Shown only while a cube is connected.
 export function MarkSolvedButton({ variant }: { variant: 'button' | 'link' }) {
   const { t } = useT();
   const connected = useSmartCube().status === 'connected';

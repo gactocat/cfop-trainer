@@ -6,7 +6,6 @@ import { useT } from '@/hooks/useT';
 import { openAppDialog } from '@/lib/app-dialog';
 import { isNativeApp } from '@/lib/native';
 import { connect, connectLast, disconnect, startScan, unsupportedReason } from '@/lib/smart-cube-store';
-import { MarkSolvedButton } from './MarkSolvedButton';
 import { PROBLEM, STATUS, UNSUPPORTED } from './SmartCubePanel';
 
 function CubeIcon() {
@@ -20,9 +19,9 @@ function CubeIcon() {
 }
 
 // The smart cube in the practice options: a button to connect one, then the
-// cube's name and battery. The gear menu's smart cube dialog keeps the rest
-// (MAC address, holding, the iOS app's list of cubes found), and this opens
-// it when a step needs it. Where Bluetooth is unavailable it says why instead.
+// cube's name and battery. The smart cube dialog keeps the rest (MAC
+// address, holding, marking the cube solved, the iOS app's list of cubes
+// found), and this opens it when a step needs it. Where Bluetooth is unavailable it says why instead.
 export function SmartCubeConnect() {
   const { t } = useT();
   const mounted = useMounted();
@@ -41,7 +40,6 @@ export function SmartCubeConnect() {
           </span>
         </span>
         <span className="flex shrink-0 flex-wrap items-center gap-x-3 text-xs text-emerald-800 dark:text-emerald-200">
-          <MarkSolvedButton variant="link" />
           <button type="button" onClick={() => openAppDialog('smartCube')} className="text-emerald-800 underline hover:text-emerald-950 dark:text-emerald-200 dark:hover:text-white">
             {t('practice.cube.settings')}
           </button>
