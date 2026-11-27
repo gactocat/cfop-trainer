@@ -20,13 +20,13 @@ import { deleteSolve, saveSolve } from '@/lib/solve-store';
 import { solveTps } from '@/lib/solve/cfop-split';
 import { inspectionCall, inspectionPenalty, inspectionShown } from '@/lib/solve/inspection';
 import { handSolve, type Penalty, type SolveRecord } from '@/lib/solve/solve-record';
-import { formatRecordTime, formatSolveTime } from '@/lib/solve/solve-stats';
+import { formatSolveTime } from '@/lib/solve/solve-stats';
 import { setTimerFocus } from '@/lib/timer-focus';
 import { BatteryLevel } from './BatteryLevel';
 import { ScrambleNet } from './ScrambleNet';
 import { PenaltyButtons, RecordTime } from './SolvePenalty';
 import { SolveRecords, TimerBadge } from './SolveRecords';
-import { SolveSettingsPanel } from './SolveSettingsPanel';
+import { SolveSettingsButton } from './SolveSettings';
 import { SolveStages } from './SolveStages';
 import { PROBLEM, STATUS } from './SmartCubePanel';
 import { useOfferTestCubeMoves } from '@/hooks/useTestCube';
@@ -35,6 +35,7 @@ import { remainingGuide } from '@/lib/test-cube-hints';
 
 const CARD = 'rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900';
 const LABEL = 'text-[11px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400';
+const ICON_BUTTON = 'inline-flex size-8 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-40 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100';
 
 // The timer's digits: red while held, green while running (as the practice timer).
 const DIGITS: Record<HoldPhase, string> = {
@@ -116,7 +117,7 @@ function Tokens({ tokens, done }: { tokens: readonly string[]; done: number | nu
   );
 }
 
-/** What the smart cube needs next, under the scramble. */
+/** What the smart cube needs next, under the scramble: nothing while the turns go as shown. */
 function CubeStatus({ screen, synced }: { screen: CubeSolveScreen | null; synced: boolean }) {
   const { t } = useT();
   const chip = 'inline-block rounded-md px-3 py-1.5 text-sm font-semibold';
@@ -126,7 +127,8 @@ function CubeStatus({ screen, synced }: { screen: CubeSolveScreen | null; synced
   if (screen.routeKind === null) return <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('solve.cube.routing')}</p>;
   if (screen.undo) return <p aria-live="polite" className={`${chip} bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-200`}>{t('smartCube.trainer.undo', { moves: screen.undo })}</p>;
   if (screen.remaining) return <p aria-live="polite" className={`${chip} bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200`}>{t('smartCube.trainer.remaining', { moves: screen.remaining })}</p>;
-  return <p className="text-sm text-zinc-500 dark:text-zinc-400">{t(screen.routeKind === 'reroute' ? 'solve.cube.reroute' : 'solve.cube.turn')}</p>;
+  if (screen.routeKind === 'reroute') return <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('solve.cube.reroute')}</p>;
+  return null;
 }
 
 /** What the timer shows: a time counting up, the inspection counting down, or a fixed text. */
@@ -355,10 +357,15 @@ export function CfopSolve() {
 
   const aside = focus ? 'invisible' : '';
   const phase: HoldPhase = byCube ? (cubeRunning ? 'running' : 'idle') : hold.phase;
-  const shown: Shown = timer ? { kind: 'running', since: timer.since }
+  const cubeReady = byCube && screen?.phase === 'ready';
+  // The timer shows once there is something to time: the inspection, a
+  // press held, a cube ready to start, or the solve. While the scramble is
+  // shown it is hidden; the latest solve has the last time.
+  const shown: Shown | null = timer ? { kind: 'running', since: timer.since }
     : inspecting !== null ? { kind: 'inspection', since: inspecting }
       : cubeInspecting ? { kind: 'inspection', since: screen!.readySince! }
-        : { kind: 'still', text: hold.phase === 'pressed' || hold.phase === 'armed' || !latest ? formatSolveTime(0) : formatRecordTime(latest) };
+        : hold.phase === 'pressed' || hold.phase === 'armed' || cubeReady ? { kind: 'still', text: formatSolveTime(0) }
+          : null;
 
   const rerouted = byCube && screen?.routeKind === 'reroute';
   const tokens = rerouted ? screen!.tokens : scramble?.split(' ') ?? [];
@@ -366,27 +373,28 @@ export function CfopSolve() {
   const pressDown = byCube ? (cubeRunning ? stopByHand : undefined)
     : tapToInspect ? (event: { preventDefault: () => void }) => { event.preventDefault(); startInspection(); }
       : hold.pressProps.onPointerDown;
-  const hint = byCube ? t(screen?.phase === 'ready' ? 'smartCube.trainer.ready' : 'solve.cube.hint')
-    : t(tapToInspect ? 'solve.inspection.start' : 'trainer.hold.start');
+  // Without a cube the timer's area is what you press: a small line says how.
+  const hint = byCube ? null : t(tapToInspect ? 'solve.inspection.start' : 'trainer.hold.start');
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
       <div className="flex min-w-0 flex-col gap-4">
-        <section aria-labelledby="scramble-heading" className={`${CARD} p-4 sm:p-6 ${aside}`}>
+        <section aria-label={t(rerouted ? 'solve.cube.routeTitle' : 'solve.scramble')} className={`${CARD} p-4 sm:p-6 ${aside}`}>
           <div className="flex items-start justify-between gap-3">
-            <h2 id="scramble-heading" className={`${LABEL} min-w-0 pt-2`}>{t(rerouted ? 'solve.cube.routeTitle' : 'solve.scramble')}</h2>
-            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-              {mounted && <CubeConnection />}
+            {rerouted ? <h2 className={`${LABEL} min-w-0 pt-2`}>{t('solve.cube.routeTitle')}</h2> : <span />}
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+              {mounted && <span className="mr-1"><CubeConnection /></span>}
               <button type="button" onClick={next} disabled={!scramble || timer !== null} aria-label={t('solve.scramble.new')} title={t('solve.scramble.new')}
-                className="inline-flex size-8 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-40 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100">
+                className={ICON_BUTTON}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="size-4.5">
                   <path d="M20 11a8 8 0 0 0-14.7-4.4L4 8m0-4v4h4M4 13a8 8 0 0 0 14.7 4.4L20 16m0 4v-4h-4" />
                 </svg>
               </button>
+              {mounted && <SolveSettingsButton settings={settings} disabled={timer !== null || inspecting !== null} className={ICON_BUTTON} />}
             </div>
           </div>
           {mounted && <CubeProblem />}
-          <div className="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-6">
+          <div className="mt-3 flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-6">
             <div className="flex min-w-0 flex-1 flex-col items-center gap-3 text-center sm:items-start sm:text-left">
               <p aria-live="polite" className="min-h-[2.5em] w-full font-mono text-2xl font-semibold leading-relaxed tracking-wide break-words text-zinc-900 sm:text-3xl dark:text-zinc-50">
                 {scramble ? <Tokens tokens={tokens} done={done} /> : (
@@ -397,28 +405,32 @@ export function CfopSolve() {
                 <p className="font-mono text-xs text-zinc-500 dark:text-zinc-400">{t('solve.cube.scrambleWas', { scramble })}</p>
               )}
               {byCube && scramble && <CubeStatus screen={screen} synced={cube.state !== null} />}
-              {mounted && <SolveSettingsPanel settings={settings} disabled={timer !== null || inspecting !== null} />}
             </div>
             {scramble && <ScrambleNet scramble={scramble} frame={settings.frame} className="w-32 shrink-0 sm:mt-2 sm:w-40" />}
           </div>
         </section>
 
-        <div
-          onPointerDown={pressDown}
-          onContextMenu={hold.pressProps.onContextMenu}
-          role="button"
-          tabIndex={-1}
-          aria-label={cubeRunning || hold.phase === 'running' ? t('trainer.tapToStopAria')
-            : inspecting !== null ? t('solve.inspection.aria')
-              : byCube ? t('solve.cube.timerAria') : t(tapToInspect ? 'solve.inspection.start' : 'trainer.hold.aria')}
-          className={`${CARD} flex min-h-[36vh] flex-col items-center justify-center gap-3 p-6 select-none touch-none [-webkit-touch-callout:none] [-webkit-user-select:none] sm:min-h-[20rem] ${byCube ? '' : 'cursor-pointer'}`}
-        >
-          <TimerDisplay shown={shown} className={shown.kind === 'inspection' && phase === 'idle' ? 'text-zinc-700 dark:text-zinc-200' : DIGITS[phase]} />
-          <p className={`text-center text-sm text-zinc-600 dark:text-zinc-300 ${aside}`}>
-            {hint}
-            {!byCube && <kbd className="ml-2 hidden font-mono text-[10px] opacity-70 sm:inline">Space</kbd>}
-          </p>
-        </div>
+        {/* With a cube it starts and stops the solve, so its timer appears only once the cube is ready. */}
+        {(!byCube || shown) && (
+          <div
+            onPointerDown={pressDown}
+            onContextMenu={hold.pressProps.onContextMenu}
+            role="button"
+            tabIndex={-1}
+            aria-label={cubeRunning || hold.phase === 'running' ? t('trainer.tapToStopAria')
+              : inspecting !== null ? t('solve.inspection.aria')
+                : byCube ? t('solve.cube.timerAria') : t(tapToInspect ? 'solve.inspection.start' : 'trainer.hold.aria')}
+            className={`${CARD} flex min-h-[36vh] flex-col items-center justify-center gap-3 p-6 select-none touch-none [-webkit-touch-callout:none] [-webkit-user-select:none] sm:min-h-[20rem] ${byCube ? '' : 'cursor-pointer'}`}
+          >
+            {shown && <TimerDisplay shown={shown} className={shown.kind === 'inspection' && phase === 'idle' ? 'text-zinc-700 dark:text-zinc-200' : DIGITS[phase]} />}
+            {hint && (
+              <p className={`text-center text-xs text-zinc-500 dark:text-zinc-400 ${aside}`}>
+                {hint}
+                <kbd className="ml-2 hidden font-mono text-[10px] opacity-70 sm:inline">Space</kbd>
+              </p>
+            )}
+          </div>
+        )}
 
         {latest && <LatestSolve record={latest} className={aside} onUndo={onUndo} />}
       </div>

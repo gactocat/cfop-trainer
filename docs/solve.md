@@ -8,19 +8,25 @@ layer) is one more entry in `src/data/home-entries.ts` and a page under
 ## CFOP
 
 The page shows a random-state scramble, the timer, the latest solve and the
-records (this device's, or the account's when signed in).
+records (this device's, or the account's when signed in). Beside the scramble
+are the smart cube's button (connect, or its battery once connected), a new
+scramble and a gear for the solve settings (holding and inspection). The
+timer is hidden while the scramble is shown: it appears for the inspection, a
+held press, a smart cube ready to start, and the solve. Without a cube the
+area below the scramble is still what you press, with one small line saying
+how; with one, the area appears once the cube is ready.
 
 - Holding: each kind of solve has its own top and front colours (CFOP now;
   F2L and last-layer solves will have theirs), yellow top and blue front
-  until chosen (the smart cube's holding, if set). They are set under the
-  scramble ("Holding: … · inspection on" opens them); a front colour must sit
+  until chosen (the smart cube's holding, if set). They are set in the solve
+  settings (the gear beside the scramble); a front colour must sit
   beside the top one, so the top colour and its opposite are disabled. The
   scramble is turned holding the cube this way, as the app's practice setups
   are, rather than white top and green front as at a WCA competition: the
   solver keeps the cube as they solve and never rotates it before starting.
   The unfolded cube beside the scramble, the smart cube guide and the stages
   all follow the holding.
-- Inspection (on by default, beside the holding): as the WCA runs it. Over
+- Inspection (on by default, in the same settings): as the WCA runs it. Over
   15 s before starting adds +2, over 17 s makes the solve a DNF; 8 and 12
   seconds are shown in small type under the count. Without a smart cube a tap
   (or Space) starts the inspection and the hold timer then starts the solve;
