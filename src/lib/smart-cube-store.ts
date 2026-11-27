@@ -452,6 +452,16 @@ export async function connectLast(typedMac = '') {
   return connectWith(mac);
 }
 
+/**
+ * iOS app, at start: disconnect cubes the Bluetooth plugin still holds for an
+ * earlier load of the page (see releaseLeftoverCubes in gan-native-bluetooth).
+ * Leaves this page's own cube alone.
+ */
+export async function releaseLeftoverCubes() {
+  if (!isNativeApp() || connection || snapshot.status !== 'idle') return;
+  await (await loadNative()).releaseLeftoverCubes().catch(() => 0);
+}
+
 /** Open the app's page in iOS Settings, to allow Bluetooth after declining. */
 export async function openBluetoothSettings() {
   await (await loadNative()).openAppSettings().catch(() => {});

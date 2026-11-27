@@ -3,6 +3,7 @@ import { Network } from '@capacitor/network';
 import { openAccountDialog } from '@/lib/app-dialog';
 import { reportAccountLinkError } from '@/lib/account-session';
 import { flushAccount, setStorageOnline } from '@/lib/persistence';
+import { releaseLeftoverCubes } from '@/lib/smart-cube-store';
 import { getSupabase } from '@/lib/supabase';
 import { NATIVE_AUTH_REDIRECT } from '@/lib/native';
 
@@ -38,6 +39,8 @@ async function receiveUrl(raw: string) {
 export async function startNativeRuntime() {
   if (started) return;
   started = true;
+  // A cube left linked by the page before a reload stays hidden from other apps.
+  void releaseLeftoverCubes();
   await Network.addListener('networkStatusChange', ({ connected }) => setStorageOnline(connected));
   setStorageOnline((await Network.getStatus()).connected);
   await App.addListener('appStateChange', ({ isActive }) => {

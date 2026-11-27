@@ -32,15 +32,22 @@ export interface FoundCube {
 export type NativeBluetoothProblem = 'bluetooth-off' | 'bluetooth-denied' | 'bluetooth-unavailable';
 
 export class NativeBluetoothError extends Error {
-  constructor(readonly problem: NativeBluetoothProblem, message: string) {
+  // A plain field, not a parameter property, so the Node checks can load this module.
+  readonly problem: NativeBluetoothProblem;
+  constructor(problem: NativeBluetoothProblem, message: string) {
     super(message);
+    this.problem = problem;
   }
 }
 
 let ready: Promise<void> | null = null;
+// Bluetooth is set up (and cubes connected) only once leftovers are released: see releaseLeftoverCubes.
+let leftovers: Promise<number> = Promise.resolve(0);
 
 /** Ask for Bluetooth (the first call shows iOS's permission prompt) and check it is on. */
 async function ensureBluetooth(): Promise<void> {
+  // Setting up anew replaces the plugin's manager that holds any leftover link.
+  await leftovers;
   ready ??= BleClient.initialize().catch((error: unknown) => {
     // Let a later attempt ask again, e.g. after the user allowed it in Settings.
     ready = null;
@@ -78,6 +85,45 @@ export async function isKnownCube(deviceId: string): Promise<boolean> {
 
 const CONNECT_TIMEOUT_MS = 10000;
 
+// Links being released, by device: connecting again waits for the release,
+// so its disconnect cannot end the new link (the plugin runs calls in order,
+// and the disconnect is queued only once the stop has finished).
+const releasing = new Map<string, Promise<void>>();
+
+/**
+ * End a link: stop notifications, then disconnect (CoreBluetooth's
+ * cancelPeripheralConnection), even when the stop fails. A linked cube does
+ * not advertise, so other apps cannot find it until this is done.
+ */
+function release(deviceId: string): Promise<void> {
+  const done = (async () => {
+    await BleClient.stopNotifications(deviceId, GAN_GEN4_SERVICE, GAN_GEN4_STATE_CHARACTERISTIC).catch(() => {});
+    await BleClient.disconnect(deviceId).catch(() => {});
+  })();
+  releasing.set(deviceId, done);
+  void done.finally(() => { if (releasing.get(deviceId) === done) releasing.delete(deviceId); });
+  return done;
+}
+
+/**
+ * Disconnect GAN cubes the plugin still holds for an earlier page. The plugin
+ * lives as long as the app and the page does not: iOS ends the web view's
+ * process (in the background, for one) and Capacitor loads the page again,
+ * while the link stays up. The new page knows nothing of it, so no button
+ * could end it, and the cube, still linked, stays hidden from other apps.
+ * Only a plugin that an earlier page set up can hold such a link; on a fresh
+ * launch the call fails before Bluetooth is set up, so no permission prompt
+ * appears. Cubes linked to other apps are not this app's to end and stay.
+ */
+export function releaseLeftoverCubes(): Promise<number> {
+  leftovers = (async () => {
+    const devices = await BleClient.getConnectedDevices([GAN_GEN4_SERVICE]).catch(() => []);
+    await Promise.all(devices.map((d) => BleClient.disconnect(d.deviceId).catch(() => {})));
+    return devices.length;
+  })();
+  return leftovers;
+}
+
 export async function connectNativeGanGen4(
   cube: { deviceId: string; name: string },
   mac: string,
@@ -87,6 +133,7 @@ export async function connectNativeGanGen4(
   if (!parseMac(mac)) throw new Error(MAC_FORMAT_ERROR);
   await ensureBluetooth();
   const { deviceId } = cube;
+  await releasing.get(deviceId);
   let session: ReturnType<typeof startGanGen4Session> | null = null;
   await BleClient.connect(
     deviceId,
@@ -114,11 +161,7 @@ export async function connectNativeGanGen4(
       if (withResponse) await BleClient.write(deviceId, GAN_GEN4_SERVICE, GAN_GEN4_COMMAND_CHARACTERISTIC, value);
       else await BleClient.writeWithoutResponse(deviceId, GAN_GEN4_SERVICE, GAN_GEN4_COMMAND_CHARACTERISTIC, value);
     },
-    close: () => {
-      BleClient.stopNotifications(deviceId, GAN_GEN4_SERVICE, GAN_GEN4_STATE_CHARACTERISTIC)
-        .catch(() => {})
-        .finally(() => { BleClient.disconnect(deviceId).catch(() => {}); });
-    },
+    close: () => { void release(deviceId); },
   }, options);
   session = opened;
 

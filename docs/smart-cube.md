@@ -85,6 +85,27 @@ The first scan shows iOS's Bluetooth permission prompt
 offers a link to the app's page in Settings; when Bluetooth is off it says so.
 The simulator has no Bluetooth, so only builds can be checked there.
 
+## Disconnecting
+
+A GAN cube does not advertise while it is linked, so no other app can find it
+until the link itself is gone. Disconnect (in the smart cube dialog and the
+practice options) and every other end of a connection (a lost or silent link,
+a wrong MAC, the test cube taking over) stop notifications first, waiting a
+second at most as other GAN clients do, and then disconnect: `gatt.disconnect()`
+in the browser, the plugin's disconnect (CoreBluetooth's
+`cancelPeripheralConnection`) in the app. Connecting again waits for that, so
+it cannot end the new link. Nothing reconnects by itself.
+
+In the browser, closing or reloading the page ends the link too: Chrome ties
+it to the page and keeps pages that use Bluetooth out of the back/forward
+cache. In the iOS app the Bluetooth plugin outlives the page. When iOS ends
+the web view's process (in the background, for one) Capacitor loads the page
+again with the link still up, which the new page knows nothing of. So the app
+disconnects cubes the plugin still holds for an earlier page when it starts
+(`releaseLeftoverCubes`); on a fresh launch Bluetooth is not set up yet, so
+this shows no permission prompt. A cube stays connected while the app is in
+the background.
+
 ## No scramble
 
 No setup with a cube connected when the practice starts. The case is
@@ -219,6 +240,7 @@ unchanged, so older app versions are unaffected.
 ```sh
 node --import ./scripts/register-src-alias.mjs scripts/verify-smart-cube.mts
 node --import ./scripts/register-src-alias.mjs scripts/verify-gan-gen4.mts [capture.json]
+node --import ./scripts/register-src-alias.mjs scripts/verify-smart-cube-link.mts
 ```
 
 The first compares every F2L, OLL and PLL preset in all three holdings with
@@ -226,4 +248,8 @@ cubing.js, and checks the 3D guide against it: every next move it shows,
 through every preset and trainer setup, turns the cube shown into the cube
 shown after it. The second replays a recorded session (from `/dev/gan-i4`, which
 remains a development-only page) and checks that the state tracked from the
-turns matches every FACELETS event.
+turns matches every FACELETS event. The third connects and disconnects
+through the real store and both transports over stand-in Bluetooth stacks
+(`scripts/fakes/`, a test cube behind Web Bluetooth and behind the plugin's
+calls) and checks that each end of a connection ends the link, in order, and
+that nothing reconnects or keeps running afterwards.

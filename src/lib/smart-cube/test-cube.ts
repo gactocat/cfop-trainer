@@ -103,17 +103,34 @@ export class TestCube {
 
   /** Connect: a session like a real cube's, its transport answered here. */
   open(handlers: GanConnectionHandlers): GanGen4Connection {
+    let link: ReturnType<TestCube['attach']> | null = null;
     const session = startGanGen4Session(TEST_CUBE_NAME, TEST_CUBE_MAC, handlers, {
-      write: async (data) => this.command(this.cipher.decrypt(data)),
-      close: () => {
-        this.receive = null;
-        if (this.keepalive) clearInterval(this.keepalive);
-        this.keepalive = null;
-      },
+      write: async (data) => link?.write(data),
+      close: () => link?.detach(),
     }, { now: this.now });
-    this.receive = session.receive;
-    this.keepalive = setInterval(() => this.send(gyroPacket()), KEEPALIVE_MS);
+    link = this.attach(session.receive);
     return session.connection;
+  }
+
+  /**
+   * The cube's end of a link, for a stand-in Bluetooth stack (the checks use
+   * it): encrypted notifications go to `notify`, `write` takes encrypted
+   * commands, and `detach` ends the link.
+   */
+  attach(notify: (raw: Uint8Array) => void): { write(data: Uint8Array): void; detach(): void } {
+    this.detach();
+    this.receive = notify;
+    this.keepalive = setInterval(() => this.send(gyroPacket()), KEEPALIVE_MS);
+    return {
+      write: (data) => { if (this.receive === notify) this.command(this.cipher.decrypt(data)); },
+      detach: () => { if (this.receive === notify) this.detach(); },
+    };
+  }
+
+  private detach() {
+    this.receive = null;
+    if (this.keepalive) clearInterval(this.keepalive);
+    this.keepalive = null;
   }
 
   /** One quarter turn of a cube face, reported as a real cube would. */

@@ -98,6 +98,36 @@ export function watchGanMac(device: BluetoothDevice, timeoutMs = 5000): Promise<
 
 export type { GanConnectionHandlers, GanConnectionOptions, GanGen4Connection, GanTrafficRecord };
 
+/** How long a link's end waits for the cube to confirm that notifications stopped. */
+const STOP_NOTIFICATIONS_MS = 1000;
+
+// Links being released, by device: connecting again waits for the release,
+// so its disconnect cannot end the new link.
+const releasing = new WeakMap<BluetoothDevice, Promise<void>>();
+
+/**
+ * End a link: stop notifications, then disconnect. Other GAN clients
+ * (smartcube-web-bluetooth, csTimer) wait for the stop before disconnecting,
+ * and some stacks keep the link up while notifications are on (Chrome on
+ * Windows); a linked cube does not advertise, so other apps cannot find it.
+ * The disconnect comes even when the stop fails or does not answer.
+ */
+function release(device: BluetoothDevice, stateChar: BluetoothRemoteGATTCharacteristic): Promise<void> {
+  const done = (async () => {
+    if (!device.gatt?.connected) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    await Promise.race([
+      stateChar.stopNotifications().catch(() => {}),
+      new Promise<void>((resolve) => { timer = setTimeout(resolve, STOP_NOTIFICATIONS_MS); }),
+    ]);
+    clearTimeout(timer);
+    device.gatt?.disconnect();
+  })();
+  releasing.set(device, done);
+  void done.finally(() => { if (releasing.get(device) === done) releasing.delete(device); });
+  return done;
+}
+
 /** Connect to a Gen4 cube chosen with requestGanCube(), using its MAC for the keys. */
 export async function connectGanGen4(
   device: BluetoothDevice,
@@ -108,6 +138,7 @@ export async function connectGanGen4(
   if (!parseMac(mac)) throw new Error(MAC_FORMAT_ERROR);
   if (!device.gatt) throw new Error('This device has no GATT server');
 
+  await releasing.get(device);
   const server = await device.gatt.connect();
   let commandChar: BluetoothRemoteGATTCharacteristic;
   let stateChar: BluetoothRemoteGATTCharacteristic;
@@ -141,10 +172,7 @@ export async function connectGanGen4(
     close: () => {
       device.removeEventListener('gattserverdisconnected', onGattDisconnected);
       stateChar.removeEventListener('characteristicvaluechanged', onNotification);
-      if (device.gatt?.connected) {
-        stateChar.stopNotifications().catch(() => {});
-        device.gatt.disconnect();
-      }
+      void release(device, stateChar);
     },
   }, options);
 
