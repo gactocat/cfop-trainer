@@ -21,7 +21,7 @@ interface PllDetailProps {
 }
 
 export function PllDetail({ pllId }: PllDetailProps) {
-  const { t, tn } = useT();
+  const { t } = useT();
   const def = getPllDefinition(pllId);
   const [adding, setAdding] = useState(false);
   // The algorithm being practised (its id), or null.
@@ -68,12 +68,9 @@ export function PllDetail({ pllId }: PllDetailProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
-        <div className="space-y-2">
-          {/* The header shows the case's name; the heading stays for screen readers. */}
-          <h1 className="sr-only">{def.name}</h1>
-          <p className="text-sm text-zinc-500">{tn('common.algorithmsSaved', records.length)}</p>
-        </div>
+      {/* The header shows the case's name; the heading stays for screen readers. */}
+      <h1 className="sr-only">{def.name}</h1>
+      <div className="flex flex-col md:flex-row md:items-start md:justify-end gap-6">
         <div className="flex flex-col items-center md:items-end gap-2">
           <div
             role="tablist"

@@ -131,8 +131,6 @@ const en = {
   'common.f2lCase': 'F2L {number}',
   'common.solves_one': '{count} solve',
   'common.solves_other': '{count} solves',
-  'common.algorithmsSaved_one': '{count} algorithm saved',
-  'common.algorithmsSaved_other': '{count} algorithms saved',
 
   // Grids
   'pll.grid.title': 'All PLLs',
@@ -617,8 +615,6 @@ const ja: Messages = {
   'common.f2lCase': 'F2L {number}',
   'common.solves_one': '{count} 回',
   'common.solves_other': '{count} 回',
-  'common.algorithmsSaved_one': '手順 {count} 件',
-  'common.algorithmsSaved_other': '手順 {count} 件',
 
   'pll.grid.title': 'PLL 一覧',
   "pll.grid.description": "PLL の 21 ケースです。",

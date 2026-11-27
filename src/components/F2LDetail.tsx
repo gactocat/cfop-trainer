@@ -18,7 +18,7 @@ interface F2LDetailProps {
 }
 
 export function F2LDetail({ f2lId }: F2LDetailProps) {
-  const { t, tn } = useT();
+  const { t } = useT();
   const def = getF2LDefinition(f2lId);
   const [adding, setAdding] = useState(false);
   // The algorithm being practised (its id), or null.
@@ -64,15 +64,10 @@ export function F2LDetail({ f2lId }: F2LDetailProps) {
   const displayAlg = star?.algorithm ?? def.primaryAlg;
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
-        <div className="space-y-2">
-          {/* The header shows the case's name; the heading stays for screen readers. */}
-          <h1 className="sr-only">
-            {t('common.f2lCase', { number: def.number })}
-          </h1>
-          <p className="text-sm text-zinc-500">{tn('common.algorithmsSaved', records.length)}</p>
-        </div>
-      </div>
+      {/* The header shows the case's name; the heading stays for screen readers. */}
+      <h1 className="sr-only">
+        {t('common.f2lCase', { number: def.number })}
+      </h1>
 
       <div className="rounded-lg p-2 bg-zinc-100 dark:bg-zinc-900">
         <F2L3DPlayer

@@ -21,7 +21,7 @@ interface OLLDetailProps {
 }
 
 export function OLLDetail({ ollId }: OLLDetailProps) {
-  const { t, tn } = useT();
+  const { t } = useT();
   const def = getOLLDefinition(ollId);
   const [adding, setAdding] = useState(false);
   // The algorithm being practised (its id), or null.
@@ -72,7 +72,6 @@ export function OLLDetail({ ollId }: OLLDetailProps) {
         <div className="space-y-2">
           {/* The header shows the case's name; the heading stays for screen readers. */}
           <h1 className="sr-only">{def.name}</h1>
-          <p className="text-sm text-zinc-500">{tn('common.algorithmsSaved', records.length)}</p>
           <a href={`https://www.speedcubedb.com/a/3x3/OLL/OLL_${def.number}`} target="_blank" rel="noreferrer" className="inline-block text-sm text-emerald-600 dark:text-emerald-400 hover:underline">
             {t('oll.source')}
           </a>
