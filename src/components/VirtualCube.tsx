@@ -15,6 +15,7 @@ import {
 } from '@/lib/smart-cube/guide-cube';
 import { frameRotation, lastLayerFace, userNotation, type CubeHolding, type Frame } from '@/lib/smart-cube/holding';
 import type { TrainerPractice } from '@/lib/smart-cube/trainer-session';
+import { watchDarkTheme } from '@/lib/theme-scheme';
 
 type PlayerElement = HTMLElement & {
   experimentalAddMove(move: string): void;
@@ -130,9 +131,7 @@ export function VirtualCube({ practice, holding, setupAlg = '', moves = [], rese
   useEffect(() => {
     let cancelled = false;
     let element: PlayerElement | null = null;
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const applyScheme = (dark: boolean) => element?.setAttribute('color-scheme', dark ? 'dark' : 'light');
-    const onScheme = (e: MediaQueryListEvent) => applyScheme(e.matches);
+    let unwatch = () => {};
     loadRecolouredTwisty().then(() => {
       const host = hostRef.current;
       if (cancelled || !host) return;
@@ -144,8 +143,8 @@ export function VirtualCube({ practice, holding, setupAlg = '', moves = [], rese
       if (still) element.setAttribute('experimental-drag-input', 'none');
       element.style.width = '100%';
       element.style.height = '100%';
-      applyScheme(mq.matches);
-      mq.addEventListener('change', onScheme);
+      const shown = element;
+      unwatch = watchDarkTheme((dark) => shown.setAttribute('color-scheme', dark ? 'dark' : 'light'));
       host.appendChild(element);
       void recolour3DPlayer(element as unknown as import('cubing/twisty').TwistyPlayer);
       applied.current = null;
@@ -153,7 +152,7 @@ export function VirtualCube({ practice, holding, setupAlg = '', moves = [], rese
     });
     return () => {
       cancelled = true;
-      mq.removeEventListener('change', onScheme);
+      unwatch();
       element?.remove();
     };
     // Created once; `still` is fixed for a player's life.

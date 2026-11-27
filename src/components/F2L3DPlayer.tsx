@@ -7,6 +7,7 @@ import { aufToMove, combineAuf, invertAuf, prefixAuf } from '@/lib/f2l-auf';
 import { loadRecolouredTwisty, recolour3DPlayer } from '@/lib/cube-colors';
 import { F2L_STICKERING_MASK } from '@/lib/f2l-stickering-mask';
 import type { Auf } from '@/types/pll';
+import { watchDarkTheme } from '@/lib/theme-scheme';
 
 interface F2L3DPlayerProps {
   algorithm: string;
@@ -123,16 +124,10 @@ export function F2L3DPlayer({
     void recolour3DPlayer(player as unknown as import('cubing/twisty').TwistyPlayer);
     setMounted(true);
 
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const applyScheme = (matches: boolean) => {
-      player.setAttribute('color-scheme', matches ? 'dark' : 'light');
-    };
-    applyScheme(mq.matches);
-    const onSchemeChange = (e: MediaQueryListEvent) => applyScheme(e.matches);
-    mq.addEventListener('change', onSchemeChange);
+    const unwatch = watchDarkTheme((dark) => player.setAttribute('color-scheme', dark ? 'dark' : 'light'));
 
     return () => {
-      mq.removeEventListener('change', onSchemeChange);
+      unwatch();
       player.remove();
       setMounted(false);
     };

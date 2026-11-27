@@ -27,5 +27,7 @@ export function useColorTheme() {
   const choice: ThemeChoice = settings.colorTheme
     ?? (loaded || !mounted ? 'system' : readDisplayHint().theme ?? 'system');
   const dark = choice === 'system' ? systemDark : choice === 'dark';
-  return { dark, choice, loaded, toggle: () => update({ colorTheme: dark ? 'light' : 'dark' }) };
+  // The system's is kept as no choice (see PracticeSettings.colorTheme).
+  const setChoice = (next: ThemeChoice) => update({ colorTheme: next === 'system' ? undefined : next });
+  return { dark, choice, loaded, setChoice };
 }

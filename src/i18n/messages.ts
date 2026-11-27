@@ -21,7 +21,10 @@ const en = {
   "landing.brandName": "CFOP",
   "landing.brandDescriptor": "Trainer",
 
-  "settings.darkMode": "Dark mode",
+  "settings.theme": "Theme",
+  "settings.theme.system": "System",
+  "settings.theme.light": "Light",
+  "settings.theme.dark": "Dark",
   "legal.links": "Privacy and support",
   "privacy.title": "Privacy policy",
   "privacy.intro": "Last updated: November 27, 2026. This policy applies to the CFOP Trainer website and iOS app.",
@@ -498,7 +501,10 @@ const ja: Messages = {
   "landing.brandName": "CFOP",
   "landing.brandDescriptor": "Trainer",
 
-  "settings.darkMode": "ダークモード",
+  "settings.theme": "テーマ",
+  "settings.theme.system": "システム",
+  "settings.theme.light": "ライト",
+  "settings.theme.dark": "ダーク",
   "legal.links": "プライバシーとサポート",
   "privacy.title": "プライバシーポリシー",
   "privacy.intro": "最終更新：2026 年 11 月 27 日。このポリシーは CFOP Trainer の Web サイトと iOS アプリに適用されます。",

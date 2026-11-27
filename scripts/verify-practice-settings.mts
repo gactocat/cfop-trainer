@@ -152,6 +152,15 @@ console.log(`Verified ${scenarios.length} shared-settings migration, persistence
   assert.deepEqual(JSON.parse(values.get(sharedKey)!).aufDisplays, { oll: 'prefix', pll: 'cube' }, 'other edits keep the list choices');
   unsubscribe();
 
+  // The theme: light or dark is kept as chosen; the system's is no choice,
+  // which older versions (keeping only light and dark) read the same way.
+  store.update({ colorTheme: 'light' });
+  assert.equal(JSON.parse(values.get(sharedKey)!).colorTheme, 'light', 'a chosen theme is saved');
+  store.update({ colorTheme: undefined });
+  assert.equal('colorTheme' in JSON.parse(values.get(sharedKey)!), false, 'the system theme is saved as no choice');
+  assert.equal((await freshStore()).getSnapshot().colorTheme, undefined, 'and read back as the system theme');
+  store.update({ colorTheme: 'dark' });
+
   // An older version reads the shared fields it knows and, saving, keeps
   // only those (as its validSettings does).
   saved = JSON.parse(values.get(sharedKey)!);

@@ -25,6 +25,11 @@ export interface PracticeSettings {
    * randomAuf; absent in older versions, which then see randomAuf (false).
    */
   alignAuf?: boolean;
+  /**
+   * Light or dark, chosen. Absent: the system's, as older versions also
+   * read it (they keep only 'light' and 'dark'), so choosing the system
+   * takes the field away instead of writing a value they would not know.
+   */
   colorTheme?: 'light' | 'dark';
   /**
    * Solves from a scramble, per kind: how the cube is held for the scramble

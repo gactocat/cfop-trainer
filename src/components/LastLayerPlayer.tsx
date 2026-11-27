@@ -5,6 +5,7 @@ import { useT } from '@/hooks/useT';
 import type { LastLayerPractice } from '@/types/practice';
 import { loadRecolouredTwisty, recolour3DPlayer } from '@/lib/cube-colors';
 import { OLL_STICKERING_MASK } from '@/lib/oll-stickering-mask';
+import { watchDarkTheme } from '@/lib/theme-scheme';
 
 interface LastLayerPlayerProps {
   practice: LastLayerPractice;
@@ -26,8 +27,7 @@ export function LastLayerPlayer({
     if (!host) return;
     let cancelled = false;
     let player: import('cubing/twisty').TwistyPlayer | undefined;
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const applyScheme = () => player?.setAttribute('color-scheme', mq.matches ? 'dark' : 'light');
+    let unwatch = () => {};
     void loadRecolouredTwisty().then(({ TwistyPlayer }) => {
       if (cancelled) return;
       player = new TwistyPlayer({
@@ -44,14 +44,14 @@ export function LastLayerPlayer({
       });
       player.style.width = '100%';
       player.style.height = '100%';
-      applyScheme();
-      mq.addEventListener('change', applyScheme);
+      const shown = player;
+      unwatch = watchDarkTheme((dark) => shown.setAttribute('color-scheme', dark ? 'dark' : 'light'));
       host.appendChild(player);
       if (view === '3d') void recolour3DPlayer(player);
     });
     return () => {
       cancelled = true;
-      mq.removeEventListener('change', applyScheme);
+      unwatch();
       player?.remove();
     };
   }, [practice, setupAlg, algorithm, view]);
