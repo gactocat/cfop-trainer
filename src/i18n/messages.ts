@@ -494,6 +494,14 @@ const en = {
   'solve.records.offer': 'This device has {count} solves that are not in your account.',
   'solve.records.import': 'Add them to my account',
   'solve.records.skipImport': 'Keep them apart',
+  'solve.mode.cfop.name': 'CFOP',
+  'solve.mode.cfop.description': 'A whole solve from a random-state scramble, timed stage by stage.',
+  'solve.mode.cross.name': 'Cross',
+  'solve.mode.cross.description': 'From a random-state scramble to a cross of any colour.',
+  'solve.mode.f2l.name': 'F2L',
+  'solve.mode.f2l.description': 'From a solved cross to its four pairs.',
+  'solve.mode.ll.name': 'Last layer',
+  'solve.mode.ll.description': 'From solved first two layers to a solved cube: OLL, PLL and the last AUF.',
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -968,6 +976,14 @@ const ja: Messages = {
   'solve.records.offer': 'この端末に、アカウントにない記録が {count} 件あります。',
   'solve.records.import': 'アカウントに入れる',
   'solve.records.skipImport': '入れない',
+  'solve.mode.cfop.name': 'CFOP',
+  'solve.mode.cfop.description': 'ランダムな状態から完成まで。工程ごとの時間も出ます。',
+  'solve.mode.cross.name': 'クロス',
+  'solve.mode.cross.description': 'ランダムな状態から、どの色でも十字ができるまで。',
+  'solve.mode.f2l.name': 'F2L',
+  'solve.mode.f2l.description': '十字がそろった状態から、F2L の 4 組がそろうまで。',
+  'solve.mode.ll.name': 'LL (OLL + PLL)',
+  'solve.mode.ll.description': '下 2 段がそろった状態から、OLL と PLL で最後の AUF まで完成させます。',
 };
 
 export const MESSAGES: Record<Locale, Messages> = { en, ja };

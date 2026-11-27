@@ -1,10 +1,17 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
-import { getScrambleServerSnapshot, getScrambleSnapshot, nextScramble, subscribeScramble } from '@/lib/solve/scramble-client';
+import { scrambleFeed, type ScrambleSpec } from '@/lib/solve/scramble-client';
 
-/** The random-state scramble on screen (null while it is being made) and the way to the next one. */
-export function useScramble() {
-  const snapshot = useSyncExternalStore(subscribeScramble, getScrambleSnapshot, getScrambleServerSnapshot);
-  return { ...snapshot, next: nextScramble };
+const CFOP: ScrambleSpec = { mode: 'cfop' };
+
+/**
+ * The scramble on screen for a kind of solve (CFOP unless given; null while
+ * it is being made) and the way to the next one. For f2l and ll, `face` is
+ * where the scramble leaves the cross (scrambleCrossFace).
+ */
+export function useScramble(spec: ScrambleSpec = CFOP) {
+  const feed = scrambleFeed(spec);
+  const snapshot = useSyncExternalStore(feed.subscribe, feed.getSnapshot, feed.getServerSnapshot);
+  return { ...snapshot, next: feed.next };
 }

@@ -2,13 +2,16 @@
 // few hundred milliseconds, and a search can take as long. Messages are
 // answered in order; see scramble-client.ts.
 
-import type { CubeState } from '@/lib/smart-cube/cube-state';
+import type { CubeState, Face } from '@/lib/smart-cube/cube-state';
 import { initTwoPhase } from '@/lib/solver/two-phase';
-import { generateScramble, routeBetween } from '@/lib/solve/scramble';
+import { generateModeScramble } from '@/lib/solve/mode-scramble';
+import { routeBetween } from '@/lib/solve/scramble';
+import type { SolveMode } from '@/lib/solve/solve-modes';
 
 export type ScrambleRequest =
   | { id: number; type: 'init' }
-  | { id: number; type: 'scramble' }
+  /** A scramble for a mode (CFOP when absent), its cross left on `face` as the scramble is written. */
+  | { id: number; type: 'scramble'; mode?: SolveMode; face?: Face }
   | { id: number; type: 'route'; from: CubeState; to: CubeState; timeLimitMs: number };
 
 export interface ScrambleResponse {
@@ -24,7 +27,7 @@ addEventListener('message', (event: MessageEvent<ScrambleRequest>) => {
     if (request.type === 'init') {
       initTwoPhase();
       reply({ result: true });
-    } else if (request.type === 'scramble') reply({ result: generateScramble() });
+    } else if (request.type === 'scramble') reply({ result: generateModeScramble(request.mode ?? 'cfop', request.face) });
     else reply({ result: routeBetween(request.from, request.to, request.timeLimitMs) });
   } catch (error) {
     reply({ error: error instanceof Error ? error.message : String(error) });

@@ -647,7 +647,7 @@ function feed(session: CubeSolveSession, alg: string) {
   ok(later.penalty === 'plus2' && later.inspectionMs === 12_000 && (later as unknown as { futureField: unknown }).futureField !== undefined,
     'a later version\'s fields are kept, so saving here does not drop them');
   ok(parseSolveRecord({ ...first, penalty: 'plus3' })!.penalty === undefined, 'an unknown penalty is left off');
-  for (const bad of [null, [], { ...first, version: 2 }, { ...first, event: 'f2l' }, { ...first, ms: -1 }, { ...first, recordedAt: 'never' }, { ...first, timer: 'watch' }]) {
+  for (const bad of [null, [], { ...first, version: 2 }, { ...first, event: 'skewb' }, { ...first, ms: -1 }, { ...first, recordedAt: 'never' }, { ...first, timer: 'watch' }]) {
     ok(parseSolveRecord(bad) === null, `not a record: ${JSON.stringify(bad)?.slice(0, 40)}`);
   }
   ok(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(handSolve('R', 1).id), 'ids are UUIDs, as the account keeps them');

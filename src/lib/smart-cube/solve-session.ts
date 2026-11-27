@@ -6,7 +6,9 @@
 // scrambled state is worked out again from where the cube is: the caller
 // asks the two-phase solver (`needsRoute`) and hands the answer to
 // `withRoute`. The cube in the scrambled state is ready; its first turn
-// starts the timer and solving it stops the timer. Times are cube-clock ms.
+// starts the timer and reaching the goal stops it: solved, or for a part of
+// CFOP solved on its own, a cross or the first two layers (solve-goal.ts).
+// Times are cube-clock ms.
 
 import { SOLVED, stateEquals, type CubeState, type Face } from '@/lib/smart-cube/cube-state';
 import { toFrame, userNotation, type CubeHolding, type Frame } from '@/lib/smart-cube/holding';
@@ -24,6 +26,7 @@ import {
   type SetupPlan,
 } from '@/lib/smart-cube/setup-guide';
 import { scrambleState } from '@/lib/solve/scramble';
+import { goalReached, SOLVED_GOAL, type SolveGoal } from '@/lib/solve/solve-goal';
 
 export type CubeSolvePhase = 'scramble' | 'ready' | 'running' | 'done';
 
@@ -66,6 +69,8 @@ export interface CubeSolveSession {
    */
   fallback: string | null;
   progress: GuideProgress;
+  /** What stops the timer: solved unless a mode sets another goal. */
+  goal: SolveGoal;
   /** Solving turns, first to last. */
   turns: CubeSolveTurn[];
   elapsedMs: number | null;
@@ -102,14 +107,24 @@ function undoThenRest(route: SolveRoute, progress: GuideProgress, holding: Frame
 
 const moveCount = (moves: string) => moves.split(' ').filter(Boolean).length;
 
-export function startCubeSolve(scramble: string, held: CubeHolding | Frame, state: CubeState): CubeSolveSession {
+/**
+ * A solve of `scramble` turned holding the cube as `held`, from the cube in
+ * `state`, timed until `goal` (solved unless given). The scramble must not
+ * reach the goal within one turn (mode-scramble.ts makes sure): the first
+ * turn only starts the timer.
+ */
+export function startCubeSolve(scramble: string, held: CubeHolding | Frame, state: CubeState, goal: SolveGoal = SOLVED_GOAL): CubeSolveSession {
   const holding = toFrame(held);
   const session: CubeSolveSession = {
     holding, scramble, target: scrambleState(scramble, holding), state, phase: 'scramble',
-    route: null, fallback: null, progress: GUIDE_START, turns: [], elapsedMs: null,
+    route: null, fallback: null, progress: GUIDE_START, goal, turns: [], elapsedMs: null,
   };
   return guideFrom(session, state);
 }
+
+/** The same scramble, holding and goal guided again from `state` (an abandoned attempt). */
+export const restartCubeSolve = (session: CubeSolveSession, state: CubeState): CubeSolveSession =>
+  startCubeSolve(session.scramble, session.holding, state, session.goal);
 
 /** The session waits for a route from its current state to the target. */
 export const needsRoute = (session: CubeSolveSession) => session.phase === 'scramble' && session.route === null;
@@ -153,7 +168,7 @@ export function cubeSolveTurn(session: CubeSolveSession, turn: CubeSolveTurn): {
       return { session: { ...session, state, phase: 'running', turns: [turn] }, event: 'start' };
     case 'running': {
       const turns = [...session.turns, turn];
-      if (!stateEquals(state, SOLVED)) return { session: { ...session, state, turns }, event: null };
+      if (!goalReached(session.goal, state)) return { session: { ...session, state, turns }, event: null };
       return { session: { ...session, state, turns, phase: 'done', elapsedMs: turn.cubeTime - turns[0].cubeTime }, event: 'stop' };
     }
     case 'done':

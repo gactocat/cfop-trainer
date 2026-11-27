@@ -17,9 +17,9 @@ import {
 import { cfopMoveCount, splitCfop, splitOnFace, type CfopSplit, type TimedTurn } from '@/lib/solve/cfop-split';
 import { applyPlan, planSetup } from '@/lib/smart-cube/setup-guide';
 
-/** The kind of solve. Only CFOP exists; F2L and last-layer solves are planned. */
-export type SolveEvent = 'cfop';
-export const SOLVE_EVENTS: readonly SolveEvent[] = ['cfop'];
+/** The kind of solve: CFOP, or one of its parts on its own (see solve-modes.ts). */
+export type SolveEvent = 'cfop' | 'cross' | 'f2l' | 'll';
+export const SOLVE_EVENTS: readonly SolveEvent[] = ['cfop', 'cross', 'f2l', 'll'];
 
 /** +2 seconds, or did not finish. */
 export type Penalty = 'plus2' | 'dnf';

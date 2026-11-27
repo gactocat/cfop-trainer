@@ -177,7 +177,7 @@ function start() {
   window.addEventListener('online', () => library.resume());
   // Changes the server does not have yet stay on this device; still, say so before leaving.
   window.addEventListener('beforeunload', (event) => {
-    if (library.getSnapshot('cfop').unsaved > 0) event.preventDefault();
+    if (library.unsaved() > 0) event.preventDefault();
   });
 }
 

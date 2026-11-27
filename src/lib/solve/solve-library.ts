@@ -10,13 +10,15 @@
 //
 // Signing in offers to bring the device's solves into the account once per
 // account, as the first sign-in offers the device's other data; choosing to
-// import there brings them in without asking again. Records keep their ids,
-// so importing twice never doubles them, and the device copies stay.
+// import there brings them in without asking again. The offer and the import
+// take every kind of solve on the device (CFOP and its parts), whichever
+// kind's page makes them. Records keep their ids, so importing twice never
+// doubles them, and the device copies stay.
 //
 // Framework-free with its storage passed in, so scripts/verify-solve.mts can
 // drive it with in-memory backends; solve-store.ts wires the real ones.
 
-import type { SolveEvent, SolveRecord } from '@/lib/solve/solve-record';
+import { SOLVE_EVENTS, type SolveEvent, type SolveRecord } from '@/lib/solve/solve-record';
 
 export interface DeviceSolves {
   load(event: SolveEvent): Promise<SolveRecord[]>;
@@ -60,7 +62,7 @@ export interface SolvesSnapshot {
   unsaved: number;
   /** The last save failed; it is tried again by itself, and when back online. */
   failed: boolean;
-  /** Device solves not in the account, offered for import; 0 when none or already decided. */
+  /** Device solves (of every kind) not in the account, offered for import; 0 when none or already decided. */
   offer: number;
 }
 
@@ -117,6 +119,15 @@ export function createSolveLibrary(deps: {
     if (!known.has(userId)) known.set(userId, new Set());
     return known.get(userId)!;
   };
+  // The kinds whose account solves were loaded while signed in here: their
+  // ids are all known.
+  const loadedKinds = new Map<string, Set<SolveEvent>>();
+  const loadedFor = (userId: string) => {
+    if (!loadedKinds.has(userId)) loadedKinds.set(userId, new Set());
+    return loadedKinds.get(userId)!;
+  };
+  // The device's solves missing from the account, worked out once per sign-in.
+  let missingTask: { userId: string; generation: number; promise: Promise<SolveRecord[]> } | null = null;
 
   const set = (event: SolveEvent, patch: Partial<SolvesSnapshot>) => {
     snapshots.set(event, { ...(snapshots.get(event) ?? LOADING), ...patch });
@@ -171,36 +182,75 @@ export function createSolveLibrary(deps: {
     }
     if (!fresh()) return;
     for (const s of solves) knownTo(userId).add(s.id);
+    loadedFor(userId).add(event);
     set(event, { status: 'ready', solves: applyOutbox(solves, outbox, event), failed: false });
-    await offerOrImport(event, userId);
+    await offerOrImport(userId);
     void flush();
   }
 
-  async function offerOrImport(event: SolveEvent, userId: string) {
-    const decision = memory.importDecision(userId);
-    if (!device || decision === 'imported' || decision === 'declined') return;
-    const onDevice = await device.load(event).catch(() => [] as SolveRecord[]);
-    if (user() !== userId) return;
-    const missing = onDevice.filter((s) => !knownTo(userId).has(s.id));
-    if (decision === 'wanted') {
-      await bringIn(event, userId, missing);
-      return;
+  /**
+   * The device's solves of every kind that the account does not have. A
+   * kind with solves on the device whose account solves are not loaded here
+   * is read from the account first, so an import never writes over what the
+   * account has; one that cannot be read is left out until the next time.
+   */
+  async function readMissing(userId: string): Promise<SolveRecord[]> {
+    if (!device || !account) return [];
+    const missing: SolveRecord[] = [];
+    for (const kind of SOLVE_EVENTS) {
+      const onDevice = await device.load(kind).catch(() => [] as SolveRecord[]);
+      if (onDevice.length === 0) continue;
+      if (!loadedFor(userId).has(kind)) {
+        try {
+          for (const s of await account.load(userId, kind)) knownTo(userId).add(s.id);
+          loadedFor(userId).add(kind);
+        } catch {
+          continue;
+        }
+      }
+      missing.push(...onDevice);
     }
-    set(event, { offer: missing.length });
+    return missing;
   }
 
-  async function bringIn(event: SolveEvent, userId: string, records: readonly SolveRecord[]) {
+  async function missingFromAccount(userId: string): Promise<SolveRecord[]> {
+    if (missingTask?.userId !== userId || missingTask.generation !== generation) {
+      missingTask = { userId, generation, promise: readMissing(userId) };
+    }
+    const missing = await missingTask.promise;
+    return missing.filter((s) => !knownTo(userId).has(s.id));
+  }
+
+  const accountKinds = () => [...snapshots.keys()].filter((kind) => snapshots.get(kind)?.where === 'account');
+
+  async function offerOrImport(userId: string) {
+    const decision = memory.importDecision(userId);
+    if (!device || decision === 'imported' || decision === 'declined') return;
+    const missing = await missingFromAccount(userId);
+    if (user() !== userId) return;
+    if (memory.importDecision(userId) === 'wanted') {
+      await bringIn(userId, missing);
+      return;
+    }
+    if (memory.importDecision(userId) !== null) return;
+    for (const kind of accountKinds()) set(kind, { offer: missing.length });
+  }
+
+  async function bringIn(userId: string, records: readonly SolveRecord[]) {
     const outbox = memory.readOutbox(userId);
     const upserts = { ...outbox.upserts };
     for (const record of records) {
+      if (knownTo(userId).has(record.id)) continue;
       upserts[record.id] = record;
       knownTo(userId).add(record.id);
     }
     const next = { upserts, deletes: outbox.deletes.filter((id) => !(id in upserts)) };
     memory.writeOutbox(userId, next);
     memory.setImportDecision(userId, 'imported');
-    const current = snapshots.get(event)?.solves ?? [];
-    set(event, { solves: applyOutbox(current, next, event), offer: 0, unsaved: outboxSize(next) });
+    for (const kind of accountKinds()) {
+      const current = snapshots.get(kind)?.solves ?? [];
+      set(kind, { solves: applyOutbox(current, next, kind), offer: 0, unsaved: outboxSize(next) });
+    }
     await flush();
   }
 
@@ -304,18 +354,17 @@ export function createSolveLibrary(deps: {
       set(event, { solves: current.filter((s) => s.id !== id) });
       await device?.remove(id);
     },
-    /** Bring the device's solves into the account (the offer). */
+    /** Bring the device's solves (of every kind) into the account: the offer, from any kind's page. */
     async importDevice(event: SolveEvent): Promise<void> {
       const userId = user();
       if (!userId || !device || !inAccount(event)) return;
-      const onDevice = await device.load(event);
-      await bringIn(event, userId, onDevice.filter((s) => !knownTo(userId).has(s.id)));
+      await bringIn(userId, await missingFromAccount(userId));
     },
     declineImport(event: SolveEvent) {
       const userId = user();
       if (!userId) return;
       memory.setImportDecision(userId, 'declined');
-      set(event, { offer: 0 });
+      for (const kind of new Set([event, ...accountKinds()])) set(kind, { offer: 0 });
     },
     /** Try again now: a failed save, or a failed load. */
     retry(event: SolveEvent) {
@@ -325,6 +374,11 @@ export function createSolveLibrary(deps: {
     /** Back online: send what is waiting. */
     resume() {
       void flush();
+    },
+    /** Changes of every kind the server does not have yet (0 for a guest). */
+    unsaved(): number {
+      const userId = user();
+      return userId ? outboxSize(memory.readOutbox(userId)) : 0;
     },
   };
 }
