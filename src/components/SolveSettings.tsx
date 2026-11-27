@@ -20,10 +20,8 @@ export const COLOUR_LABEL: Record<CubeColour, MessageKey> = {
 
 type Settings = ReturnType<typeof useSolveSettings>;
 
-function Swatches({ label, value, allowed, onPick, disabled, shown = true }: {
+function Swatches({ label, value, allowed, onPick, disabled }: {
   label: string;
-  /** The label beside the colours; off when the heading above names them. */
-  shown?: boolean;
   value: CubeColour;
   allowed: (colour: CubeColour) => boolean;
   onPick: (colour: CubeColour) => void;
@@ -32,7 +30,7 @@ function Swatches({ label, value, allowed, onPick, disabled, shown = true }: {
   const { t } = useT();
   return (
     <div role="radiogroup" aria-label={label} className="flex items-center gap-3">
-      {shown && <span className="w-10 shrink-0 text-xs font-medium text-zinc-600 dark:text-zinc-300">{label}</span>}
+      <span className="w-10 shrink-0 text-xs font-medium text-zinc-600 dark:text-zinc-300">{label}</span>
       <span className="flex flex-wrap gap-1.5">
         {CUBE_COLOURS.map((colour) => {
           const on = colour === value;
@@ -60,8 +58,8 @@ function Swatches({ label, value, allowed, onPick, disabled, shown = true }: {
 }
 
 // How the cube is held for the scramble (the colours of the top and front
-// faces; a front colour must sit beside the top one), the cross colour and
-// the inspection switch.
+// faces; a front colour must sit beside the top one) and the inspection
+// switch. The cross colour is read from each solve.
 function SolveSettingsForm({ settings }: { settings: Settings }) {
   const { t } = useT();
   const readOnly = !settings.writable;
@@ -76,14 +74,6 @@ function SolveSettingsForm({ settings }: { settings: Settings }) {
           onPick={(top) => settings.set({ top })} disabled={readOnly} />
         <Swatches label={t('solve.settings.front')} value={settings.front} allowed={(colour) => fitsTop(settings.top, colour)}
           onPick={(front) => settings.set({ front })} disabled={readOnly} />
-      </section>
-      <section className="space-y-3 border-t border-zinc-100 pt-4 dark:border-zinc-800">
-        <h3 className="flex items-center gap-1 text-sm font-medium">
-          {t('solve.settings.cross')}
-          <InfoTip>{t('solve.settings.crossHelp')}</InfoTip>
-        </h3>
-        <Swatches label={t('solve.settings.cross')} shown={false} value={settings.cross} allowed={() => true}
-          onPick={(cross) => settings.set({ cross })} disabled={readOnly} />
       </section>
       <section className="flex items-center gap-1 border-t border-zinc-100 pt-4 dark:border-zinc-800">
         <label className="flex items-center gap-2 text-sm font-medium select-none">
@@ -113,9 +103,8 @@ function GearIcon() {
 }
 
 // The solve's settings, behind a gear beside the scramble: how the cube is
-// held for the scramble, the cross colour and the inspection. The gear is
-// off while an attempt runs; the dialog itself holds the timers back
-// (data-app-overlay).
+// held for the scramble and the inspection. The gear is off while an
+// attempt runs; the dialog itself holds the timers back (data-app-overlay).
 export function SolveSettingsButton({ settings, disabled, className }: { settings: Settings; disabled: boolean; className: string }) {
   const { t } = useT();
   const [open, setOpen] = useState(false);

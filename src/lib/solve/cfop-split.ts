@@ -5,9 +5,11 @@
 // end on the same turn (an X-cross, an OLL or PLL skip) take no time and no
 // moves.
 //
-// The cross is on the face of the chosen cross colour (the solver turns the
-// cube over after the scramble to put it at the bottom), and the last layer
-// is the face opposite.
+// The cross may be of any colour (colour neutral): solvers often start from
+// whichever cross is easiest after the scramble and turn the cube over to
+// put it at the bottom. The solve is read on each face, and the face it was
+// built on is the one it stood furthest along on over the whole solve
+// (`crossFace`); the last layer is the face opposite.
 //
 // States are in the cube's own frame (white U, green F). Rotations of the
 // whole cube are not turns, so they never count. Each stage's turns are read
@@ -23,7 +25,7 @@ export type CfopStage = (typeof CFOP_STAGES)[number];
 
 /** Where each stage ended. */
 export interface CfopSplit {
-  /** Cube-frame face the cross was built on: the cross colour's (in older records, the bottom of the holding). */
+  /** Cube-frame face the cross was built on (in records from before colour-neutral reading, the face set for it). */
   cross: Face;
   /**
    * For each stage reached, in order, the index of the turn that completed
@@ -102,13 +104,68 @@ export function cfopLevel(state: CubeState, cross: Face): number {
  * Split a solve into its stages, with the cross on cube face `cross`.
  * `states` are the states after each turn; `start` the state before the first.
  */
-export function splitCfop(start: CubeState, states: readonly CubeState[], cross: Face): CfopSplit {
+export function splitOnFace(start: CubeState, states: readonly CubeState[], cross: Face): CfopSplit {
   const ends: number[] = [];
   [start, ...states].forEach((state, i) => {
     const level = cfopLevel(state, cross);
     while (ends.length < level) ends.push(i - 1);
   });
   return { cross, ends };
+}
+
+/** Levels compared, most telling first, when two faces went equally far: F2L, then 3, 2, 1 pairs, then the cross. */
+const TELLING_LEVELS = [5, 4, 3, 2, 1];
+
+/**
+ * The face a CFOP solve was built on, read from its states: the face on
+ * which the solve, read as CFOP, stood furthest along over the whole solve
+ * (its level, 0 to 7, after every turn, added up). The face built on keeps
+ * its cross, then its pairs, then its last layer for most of the solve; a
+ * cross of another colour made along the way lasts a few turns, and other
+ * faces reach their two layers only in the last turns, when the whole cube
+ * is nearly solved (one R turn from solved, the left face's two layers are
+ * done). So a cross built, broken and built again, an X-cross, skips and a
+ * stray cross of another colour all go to the face built on. Two faces
+ * that went equally far go to the one whose first two layers were done
+ * first, then three pairs, and so on down to the cross; then to
+ * `preferred`, then to the faces in their order.
+ */
+export function crossFace(start: CubeState, states: readonly CubeState[], preferred: Face): Face {
+  const all = [start, ...states];
+  const reading = (face: Face) => {
+    const first = new Array<number>(8).fill(Infinity);
+    let total = 0;
+    all.forEach((state, i) => {
+      const level = cfopLevel(state, face);
+      total += level;
+      for (let l = 1; l <= level; l++) if (first[l] === Infinity) first[l] = i;
+    });
+    return [-total, ...TELLING_LEVELS.map((l) => first[l])];
+  };
+  const before = (a: number[], b: number[]) => {
+    for (let k = 0; k < a.length; k++) if (a[k] !== b[k]) return a[k] < b[k];
+    return false;
+  };
+  let best = preferred;
+  let bestKey = reading(preferred);
+  for (const face of FACES) {
+    if (face === preferred) continue;
+    const key = reading(face);
+    if (before(key, bestKey)) {
+      best = face;
+      bestKey = key;
+    }
+  }
+  return best;
+}
+
+/**
+ * Split a solve into its stages on the face it was built on (`crossFace`;
+ * `preferred` wins a tie). `states` are the states after each turn; `start`
+ * the state before the first.
+ */
+export function splitCfop(start: CubeState, states: readonly CubeState[], preferred: Face): CfopSplit {
+  return splitOnFace(start, states, crossFace(start, states, preferred));
 }
 
 /** A recorded turn: cube-frame face, a quarter turn either way, ms since the first turn. */

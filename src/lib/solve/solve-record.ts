@@ -4,8 +4,8 @@
 
 import { applyTurn, SOLVED, type CubeState, type Face } from '@/lib/smart-cube/cube-state';
 import {
-  colourFace,
   colourFrame,
+  FACE_COLOUR,
   frameColours,
   holdingFrame,
   turnedDown,
@@ -14,7 +14,7 @@ import {
   type CubeHolding,
   type Frame,
 } from '@/lib/smart-cube/holding';
-import { cfopMoveCount, splitCfop, type CfopSplit, type TimedTurn } from '@/lib/solve/cfop-split';
+import { cfopMoveCount, splitCfop, splitOnFace, type CfopSplit, type TimedTurn } from '@/lib/solve/cfop-split';
 import { applyPlan, planSetup } from '@/lib/smart-cube/setup-guide';
 
 /** The kind of solve. Only CFOP exists; F2L and last-layer solves are planned. */
@@ -50,9 +50,10 @@ export interface SolveRecord {
   /** How the cube was held for the scramble; absent in older records, where `holding` was. */
   scrambleHolding?: ColourHolding;
   /**
-   * The cross colour `split` was read with. Absent in older records, whose
-   * stored stages took the cross on the bottom of `holding`: they are read
-   * again from their turns with the colour set now (`readRecord`).
+   * The colour of the cross, read from the solve (in records from when it
+   * was a setting, the colour set). `split` was read with it. The screens
+   * read every record again from its turns (`readRecord`); older versions
+   * show `split` in `holding`.
    */
   crossColour?: CubeColour;
   /** Every turn from the first to the one that solved the cube. */
@@ -90,12 +91,21 @@ const withExtra = ({ penalty, inspectionMs }: Pick<SolveRecord, 'penalty' | 'ins
   ...(inspectionMs !== undefined ? { inspectionMs: Math.round(inspectionMs) } : {}),
 });
 
+/** The scramble's holding as a frame (records from before it was kept: their one holding). */
+function scrambleFrameOf(record: Pick<SolveRecord, 'holding' | 'scrambleHolding'>): Frame {
+  return (record.scrambleHolding && colourFrame(record.scrambleHolding)) ?? recordFrame(record);
+}
+
+/** A solve's stages on the face it was built on (any colour), the bottom of the scramble's holding winning a tie, and the holding it was solved in. */
+function readSolve(start: CubeState, states: readonly CubeState[], scrambleFrame: Frame): { split: CfopSplit; solving: Frame } {
+  const split = splitCfop(start, states, scrambleFrame.D);
+  return { split, solving: turnedDown(scrambleFrame, FACE_COLOUR[split.cross]).frame };
+}
+
 export function cubeSolve(input: {
   scramble: string;
   /** How the cube was held for the scramble. */
   scrambleHolding: ColourHolding;
-  /** The colour of the cross, solved at the bottom. */
-  cross: CubeColour;
   /** The scrambled state the solve started from. */
   start: CubeState;
   /** Turns with absolute cube times, and the state after each. */
@@ -106,9 +116,8 @@ export function cubeSolve(input: {
 }): SolveRecord {
   const first = input.turns[0]?.cubeTime ?? 0;
   const turns: TimedTurn[] = input.turns.map((t) => ({ face: t.face, amount: t.amount, t: t.cubeTime - first }));
-  const split = splitCfop(input.start, input.turns.map((t) => t.state), colourFace(input.cross));
   const scrambleHolding = { top: input.scrambleHolding.top, front: input.scrambleHolding.front };
-  const solving = turnedDown(colourFrame(scrambleHolding) ?? holdingFrame('white-green'), input.cross).frame;
+  const { split, solving } = readSolve(input.start, input.turns.map((t) => t.state), colourFrame(scrambleHolding) ?? holdingFrame('white-green'));
   return {
     id: newId(),
     version: 1,
@@ -120,7 +129,7 @@ export function cubeSolve(input: {
     ...withExtra(input),
     holding: frameColours(solving),
     scrambleHolding,
-    crossColour: input.cross,
+    crossColour: FACE_COLOUR[split.cross],
     turns,
     moveCount: cfopMoveCount(turns, split),
     split,
@@ -134,13 +143,13 @@ export interface RecordReading {
   frame: Frame;
 }
 
-type ReadableRecord = Pick<SolveRecord, 'scramble' | 'holding' | 'crossColour' | 'turns' | 'split'>;
+type ReadableRecord = Pick<SolveRecord, 'scramble' | 'holding' | 'scrambleHolding' | 'turns' | 'split'>;
 
 const sameEnds = (a: readonly number[], b: readonly number[]) => a.length === b.length && a.every((end, i) => end === b[i]);
 
-function readAgain(record: ReadableRecord & Required<Pick<SolveRecord, 'turns' | 'split'>>, cross: CubeColour): RecordReading {
-  const scrambleFrame = recordFrame(record);
-  const stored = { split: record.split, frame: scrambleFrame };
+function readAgain(record: ReadableRecord & Required<Pick<SolveRecord, 'turns' | 'split'>>): RecordReading {
+  const stored = { split: record.split, frame: recordFrame(record) };
+  const scrambleFrame = scrambleFrameOf(record);
   // The scrambled state, as solve-session.ts sets it (scramble.ts's
   // scrambleState, without the solver this module would pull in).
   const plan = planSetup(record.scramble, scrambleFrame);
@@ -154,30 +163,32 @@ function readAgain(record: ReadableRecord & Required<Pick<SolveRecord, 'turns' |
   }, start);
   // The replay stands only if it gives back the stages stored (the cube
   // did not resync to another state mid-solve).
-  if (!sameEnds(splitCfop(start, states, record.split.cross).ends, record.split.ends)) return stored;
-  return { split: splitCfop(start, states, colourFace(cross)), frame: turnedDown(scrambleFrame, cross).frame };
+  if (!sameEnds(splitOnFace(start, states, record.split.cross).ends, record.split.ends)) return stored;
+  const { split, solving } = readSolve(start, states, scrambleFrame);
+  return { split, frame: solving };
 }
 
-const readings = new WeakMap<object, Partial<Record<CubeColour, RecordReading | null>>>();
+const readings = new WeakMap<object, RecordReading>();
 
 /**
  * Where a cube solve's stages ended and how the cube was held to solve;
- * null for a solve timed by hand. A record that keeps its cross colour reads
- * as stored. An older one is read again from its turns with `cross` (the
- * colour set now): replayed from its scrambled state with the cross on that
- * colour, its moves read with the cube turned over to put it at the bottom
- * (white top, green front with a white cross: x2).
+ * null for a solve timed by hand. Every record is read again from its turns,
+ * replayed from its scrambled state: the cross is the colour the solve was
+ * built on (`crossFace`), whatever older versions or the cross colour
+ * setting of one of them stored, and its moves are read with the cube turned
+ * over from the scramble's holding to put that colour at the bottom (white
+ * top, green front with a white cross: x2). A record whose turns do not
+ * replay to its stored stages (the cube resynced mid-solve) keeps them.
  */
-export function readRecord(record: ReadableRecord, cross: CubeColour): RecordReading | null {
+export function readRecord(record: ReadableRecord): RecordReading | null {
   const { turns, split } = record;
   if (!turns || !split) return null;
-  if (record.crossColour) return { split, frame: recordFrame(record) };
-  const cached = readings.get(record) ?? {};
-  if (!(cross in cached)) {
-    cached[cross] = readAgain({ ...record, turns, split }, cross);
-    readings.set(record, cached);
+  let reading = readings.get(record);
+  if (!reading) {
+    reading = readAgain({ ...record, turns, split });
+    readings.set(record, reading);
   }
-  return cached[cross]!;
+  return reading;
 }
 
 /**
@@ -185,8 +196,8 @@ export function readRecord(record: ReadableRecord, cross: CubeColour): RecordRea
  * turns (records made before slices were read count a slice as two) with
  * its stages as `readRecord` reads them; undefined for a solve timed by hand.
  */
-export function recordMoveCount(record: ReadableRecord & Pick<SolveRecord, 'moveCount'>, cross: CubeColour): number | undefined {
-  const reading = readRecord(record, cross);
+export function recordMoveCount(record: ReadableRecord & Pick<SolveRecord, 'moveCount'>): number | undefined {
+  const reading = readRecord(record);
   return reading && record.turns ? cfopMoveCount(record.turns, reading.split) : record.moveCount;
 }
 

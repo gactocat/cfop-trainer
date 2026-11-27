@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useCrossColour } from '@/hooks/useSolveSettings';
 import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
 import { STICKER_COLOURS } from '@/lib/cube-colors';
@@ -33,13 +32,12 @@ const tps2 = (value: number | null) => (value === null ? '-' : value.toFixed(2))
 
 // A cube solve stage by stage: time, moves and TPS of the cross, each F2L
 // pair, OLL and PLL, with stages that ended on the same turn marked as
-// skipped; then, folded, the turns of each stage in the user's notation,
-// held as for the solve (the cross at the bottom). Records from before the
-// cross colour was set apart are read with the colour set now.
+// skipped, and beside Cross the colour the solve was built on (read from
+// it); then, folded, the turns of each stage in the user's notation, held
+// as for the solve (the cross at the bottom).
 export function SolveStages({ record, className = '' }: { record: SolveRecord; className?: string }) {
   const { t } = useT();
-  const cross = useCrossColour(record.event);
-  const reading = useMemo(() => readRecord(record, cross), [record, cross]);
+  const reading = useMemo(() => readRecord(record), [record]);
   const stages = useMemo(
     () => (reading && record.turns ? cfopStages(record.turns, reading.split, reading.frame) : []),
     [record, reading],

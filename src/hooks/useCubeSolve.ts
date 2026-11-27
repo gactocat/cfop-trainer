@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useSmartCube } from '@/hooks/useSmartCube';
 import { stateEquals, type CubeState } from '@/lib/smart-cube/cube-state';
-import { colourFrame, holdingFrame, type ColourHolding, type CubeColour } from '@/lib/smart-cube/holding';
+import { colourFrame, holdingFrame, type ColourHolding } from '@/lib/smart-cube/holding';
 import {
   cubeSolveResync,
   cubeSolveTurn,
@@ -91,8 +91,8 @@ const serverScreen = () => null;
 export function useCubeSolve({ active, scramble, holding, onStart, onStop }: {
   active: boolean;
   scramble: string | null;
-  /** How the cube is held for the scramble, and the cross colour the stages are read with. */
-  holding: ColourHolding & { cross: CubeColour };
+  /** How the cube is held for the scramble. The cross colour is read from the solve. */
+  holding: ColourHolding;
   /** The first turn from the scrambled state: how long after reaching it (the inspection). */
   onStart: (inspectionMs: number) => void;
   /** Solved: the record of the solve, timed on the cube's clock. */
@@ -137,7 +137,7 @@ export function useCubeSolve({ active, scramble, holding, onStart, onStop }: {
       if (result.event === 'stop') {
         const held = colours.current;
         callbacks.current.onStop(cubeSolve({
-          scramble: session.scramble, scrambleHolding: { top: held.top, front: held.front }, cross: held.cross,
+          scramble: session.scramble, scrambleHolding: { top: held.top, front: held.front },
           start: session.target, turns: result.session.turns,
         }));
       }
