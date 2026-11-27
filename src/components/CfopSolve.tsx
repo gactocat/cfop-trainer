@@ -22,6 +22,7 @@ import { inspectionCall, inspectionPenalty, inspectionShown } from '@/lib/solve/
 import { handSolve, type Penalty, type SolveRecord } from '@/lib/solve/solve-record';
 import { formatRecordTime, formatSolveTime } from '@/lib/solve/solve-stats';
 import { setTimerFocus } from '@/lib/timer-focus';
+import { BatteryLevel } from './BatteryLevel';
 import { ScrambleNet } from './ScrambleNet';
 import { PenaltyButtons, RecordTime } from './SolvePenalty';
 import { SolveRecords, TimerBadge } from './SolveRecords';
@@ -54,7 +55,8 @@ function CubeIcon() {
 }
 
 // The smart cube, small, beside the scramble: connect it, or see it is
-// connected. The smart cube dialog keeps the rest (holding, MAC, disconnect).
+// connected and its battery. The smart cube dialog keeps the rest (holding,
+// MAC, disconnect).
 function CubeConnection() {
   const { t } = useT();
   const cube = useSmartCube();
@@ -66,8 +68,7 @@ function CubeConnection() {
       <button type="button" onClick={() => openAppDialog('smartCube')}
         className={`${chip} border border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100 dark:hover:bg-emerald-950`}>
         <CubeIcon />
-        <span aria-hidden className="size-2 rounded-full bg-emerald-500" />
-        {cube.battery === null ? t('smartCube.status.connected') : t('practice.cube.battery', { level: cube.battery })}
+        {cube.battery === null ? t('smartCube.status.connected') : <BatteryLevel level={cube.battery} />}
       </button>
     );
   }

@@ -28,6 +28,7 @@ import { closeAppDialog } from '@/lib/app-dialog';
 import { forgetMac, setHolding } from '@/lib/smart-cube-settings-store';
 import { clearSmartSolves, MAX_SMART_SOLVES } from '@/lib/smart-solve-store';
 import { useSmartSolveCount } from '@/hooks/useSmartSolves';
+import { BatteryLevel } from './BatteryLevel';
 import { MarkSolvedButton } from './MarkSolvedButton';
 
 export const UNSUPPORTED: Record<SmartCubeUnsupported, MessageKey> = {
@@ -177,7 +178,7 @@ export function SmartCubePanel() {
                 </ul>
               )}
               {connected && <>
-                <Row label={t('smartCube.battery')}>{cube.battery === null ? '-' : `${cube.battery}%`}</Row>
+                <Row label={t('smartCube.battery')}>{cube.battery === null ? '-' : <BatteryLevel level={cube.battery} labelled />}</Row>
                 <Row label={t('smartCube.state')}>{state}</Row>
                 <div className="pt-2"><MarkSolvedButton variant="button" /></div>
               </>}

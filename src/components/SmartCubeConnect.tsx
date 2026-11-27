@@ -6,6 +6,7 @@ import { useT } from '@/hooks/useT';
 import { openAppDialog } from '@/lib/app-dialog';
 import { isNativeApp } from '@/lib/native';
 import { connect, connectLast, disconnect, startScan, unsupportedReason } from '@/lib/smart-cube-store';
+import { BatteryLevel } from './BatteryLevel';
 import { PROBLEM, STATUS, UNSUPPORTED } from './SmartCubePanel';
 
 function CubeIcon() {
@@ -36,7 +37,7 @@ export function SmartCubeConnect() {
           <span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
           <span className="truncate font-medium text-emerald-900 dark:text-emerald-100">{cube.virtual ? t('smartCube.test.title') : cube.deviceName ?? t('smartCube.title')}</span>
           <span className="shrink-0 text-xs text-emerald-800/80 dark:text-emerald-200/80">
-            {cube.battery === null ? t('smartCube.status.connected') : t('practice.cube.battery', { level: cube.battery })}
+            {cube.battery === null ? t('smartCube.status.connected') : <BatteryLevel level={cube.battery} />}
           </span>
         </span>
         <span className="flex shrink-0 flex-wrap items-center gap-x-3 text-xs text-emerald-800 dark:text-emerald-200">

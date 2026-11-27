@@ -12,7 +12,9 @@ Settings, Smart cube: connect, see battery and model, choose how the cube is
 held, and enter the MAC address if Chrome cannot read it. The practice options
 (random practice and an algorithm's practice on its case page) also offer
 "Connect smart cube" and show the connected cube with its battery; they open
-the dialog for the MAC address and, in the iOS app, for the list of cubes. The cube's data is
+the dialog for the MAC address and, in the iOS app, for the list of cubes.
+The battery is drawn as a battery icon that fills by fifths (red at 20% or
+less) with its level beside it (`BatteryLevel`), wherever it is shown. The cube's data is
 encrypted with its MAC; Chrome reads it from the cube's advertisements only
 with `chrome://flags/#enable-experimental-web-platform-features`. A MAC that
 works (the cube then reports a readable model name) is saved per device name
