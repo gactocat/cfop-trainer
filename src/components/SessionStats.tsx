@@ -4,18 +4,10 @@ import { useMemo } from 'react';
 import { useT } from '@/hooks/useT';
 import type { PracticeResult } from '@/lib/practice-log';
 import { summarizeByCase, summarizeSession } from '@/lib/session-stats';
+import { Figure } from './Figure';
 
 const seconds2 = (value: number | null) => (value === null ? '-' : value.toFixed(2));
 const moves1 = (value: number | null) => (value === null ? '-' : value.toFixed(1));
-
-function Figure({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col items-center gap-0.5">
-      <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{label}</span>
-      <span className="font-mono text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">{value}</span>
-    </div>
-  );
-}
 
 // This session as a whole (mean time, moves and TPS), and behind "Details",
 // case by case: recognition and solving (mean, with the best below), moves
@@ -44,11 +36,11 @@ export function SessionStats({ results, note, open = false, className = '' }: {
         <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">{t('trainer.noScramble.empty')}</p>
       ) : (
         <>
-          <div className="mt-3 grid grid-cols-3 gap-2">
+          <dl className="mt-3 grid grid-cols-3 gap-2">
             <Figure label={t('trainer.session.meanTime')} value={seconds2(totals.meanSeconds)} />
             <Figure label={t('trainer.session.meanMoves')} value={moves1(totals.meanMoves)} />
             <Figure label={t('trainer.session.meanTps')} value={seconds2(totals.meanTps)} />
-          </div>
+          </dl>
           <details open={open} className="group mt-3 border-t border-zinc-100 pt-2 dark:border-zinc-800">
             <summary className="flex cursor-pointer list-none items-center gap-1 text-xs font-medium text-emerald-700 hover:underline dark:text-emerald-300 [&::-webkit-details-marker]:hidden">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"

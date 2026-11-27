@@ -177,9 +177,15 @@ export interface TimedTurn {
 
 export interface StageResult {
   stage: CfopStage;
+  /** From the end of the stage before (the first turn, for the first stage) to this stage's end: recognition and execution. */
   ms: number;
+  /** From the end of the stage before to this stage's first turn; 0 for the first stage, which starts the timer. */
+  recognitionMs: number;
+  /** From this stage's first turn to its last. */
+  executionMs: number;
   /** Moves as read (consecutive turns of one face merged, a slice one move). */
   moves: number;
+  /** Moves per second of execution, as practice counts it; null without execution time. */
   tps: number | null;
   /** Finished on the same turn as the stage before (or before the first turn). */
   skipped: boolean;
@@ -190,9 +196,10 @@ export interface StageResult {
 const tpsOf = (moves: number, ms: number) => (ms > 0 ? Math.round((moves / (ms / 1000)) * 100) / 100 : null);
 
 /**
- * Time, moves and TPS of each stage reached, with its moves read from
- * `frame` (how the cube was held at the first turn), and the frame after
- * them. Turns after the last stage reached are left out.
+ * Time (recognition and execution apart), moves and TPS of each stage
+ * reached, with its moves read from `frame` (how the cube was held at the
+ * first turn), and the frame after them. Turns after the last stage reached
+ * are left out.
  */
 function readStages(turns: readonly TimedTurn[], split: CfopSplit, frame: Frame): { stages: StageResult[]; frame: Frame } {
   const timeAt = (index: number) => (index < 0 ? 0 : turns[index].t);
@@ -202,8 +209,14 @@ function readStages(turns: readonly TimedTurn[], split: CfopSplit, frame: Frame)
     const reading = readTurns(turns.slice(from + 1, end + 1), current);
     current = reading.frame;
     const ms = timeAt(end) - timeAt(from);
+    const skipped = end === from;
+    const recognitionMs = skipped ? 0 : turns[from + 1].t - timeAt(from);
+    const executionMs = ms - recognitionMs;
     const moves = reading.moves.length;
-    return { stage: CFOP_STAGES[i], ms, moves, tps: tpsOf(moves, ms), skipped: end === from, notation: reading.moves.map((m) => m.move).join(' ') };
+    return {
+      stage: CFOP_STAGES[i], ms, recognitionMs, executionMs, moves, tps: tpsOf(moves, executionMs), skipped,
+      notation: reading.moves.map((m) => m.move).join(' '),
+    };
   });
   return { stages, frame: current };
 }

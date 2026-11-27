@@ -7,64 +7,88 @@ layer) is one more entry in `src/data/home-entries.ts` and a page under
 
 ## CFOP
 
-The page shows a random-state scramble, the timer, the latest solve and the
-records (this device's, or the account's when signed in). Beside the scramble
-are the smart cube's button (connect, or its battery once connected), a new
-scramble and a gear for the solve settings (scramble orientation and
-inspection). The
-timer is hidden while the scramble is shown: it appears for the inspection, a
-held press, a smart cube ready to start, and the solve. Without a cube the
-area below the scramble is still what you press, with one small line saying
-how; with one, the area appears once the cube is ready.
+A solve goes through three screens, one at a time, on the same page
+(`components/SolveScreens.tsx`, wired by `components/CfopSolve.tsx`; which
+screen is on and what the timer shows are worked out in
+`lib/solve/solve-screen.ts`). They are built to serve every kind of solve.
+
+- Scramble: the scramble (a step smaller than before), a 3D cube and, at the
+  top, the smart cube's button (connect, or its battery once connected), a
+  new scramble and a gear for the solve settings (scramble orientation and
+  inspection). Nothing else. Without a smart cube the 3D cube is the
+  scrambled cube, held in the scramble orientation; with one, it is the cube
+  as it is, turning the next move part of the way (see the guide below). The
+  records are behind an icon in the app header (as the list pages keep their
+  controls there); it opens them over the page (`SolveRecordsButton`).
+- Timer: the timer alone, the app header and footer stepped aside. With a
+  smart cube it comes by itself once the cube is in the scrambled state: the
+  inspection counts up (when on), or 0.00 waits; the first turn starts the
+  timer and solving the cube stops it, on the cube's clock. The cube shows
+  small under the timer, the cube as it is with each turn played, beside a
+  quiet DNF button that ends the solve as a DNF (before the first turn with
+  no time). A press on the screen or Space stops it by hand (recorded as an
+  on-screen time); Escape abandons it. Without a cube, a press held on the
+  scramble screen brings it up: 0.00 red while held too briefly, green once
+  letting go starts the solve (0.3 s, `useHoldTimer`), the timer running in
+  the plain colour after; let go too soon and it is the scramble screen
+  again. A press anywhere or Space stops it; Escape abandons it. With
+  inspection on, a tap (or Space) on the scramble screen starts the
+  inspection on the timer screen first, as a WCA judge starts it when the
+  cube is uncovered; the press is held from there, 0.00 showing its colour
+  with the count going on under it. Escape ends an inspection.
+- Result: the time where the timer was (with its penalty), under it moves,
+  TPS, inspection and the cross colour read (a dash where there is none),
+  the scramble in small type, Retry and Next. Retry is the same scramble
+  again (back to the scramble screen; with a cube, guided from where the cube
+  is); Next, or Space, is a new one. +2, DNF and Undo sit quietly in the
+  corner; Undo takes the solve back and keeps the scramble, as Retry does.
+  With a cube, each stage follows (see Stages). The cube is idle here:
+  turning it starts nothing.
 
 - Scramble orientation: each kind of solve has its own (CFOP now; F2L and
-  last-layer solves will have theirs), set in the solve settings (the gear
-  beside the scramble): the top and front colours the cube is held with to
-  turn the scramble, white top and green front until chosen, as at a WCA
-  competition. A front colour must sit beside the top one, so the top
-  colour and its opposite are disabled. The unfolded cube beside the
-  scramble, the smart cube guide and its 3D cube follow it. The practice's
-  smart cube holding (yellow top, blue front) is another setting and plays
-  no part.
+  last-layer solves will have theirs), set in the solve settings: the top
+  and front colours the cube is held with to turn the scramble, white top
+  and green front until chosen, as at a WCA competition. A front colour must
+  sit beside the top one, so the top colour and its opposite are disabled.
+  The scramble screen's cube, the smart cube guide and its 3D cube follow
+  it. The practice's smart cube holding (yellow top, blue front) is another
+  setting and plays no part.
 - Cross colour: read from each solve (colour neutral, see Stages), not
   set. Solvers, the better ones especially, often start from whichever
   cross is easiest after the scramble, and the way a scramble is held says
   nothing about it. One version had it as a setting; see Records.
-- Inspection (on by default, in the same settings): as the WCA runs it. Over
-  15 s before starting adds +2, over 17 s makes the solve a DNF; 8 and 12
-  seconds are shown in small type under the count. Without a smart cube a tap
-  (or Space) starts the inspection and the hold timer then starts the solve;
-  with one, the inspection starts when the cube reaches the scrambled state
-  and ends with its first turn. It is timed on the screen's clock, as its
-  countdown shows it. Escape ends an inspection.
-- Without a smart cube: the practice hold timer (`useHoldTimer`). Hold for
-  0.3 s (red), let go to start (green), press anywhere or Space to stop,
-  Escape to abandon. Everything but the timer, the app header included,
-  steps aside while inspecting, held or running.
+- Inspection (on by default, in the same settings): as the WCA runs it,
+  counting up. Over 15 s before starting adds +2, over 17 s makes the solve
+  a DNF; 8 and 12 seconds are called in small type under the count. It is
+  timed on the screen's clock, as its count shows it. How to start without
+  a cube is in the setting's (i).
 - With a smart cube: the scramble is guided turn by turn, as in practice with
   setup. Turns done dim, the next is underlined, wrong turns show the turns
-  that take them back. A 3D cube replaces the unfolded cube: the smart cube as
-  it is, in the scramble orientation, turning the next move (or the one that takes
-  a wrong turn back) over and over (see smart-cube.md). From three wrong turns in a row, a resync that does not
-  fit the guide, or a cube that is not solved when the scramble appears, the
-  route to the scrambled state is worked out again from where the cube is (the
-  shorter of the solver's route and taking the wrong turns back). The cube in
-  the scrambled state is ready; its first turn starts the timer and solving it
-  stops it, on the cube's clock. Space stops by hand (recorded as an
-  on-screen time) and Escape abandons the attempt.
-- Results: time; with a cube also moves and TPS (moves counted as in practice:
-  turns of one face in a row merged, a slice one move) and each stage.
-- +2 and DNF: buttons on the latest solve and on each solve in the list set or
+  that take them back, and the 3D cube turns the next move (or the one that
+  takes a wrong turn back) part of the way over and over, and plays each turn
+  made (see smart-cube.md). From three wrong turns in a row, a resync that
+  does not fit the guide, or a cube that is not solved when the scramble
+  appears, the route to the scrambled state is worked out again from where
+  the cube is (the shorter of the solver's route and taking the wrong turns
+  back).
+- Moves and TPS (cube solves): moves counted as in practice (turns of one
+  face in a row merged, a slice one move), TPS over the whole time.
+- +2 and DNF: buttons on the result and on each solve in the records set or
   take off a penalty (one at a time), whether the inspection set it or not.
   A +2 shows as "8.90+" (two seconds added), a DNF as "DNF" with the measured
-  time beside it. Cube data stays as it was.
+  time under it. Cube data stays as it was.
 
 ## Stages
 
 `lib/solve/cfop-split.ts` reads the stages from the state after every turn:
 Cross, F2L1 to F2L4 (cross and that many pairs), OLL (the top face one
 colour) and PLL (solved, the final AUF included). Each stage ends at the first
-turn after which the cube is at least that far. Stages finished on the same
+turn after which the cube is at least that far. A stage's time is from the end
+of the stage before to its own end: recognition up to its first turn, then
+execution (the cross starts the timer, so it has no recognition). Its TPS is
+over the execution, as practice counts it. The result and the records show
+each stage's time, then in small type recognition, execution, moves and TPS,
+and its moves. Stages finished on the same
 turn (an X-cross, an OLL or PLL skip) take no time and no moves and are marked
 as skipped. Every turn between two stage ends counts for the later one, so
 turns that break and remake a pair count where they happen; rotations of the
@@ -143,7 +167,7 @@ know when it saves one again (a penalty), so new fields need no migration.
 The stats count +2 with its two seconds and DNF as slower than any time: the best single leaves DNFs out,
 and ao5 / ao12 drop the best and the worst (a DNF is the worst), so two DNFs
 make the average a DNF. The best ao5 and ao12 are shown too. Undo on the
-latest solve and Delete in the list remove a record.
+result and Delete in the list remove a record.
 
 Where they are kept (`lib/solve/solve-library.ts`, wired in
 `lib/solve-store.ts`):
@@ -187,7 +211,9 @@ node --import ./scripts/register-src-alias.mjs scripts/verify-solve.mts
 
 Scrambles (face turns, no face twice in a row, 15-21 moves, reach the drawn
 state, solve back), routes between states, +2 / DNF in the best and ao5 /
-ao12, the inspection's boundaries, the turn over to the cross colour from
+ao12, the inspection's boundaries (counting up), the three screens and what
+the timer shows on the way (holds without a cube, with and without
+inspection, the cube ready), each stage's recognition and execution, the turn over to the cross colour from
 all 24 holdings, the cross colour read and stage ends for every scramble
 orientation with every cross colour, in every colour an X-cross, a cross
 broken and built again, OLL, PLL and last-layer skips, a stray cross of

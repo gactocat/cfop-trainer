@@ -17,11 +17,11 @@ export function inspectionPenalty(ms: number): Penalty | null {
   return null;
 }
 
-/** What the inspection shows `ms` after it began: whole seconds left, then +2, then DNF. */
+/** What the inspection shows `ms` after it began, counting up: whole seconds gone (0 to 15), then +2, then DNF. */
 export function inspectionShown(ms: number): { seconds: number } | { penalty: Penalty } {
   const penalty = inspectionPenalty(ms);
   if (penalty) return { penalty };
-  return { seconds: Math.max(1, Math.ceil((INSPECTION_MS - ms) / 1000)) };
+  return { seconds: Math.max(0, Math.floor(ms / 1000)) };
 }
 
 /** The latest call reached (8 or 12 seconds), or null before 8 seconds and after 15. */

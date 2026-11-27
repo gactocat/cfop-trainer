@@ -3,20 +3,12 @@
 import { useState } from 'react';
 import type { useSolveSettings } from '@/hooks/useSolveSettings';
 import { useT } from '@/hooks/useT';
-import type { MessageKey } from '@/i18n/messages';
 import { STICKER_COLOURS } from '@/lib/cube-colors';
 import { CUBE_COLOURS, fitsTop, type CubeColour } from '@/lib/smart-cube/holding';
 import { AppModal } from './AppModal';
+import { COLOUR_LABEL } from './CubeColourMark';
 import { InfoTip } from './InfoTip';
 
-export const COLOUR_LABEL: Record<CubeColour, MessageKey> = {
-  white: 'solve.colour.white',
-  yellow: 'solve.colour.yellow',
-  red: 'solve.colour.red',
-  orange: 'solve.colour.orange',
-  green: 'solve.colour.green',
-  blue: 'solve.colour.blue',
-};
 
 type Settings = ReturnType<typeof useSolveSettings>;
 

@@ -28,6 +28,8 @@ import {
 import { cfopLevel, cfopMoveCount, cfopStages, crossFace, splitCfop, splitOnFace, type TimedTurn } from '@/lib/solve/cfop-split';
 import { applyMoves, generateScramble, inverseState, movesInHolding, routeBetween, scrambleState, SCRAMBLE_MAX_MOVES } from '@/lib/solve/scramble';
 import { inspectionCall, inspectionPenalty, inspectionShown } from '@/lib/solve/inspection';
+import { solveScreenOf, timerFaceOf, type SolveFlow } from '@/lib/solve/solve-screen';
+import { holdStep, toneOf, type HoldInput, type HoldPhase } from '@/lib/hold-timer';
 import {
   applyOutbox, createSolveLibrary, isMissingOnServer,
   type AccountSolves, type DeviceSolves, type ImportDecision, type Outbox, type SyncMemory,
@@ -157,15 +159,52 @@ eq(inspectionPenalty(15_000), null, '15.00 s is still in time');
 eq(inspectionPenalty(15_001), 'plus2', 'over 15 s is +2');
 eq(inspectionPenalty(17_000), 'plus2', '17.00 s is still +2');
 eq(inspectionPenalty(17_001), 'dnf', 'over 17 s is DNF');
-eq(inspectionShown(0), { seconds: 15 }, 'starts at 15');
-eq(inspectionShown(1_000), { seconds: 14 }, 'a second later 14');
-eq(inspectionShown(14_999), { seconds: 1 }, 'the last second');
+eq(inspectionShown(0), { seconds: 0 }, 'counts up from 0');
+eq(inspectionShown(1_000), { seconds: 1 }, 'a second later 1');
+eq(inspectionShown(14_999), { seconds: 14 }, '14 until 15');
+eq(inspectionShown(15_000), { seconds: 15 }, '15.00 s shows 15');
 eq(inspectionShown(15_500), { penalty: 'plus2' }, 'then +2');
 eq(inspectionShown(17_500), { penalty: 'dnf' }, 'then DNF');
 eq([7_999, 8_000, 11_999, 12_000, 14_999, 15_000].map(inspectionCall), [null, 8, 8, 12, 12, null], 'calls at 8 and 12 seconds');
 {
   const timed = handSolve('R U', 9_000, { penalty: inspectionPenalty(16_200)!, inspectionMs: 16_200.4 });
   ok(timed.penalty === 'plus2' && timed.inspectionMs === 16_200, 'a solve keeps its inspection and its penalty');
+}
+
+// --- The three screens: scramble, timer, result
+{
+  const idle: SolveFlow = { result: false, timing: false, inspectionSince: null, hold: 'idle', cubeReady: false };
+  const screenAfter = (changes: Partial<SolveFlow>) => solveScreenOf({ ...idle, ...changes });
+  eq(screenAfter({}), 'scramble', 'nothing to time: the scramble');
+  // Without a cube, inspection off: hold (red), held long enough (green), let go (running), press (result).
+  let phase: HoldPhase = 'idle';
+  const steps: [HoldInput, HoldPhase, string, string][] = [
+    ['press', 'pressed', 'timer', 'held: the timer, red'],
+    ['held', 'armed', 'timer', 'held long enough: green'],
+    ['release', 'running', 'timer', 'let go: running, plain'],
+  ];
+  for (const [input, expected, screen, what] of steps) {
+    phase = holdStep(phase, input).phase;
+    eq([phase, solveScreenOf({ ...idle, hold: phase, timing: phase === 'running' })], [expected, screen], what);
+  }
+  eq(timerFaceOf({ inspectionSince: null, hold: 'pressed', timingSince: null }), { kind: 'zero', tone: 'held' }, 'red 0.00 while held');
+  eq(timerFaceOf({ inspectionSince: null, hold: 'armed', timingSince: null }), { kind: 'zero', tone: 'ready' }, 'green 0.00 once letting go starts');
+  eq(timerFaceOf({ inspectionSince: null, hold: 'running', timingSince: 5 }), { kind: 'running', since: 5 }, 'running in the plain colour');
+  eq([toneOf('pressed'), toneOf('armed'), toneOf('running'), toneOf('idle')], ['held', 'ready', 'plain', 'plain'], 'red, green, then plain');
+  eq(holdStep('pressed', 'release').phase, 'idle', 'let go too soon...');
+  eq(screenAfter({ hold: 'idle' }), 'scramble', '...and back to the scramble');
+  eq(screenAfter({ result: true }), 'result', 'stopped: the result');
+  // Inspection on: a tap starts it on the timer screen; a press held there shows 0.00 in its colour, the count going on below.
+  eq(screenAfter({ inspectionSince: 100 }), 'timer', 'the inspection is on the timer screen');
+  eq(timerFaceOf({ inspectionSince: 100, hold: 'idle', timingSince: null }), { kind: 'inspection', since: 100 }, 'it counts up');
+  eq(timerFaceOf({ inspectionSince: 100, hold: 'pressed', timingSince: null }), { kind: 'zero', tone: 'held' }, 'held during it: red 0.00');
+  eq(timerFaceOf({ inspectionSince: 100, hold: 'armed', timingSince: null }), { kind: 'zero', tone: 'ready' }, 'then green');
+  // With a smart cube: scrambled, it is the timer screen by itself; the first turn times; solved, the result.
+  eq(screenAfter({ cubeReady: true }), 'timer', 'the cube scrambled: the timer');
+  eq(timerFaceOf({ inspectionSince: null, hold: 'idle', timingSince: null }), { kind: 'zero', tone: 'plain' }, 'inspection off: 0.00 waiting for the first turn');
+  eq(screenAfter({ cubeReady: true, inspectionSince: 50 }), 'timer', 'inspection on: counting up');
+  eq(screenAfter({ timing: true }), 'timer', 'the first turn: running');
+  eq(screenAfter({ result: true, cubeReady: true, timing: true }), 'result', 'the result stays until Retry or Next');
 }
 
 // --- Holdings by colour
@@ -289,7 +328,14 @@ const recordOf = (scramble: string, scrambleHolding: ColourHolding, start: CubeS
   const stages = cfopStages(solve.timed, split, holdingFrame('yellow-blue'));
   eq(stages.map((s) => s.moves), [2, 3, 3, 3, 3, 8, 15], 'moves per stage (a half turn is one move)');
   eq(stages.map((s) => s.ms), [200, 300, 300, 300, 300, 900, 1600], 'time per stage');
-  eq(stages.map((s) => s.tps), [10, 10, 10, 10, 10, 8.89, 9.38], 'TPS per stage');
+  // A turn every 100 ms: each stage after the cross waits 100 ms from the last turn before it to its first.
+  eq(stages.map((s) => s.recognitionMs), [0, 100, 100, 100, 100, 100, 100], 'recognition: from the stage before to the first turn (none for the cross)');
+  eq(stages.map((s) => s.executionMs), [200, 200, 200, 200, 200, 800, 1500], 'execution: first turn to last');
+  ok(stages.every((s) => s.recognitionMs + s.executionMs === s.ms), 'recognition and execution make the stage\'s time');
+  eq(stages.map((s) => s.tps), [10, 15, 15, 15, 15, 10, 10], 'TPS per stage, over its execution as practice counts it');
+  const pllSkip = solveOf([CROSS, ...PAIRS, OLL], 'yellow-blue');
+  const skipped = cfopStages(pllSkip.timed, splitCfop(pllSkip.start, pllSkip.states, 'D'), holdingFrame('yellow-blue'))[6];
+  eq([skipped.skipped, skipped.ms, skipped.recognitionMs, skipped.executionMs, skipped.tps], [true, 0, 0, 0, null], 'a skipped stage: no time, recognition, execution or TPS');
   ok(stages.every((s) => !s.skipped), 'no stage skipped');
   eq(stages.map((s) => s.notation), PARTS, 'each stage\'s moves read as made, in the holding');
   eq(cfopMoveCount(solve.timed, split), 37, 'the solve\'s moves add up the stages');

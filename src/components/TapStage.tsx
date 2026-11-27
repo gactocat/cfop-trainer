@@ -3,22 +3,16 @@
 import type { ReactNode } from 'react';
 import type { useHoldTimer } from '@/hooks/useHoldTimer';
 import { useT } from '@/hooks/useT';
-import type { HoldPhase } from '@/lib/hold-timer';
+import { toneOf, type HoldPhase } from '@/lib/hold-timer';
 import type { PracticeResult } from '@/lib/practice-log';
-
-const DIGITS: Record<HoldPhase, string> = {
-  idle: 'text-zinc-900 dark:text-zinc-50',
-  pressed: 'text-rose-600 dark:text-rose-400',
-  armed: 'text-rose-600 dark:text-rose-400',
-  running: 'text-emerald-600 dark:text-emerald-400',
-  stopped: 'text-zinc-900 dark:text-zinc-50',
-};
+import { TimerDigits } from './TimerDigits';
 
 const FRAME = 'w-full flex-1 min-h-[320px] rounded-lg border border-zinc-200 bg-zinc-50 p-4 sm:p-6 dark:border-zinc-800 dark:bg-zinc-950/60';
 const CHIP = 'rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium tabular-nums text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200';
 
 // Practice without a smart cube, on a calm screen: the timer from the start,
-// held to get ready (red), let go to start (green), pressed anywhere to stop.
+// held to get ready (red, then green once letting go starts), let go to
+// start, pressed anywhere to stop.
 // While held long enough and while running, everything but the timer (and,
 // with no setup, the case to solve) steps aside. The result is recorded in
 // the session at once, with Next and Undo, and the session's figures below.
@@ -109,9 +103,7 @@ export function TapStage({
               {t('trainer.hold.caseLater')}
             </div>
           )}
-          <div className={`font-mono text-6xl sm:text-8xl font-bold tabular-nums leading-none transition-colors ${DIGITS[phase]}`} aria-live="off">
-            {phase === 'running' ? elapsed.toFixed(3) : '0.000'}
-          </div>
+          <TimerDigits tone={toneOf(phase)}>{phase === 'running' ? elapsed.toFixed(3) : '0.000'}</TimerDigits>
           <div className={`flex flex-col items-center gap-1 text-center ${aside}`}>
             <span className="text-sm font-medium text-zinc-600 dark:text-zinc-300">
               {t('trainer.hold.start')}

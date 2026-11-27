@@ -47,18 +47,29 @@ next case as below (`useSmartSetupPractice`). Space still starts and stops the
 timer by hand. Without a connected cube, with setup shows the setup to apply
 by hand and no setup is the tap timer, as before.
 
-The 3D cube beside a setup (and beside a CFOP scramble, in place of the
-unfolded cube) is the cube as it is: the smart cube's tracked state, held as
-the guide has it at that point, so a wrong turn shows as made. On it, the
-next move turns over and over (the move, a rest, back): the next step as the
+The 3D cube beside a setup (and on a CFOP solve's scramble and timer
+screens) is the cube as it is: the smart cube's tracked state, held as the
+guide has it at that point, so a wrong turn shows as made. On it, the next
+move turns part of the way over and over (a rest, the move to about 45° for
+a quarter turn or 135° for a half turn, eased in and out, a rest, back): far
+enough to show the layer and the way, without looking like a cube already
+turned. A turn made on the cube is played to its end on the 3D cube, from
+the angle its hint had reached when it was that move (a quarter after a
+half-turn hint past 90° is there at once), then the next hint starts; a turn
+that comes while one plays cuts it short, so fast turning never falls
+behind. The turn is found from the states before and after (`turnBetween`);
+a resync or turns that came together jump to the new state. The move shown:
+the next step as the
 setup writes it ("R2", "l'", "M", a group's next move), with any rotation
 before it shortened to the one it adds up to ("y2 y2 z" shows as "z"), and
 for the last step the rotations after it; the second half of a half turn,
 slice or wide turn begun; or, after wrong turns, taking back the last one.
 Once the setup is done the cube shows the case and the solving turns, as
 before. `guide-cube.ts` hands the state to cubing.js (its piece order differs;
-twists count the same way) and picks the move; `VirtualCube` sets it as the
-player's starting state and loops the move.
+twists count the same way), picks the move and works out the angles
+(cubing.js eases a move with smootherstep, so `moveTimeAt` turns an angle
+into a time in the move); `VirtualCube` sets the state as the player's
+starting state and drives its timeline.
 
 Both cube-driven practices keep this session's solves in one log
 (`lib/practice-log.ts`) and show them per case, most recently solved first:

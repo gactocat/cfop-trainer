@@ -44,3 +44,8 @@ export function holdStep(
       return input === 'press' ? { phase: pressOnNext ? 'pressed' : 'idle', effect: 'next' } : stay;
   }
 }
+
+/** The timer digits' colour: red while held too briefly to start, green once letting go starts, otherwise plain (running too). */
+export type TimerTone = 'held' | 'ready' | 'plain';
+
+export const toneOf = (phase: HoldPhase): TimerTone => (phase === 'pressed' ? 'held' : phase === 'armed' ? 'ready' : 'plain');

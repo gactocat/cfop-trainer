@@ -20,7 +20,7 @@ import { GanGen4Cipher, createCommandMessage, isValidGanGen4Packet, macFromCompa
 import { MAC_FORMAT_ERROR, startGanGen4Session, type GanTrafficRecord } from '@/lib/smart-cube/gan-gen4-session';
 import { CUBE_HOLDINGS, colourFrame, frameRotation, lastLayerFace, rotateFrame, userNotation, holdingFrame, type CubeHolding, type Frame } from '@/lib/smart-cube/holding';
 import { advanceGuide, applyPlan, guideView, isGuideComplete, planSetup, GUIDE_START, type GuideProgress, type SetupPlan } from '@/lib/smart-cube/setup-guide';
-import { cubingTransformationData, nextGuideMove } from '@/lib/smart-cube/guide-cube';
+import { completionStart, cubingTransformationData, guideHint, HINT_SHARE, moveTimeAt, nextGuideMove, smootherStep, turnBetween } from '@/lib/smart-cube/guide-cube';
 import { manualStart, sessionMove, startSession, type TrainerSession } from '@/lib/smart-cube/trainer-session';
 import { smartCubeUnsupported } from '@/lib/smart-cube/support';
 import { faceletsDecision } from '@/lib/smart-cube/state-sync';
@@ -253,6 +253,47 @@ let walkGuide: (alg: string, holding: CubeHolding | Frame, label: string) => voi
   const yb = planSetup("R U", 'yellow-blue')!;
   eq(nextGuideMove(yb, advanceGuide(yb, GUIDE_START, 'L', 1)).alg, "L'", 'in the user\'s notation for the holding');
   ok(same(shown(applyTurn(SOLVED, 'L', 1), nextGuideMove(yb, advanceGuide(yb, GUIDE_START, 'L', 1)).frame).applyAlg("L'"), shown(SOLVED, holdingFrame('yellow-blue'))), 'taking it back on the 3D cube returns to the cube before it');
+
+  // A turn made on the cube is played on the 3D cube to its end: found from
+  // the states before and after, written for the holding, it leads to the
+  // cube after it (any holding, any face, either way, and half turns).
+  const faces = ['U', 'R', 'F', 'D', 'L', 'B'] as const;
+  for (const [i, holding] of [...CUBE_HOLDINGS, colourFrame({ top: 'green', front: 'red' })!].entries()) {
+    const frame = typeof holding === 'string' ? holdingFrame(holding) : holding;
+    for (const face of faces) {
+      for (const amount of [1, 2, 3] as const) {
+        const before = applyFaceTurns(SOLVED, ['R U F', "D' L2 B", "F' R' U2"][i % 3]);
+        const after = applyTurn(before, face, amount);
+        const turn = turnBetween(before, after);
+        ok(turn?.face === face && turn.amount === amount, `the ${face}${amount} made is found`);
+        ok(same(shown(before, frame).applyAlg(userNotation(frame, face, amount)), shown(after, frame)), `${face}${amount}, played in the holding, leads to the cube after it`);
+      }
+    }
+  }
+  eq(turnBetween(SOLVED, applyFaceTurns(SOLVED, 'R U')), null, 'two turns together are not one');
+  eq(turnBetween(SOLVED, SOLVED), null, 'no turn, nothing to play');
+
+  // The hint turns a quarter turn to 45° and a half turn to 135° (cubing.js
+  // eases a move with smootherstep), after any rotation before it in full.
+  ok(Math.abs(smootherStep(moveTimeAt(0.5)) - 0.5) < 1e-6 && Math.abs(moveTimeAt(0.5) - 0.5) < 1e-6, 'half a quarter turn is half its time');
+  ok(Math.abs(smootherStep(moveTimeAt(0.75)) * 180 - 135) < 1e-3, `a half turn reaches 135° at ${moveTimeAt(0.75).toFixed(3)} of its time`);
+  eq([moveTimeAt(0), moveTimeAt(1)], [0, 1], 'the ends');
+  eq(guideHint("R"), { lastStart: 0, lastDuration: 1000, share: HINT_SHARE.quarter }, 'R: a quarter turn to 45°');
+  eq(guideHint("U'"), { lastStart: 0, lastDuration: 1000, share: 0.5 }, "U': the same the other way");
+  eq(guideHint('R2'), { lastStart: 0, lastDuration: 1500, share: HINT_SHARE.half }, 'R2: a half turn to 135°');
+  eq(guideHint("y R2"), { lastStart: 1000, lastDuration: 1500, share: 0.75 }, 'a rotation before it plays in full first');
+  eq(guideHint("R U' y'")?.share, 1, 'a step ending in a rotation plays to its end');
+  eq(guideHint(''), null, 'no move, no hint');
+  // Where a turn made on the cube starts playing, from the hint's angle.
+  eq(completionStart({ alg: 'R', share: 0.5 }, 'R'), 0.5, 'R made as R was shown at 45°: from 45°');
+  eq(completionStart({ alg: 'R', share: 0.2 }, 'R'), 0.2, 'from wherever it stood');
+  eq(completionStart({ alg: 'R', share: 0.5 }, "R'"), 0, 'the other way: from the start');
+  eq(completionStart({ alg: 'R', share: 0.5 }, 'U'), 0, 'another face: from the start');
+  eq(completionStart({ alg: 'R2', share: 0.25 }, 'R'), 0.5, 'R made while R2 stood at 45°: from 45°');
+  eq(completionStart({ alg: 'R2', share: 0.75 }, 'R'), 1, 'R2 past 90°: R is already there');
+  eq(completionStart({ alg: "R2", share: 0.5 }, "R'"), 0, 'R2 is shown clockwise: R\' from the start');
+  eq(completionStart({ alg: 'y R', share: 0.5 }, 'R'), 0, 'after a rotation: from the start');
+  eq(completionStart(null, 'R'), 0, 'no hint: from the start');
 }
 
 // --- setup guide

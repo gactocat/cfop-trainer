@@ -6,21 +6,13 @@ import { declineSolveImport, importDeviceSolves, retrySolveSync, type SolvesSnap
 import { solveTps } from '@/lib/solve/cfop-split';
 import { recordMoveCount, type SolveRecord } from '@/lib/solve/solve-record';
 import { countedMs, formatRecordTime, formatSolveTime, solveStats } from '@/lib/solve/solve-stats';
+import { Figure } from './Figure';
 import { PenaltyButtons } from './SolvePenalty';
 import { SolveStages } from './SolveStages';
 
 const PAGE = 50;
 const CARD = 'rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900';
 const LABEL = 'text-[11px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400';
-
-function Figure({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col items-center gap-0.5">
-      <dt className={LABEL}>{label}</dt>
-      <dd className="font-mono text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">{value}</dd>
-    </div>
-  );
-}
 
 /** How the solve was timed: by the smart cube, or with the on-screen timer. */
 export function TimerBadge({ record }: { record: SolveRecord }) {
