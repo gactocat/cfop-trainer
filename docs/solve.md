@@ -70,8 +70,8 @@ screen is on and what the timer shows are worked out in
   timed on the screen's clock, as its count shows it. How to start without
   a cube is in the setting's (i).
 - With a smart cube: the scramble is guided turn by turn, as in practice with
-  setup. Turns done dim, the next is underlined, wrong turns show the turns
-  that take them back, and the 3D cube turns the next move (or the one that
+  setup. Turns done dim, the next is underlined, the turns that take wrong
+  ones back stand in the next turn's place in red, and the 3D cube turns the next move (or the one that
   takes a wrong turn back) part of the way over and over, and plays each turn
   made (see smart-cube.md). From three wrong turns in a row, a resync that
   does not fit the guide, or a cube that is not solved when the scramble

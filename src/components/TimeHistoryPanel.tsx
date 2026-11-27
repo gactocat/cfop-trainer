@@ -4,6 +4,8 @@ import { useState, type FormEvent } from 'react';
 import { useT } from '@/hooks/useT';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import type { TimeRecord } from '@/types/pll';
+import { Figure } from './Figure';
+import { buttonClass, CloseIcon, iconButtonClass, INPUT } from './ui';
 
 interface TimeHistoryPanelProps {
   times: TimeRecord[];
@@ -45,11 +47,11 @@ export function TimeHistoryPanel({
   const ao5 = averageOfN(times, 5);
 
   return (
-    <div className="rounded-md bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 p-3 space-y-3">
-      <div className="grid grid-cols-2 gap-2 text-center">
-        <Stat label={t('common.best')} value={formatSeconds(best)} accent="emerald" />
-        <Stat label={t('common.ao5')} value={formatSeconds(ao5)} />
-      </div>
+    <div className="rounded-xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 p-3 space-y-3">
+      <dl className="grid grid-cols-2 gap-2">
+        <Figure label={t('common.best')} value={formatSeconds(best)} />
+        <Figure label={t('common.ao5')} value={formatSeconds(ao5)} />
+      </dl>
 
       <form onSubmit={handleAdd} className="flex gap-2">
         <input
@@ -60,11 +62,11 @@ export function TimeHistoryPanel({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder={t('times.placeholder')}
-          className="flex-1 min-w-0 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3 py-1.5 text-base sm:text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className={`${INPUT} flex-1 font-mono`}
         />
         <button
           type="submit"
-          className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-3 py-1.5 font-medium"
+          className={buttonClass('primary')}
         >
           {t('common.record')}
         </button>
@@ -77,7 +79,7 @@ export function TimeHistoryPanel({
           {times.map((rec) => (
             <li
               key={rec.id}
-              className="flex items-center justify-between py-1.5 gap-2"
+              className="flex items-center justify-between py-0.5 gap-2"
             >
               <span className="font-mono tabular-nums">
                 {rec.seconds.toFixed(3)}
@@ -88,39 +90,16 @@ export function TimeHistoryPanel({
               <button
                 type="button"
                 onClick={() => onRemove(rec.id)}
-                className="text-xs text-zinc-400 hover:text-rose-500"
+                className={iconButtonClass('ghost', false, 'sm')}
                 aria-label={t('times.deleteEntry')}
+                title={t('times.deleteEntry')}
               >
-                ×
+                <CloseIcon />
               </button>
             </li>
           ))}
         </ul>
       )}
-    </div>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: string;
-  accent?: 'emerald';
-}) {
-  const valueColor = accent === 'emerald'
-    ? 'text-emerald-600 dark:text-emerald-400'
-    : 'text-zinc-900 dark:text-zinc-100';
-  return (
-    <div className="rounded-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 py-2">
-      <div className="text-[10px] uppercase tracking-wider text-zinc-500">
-        {label}
-      </div>
-      <div className={`font-mono text-base font-semibold tabular-nums ${valueColor}`}>
-        {value}
-      </div>
     </div>
   );
 }

@@ -12,6 +12,7 @@ import { F2LAlgorithmForm } from './F2LAlgorithmForm';
 import { F2LAlgorithmRow } from './F2LAlgorithmRow';
 import { F2L3DPlayer } from './F2L3DPlayer';
 import { SmartSolveHistory } from './SmartSolveHistory';
+import { buttonClass, CARD, LINK } from './ui';
 
 interface F2LDetailProps {
   f2lId: F2LId;
@@ -52,7 +53,7 @@ export function F2LDetail({ f2lId }: F2LDetailProps) {
     return (
       <div className="space-y-4">
         <p>{t('f2l.detail.notFound', { id: f2lId })}</p>
-        <Link href="/f2l" className="text-emerald-600 hover:underline text-sm">
+        <Link href="/f2l" className={`${LINK} text-sm`}>
           {t('f2l.detail.backToAll')}
         </Link>
       </div>
@@ -83,7 +84,7 @@ export function F2LDetail({ f2lId }: F2LDetailProps) {
             <button
               type="button"
               onClick={() => setAdding(true)}
-              className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-3 py-1.5 font-medium"
+              className={buttonClass('primary', 'sm')}
             >
               {t('detail.add')}
             </button>
@@ -91,7 +92,7 @@ export function F2LDetail({ f2lId }: F2LDetailProps) {
         </header>
 
         {adding && (
-          <div className="rounded-lg border border-emerald-300 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 p-3">
+          <div className={`${CARD} p-3`}>
             <F2LAlgorithmForm
               f2lId={f2lId}
               onSubmit={(algorithm, auf) => {

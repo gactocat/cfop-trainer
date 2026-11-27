@@ -7,6 +7,7 @@ import { readSolve, turnsPerSecond, type SmartSolveRecord } from '@/lib/smart-cu
 import type { TrainerPractice } from '@/lib/smart-cube/trainer-session';
 import { clearSmartSolves, deleteSmartSolve } from '@/lib/smart-solve-store';
 import { InfoTip } from './InfoTip';
+import { buttonClass, CARD, CloseIcon, iconButtonClass, LINK } from './ui';
 
 const SHOWN = 10;
 
@@ -32,7 +33,7 @@ export function SmartSolveHistory({ practice, caseId }: { practice: TrainerPract
           onClick={() => {
             if (window.confirm(t('smartCube.history.confirmClearCase'))) void clearSmartSolves({ practice, caseId });
           }}
-          className="text-xs text-zinc-500 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          className={buttonClass('danger', 'sm')}
         >
           {t('smartCube.history.clearCase')}
         </button>
@@ -41,7 +42,7 @@ export function SmartSolveHistory({ practice, caseId }: { practice: TrainerPract
         {shown.map((record) => <HistoryRow key={record.id} record={record} date={date} />)}
       </ul>
       {!showAll && records.length > SHOWN && (
-        <button type="button" onClick={() => setShowAll(true)} className="text-sm text-emerald-600 hover:underline dark:text-emerald-400">
+        <button type="button" onClick={() => setShowAll(true)} className={`${LINK} text-sm`}>
           {t('smartCube.history.showAll', { count: records.length })}
         </button>
       )}
@@ -58,7 +59,7 @@ function HistoryRow({ record, date }: { record: SmartSolveRecord; date: Intl.Dat
     return { notation: read.map((m) => m.move).join(' '), count: read.length, tps: turnsPerSecond(read.length, record.executionMs) };
   }, [record]);
   return (
-    <li className="rounded-lg border border-zinc-200 bg-white p-3 text-sm dark:border-zinc-800 dark:bg-zinc-900">
+    <li className={`${CARD} p-3 text-sm`}>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="font-mono font-semibold tabular-nums">{(record.executionMs / 1000).toFixed(3)}</span>
         {record.mode === 'no-scramble' && (
@@ -80,9 +81,9 @@ function HistoryRow({ record, date }: { record: SmartSolveRecord; date: Intl.Dat
           onClick={() => void deleteSmartSolve(record.id)}
           aria-label={t('smartCube.history.delete')}
           title={t('smartCube.history.delete')}
-          className="inline-flex h-6 w-6 items-center justify-center rounded text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+          className={`${iconButtonClass('ghost', false, 'sm')} -my-1.5`}
         >
-          ✕
+          <CloseIcon />
         </button>
       </div>
       <p className="mt-1 font-mono text-xs break-words text-zinc-700 dark:text-zinc-300">{moves.notation}</p>

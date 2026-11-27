@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react';
 import { useSmartCube } from '@/hooks/useSmartCube';
 import { useT } from '@/hooks/useT';
 import { markSolved } from '@/lib/smart-cube-store';
+import { buttonClass } from './ui';
 
 // "Mark as solved": when the screen no longer matches the cube in hand and
 // that cube is solved, reset what the cube and the app take its state to be.
-// `button` in the smart cube dialog, the one place for a real cube; `link` in
-// the test cube's panel. Shown only while a cube is connected.
+// `button` in the smart cube dialog, the one place for a real cube (its
+// explanation in the row's (i)); `link` in the test cube's panel. Shown only
+// while a cube is connected.
 export function MarkSolvedButton({ variant }: { variant: 'button' | 'link' }) {
   const { t } = useT();
   const connected = useSmartCube().status === 'connected';
@@ -42,16 +44,10 @@ export function MarkSolvedButton({ variant }: { variant: 'button' | 'link' }) {
       </button>
     );
   }
+  // In the smart cube dialog: the message takes the button's words for a moment.
   return (
-    <div className="space-y-1">
-      <div className="flex flex-wrap items-center gap-3">
-        <button type="button" disabled={busy} onClick={() => void press()}
-          className="rounded-md border border-zinc-300 px-3 py-1.5 font-medium hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800">
-          {t('smartCube.markSolved')}
-        </button>
-        {message}
-      </div>
-      <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('smartCube.markSolved.help')}</p>
-    </div>
+    <button type="button" disabled={busy} aria-disabled={!!result} onClick={() => { if (!result) void press(); }} className={buttonClass('secondary', 'sm')}>
+      {message || t('smartCube.markSolved')}
+    </button>
   );
 }

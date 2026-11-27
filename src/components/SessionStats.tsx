@@ -29,7 +29,7 @@ export function SessionStats({ results, note, open = false, heading = true, clas
     <span className="block text-[10px] text-zinc-400 dark:text-zinc-500">{t('trainer.session.best', { value: value.toFixed(2) })}</span>
   );
   return (
-    <aside className={`w-full max-w-md rounded-lg border border-zinc-200 bg-white p-4 text-sm dark:border-zinc-800 dark:bg-zinc-900 xl:w-96 ${className}`}>
+    <aside className={`w-full max-w-md rounded-xl border border-zinc-200 bg-white p-4 text-sm dark:border-zinc-800 dark:bg-zinc-900 xl:w-96 ${className}`}>
       <h3 className={`flex items-baseline gap-2 text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400 ${heading ? 'justify-between' : 'justify-end'}`}>
         {heading && t('trainer.noScramble.session')}
         {totals.count > 0 && <span className="normal-case tracking-normal">{t('trainer.session.count', { count: totals.count })}</span>}

@@ -13,8 +13,11 @@ export const CARD = 'rounded-xl border border-zinc-200 bg-white dark:border-zinc
 /** The small label above a figure or a block on a card. */
 export const LABEL = 'text-[11px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400';
 
-/** A text box or select, as tall as a md button. */
-export const INPUT = 'h-9 w-full min-w-0 rounded-md border border-zinc-300 bg-white px-3 text-base text-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 sm:text-sm dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100';
+const FIELD = 'min-w-0 rounded-md border border-zinc-300 bg-white text-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100';
+/** A text box or select, as tall as a md button (16 px text on a phone, so it does not zoom). */
+export const INPUT = `${FIELD} h-9 w-full px-3 text-base sm:text-sm`;
+/** A select among sm buttons in a toolbar. */
+export const INPUT_SM = `${FIELD} h-8 px-2 text-xs`;
 
 const BUTTON_BASE = 'inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:pointer-events-none disabled:opacity-50';
 const BUTTON_SIZE = { md: 'h-9 px-4 text-sm', sm: 'h-8 px-3 text-xs' } as const;
@@ -23,8 +26,14 @@ const BUTTON_VARIANT = {
   primary: 'bg-emerald-600 text-white hover:bg-emerald-700',
   /** Beside the primary, or an action of its own: Retry, Undo, Cancel. */
   secondary: 'border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800',
-  /** An action among others in a row (a list item's Practice, Edit). */
+  /** An action among others in a row (a list item's Edit). */
   ghost: 'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800',
+  /** The row's own action among ghost ones (a list item's Practice). */
+  ghostAccent: 'text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-950/40',
+  /** Delete among ghost ones. */
+  ghostDanger: 'text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/50',
+  /** A secondary button that stays pressed (a penalty set). */
+  pressed: 'border border-zinc-800 bg-zinc-800 text-white dark:border-zinc-200 dark:bg-zinc-200 dark:text-zinc-900',
   /** Deletes or ends something for good. */
   danger: 'border border-rose-300 bg-white text-rose-700 hover:bg-rose-50 dark:border-rose-900 dark:bg-zinc-900 dark:text-rose-300 dark:hover:bg-rose-950/50',
 } as const;
@@ -46,9 +55,14 @@ const ICON_VARIANT = {
   ghost: 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100',
 } as const;
 
-/** A button that is only an icon (its name in aria-label and title). */
-export function iconButtonClass(variant: keyof typeof ICON_VARIANT = 'ghost'): string {
-  return `relative inline-flex size-9 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:pointer-events-none disabled:opacity-40 ${ICON_VARIANT[variant]}`;
+const ICON_PRESSED = 'border border-emerald-600 bg-emerald-50 text-emerald-700 dark:border-emerald-500 dark:bg-emerald-950 dark:text-emerald-300';
+
+/**
+ * A button that is only an icon (its name in aria-label and title);
+ * `pressed` while what it turns on is on; `sm` inside a list's row.
+ */
+export function iconButtonClass(variant: keyof typeof ICON_VARIANT = 'ghost', pressed = false, size: 'md' | 'sm' = 'md'): string {
+  return `relative inline-flex ${size === 'sm' ? 'size-8' : 'size-9'} shrink-0 items-center justify-center rounded-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:pointer-events-none disabled:opacity-40 ${pressed ? ICON_PRESSED : ICON_VARIANT[variant]}`;
 }
 
 /** The icons' common frame: 24 px drawing, 2 px strokes, drawn at 18 px unless told. */
@@ -161,7 +175,7 @@ export function SettingRow({ label, info, detail, stacked = false, children }: {
 }) {
   const id = useId();
   return (
-    <div className={`flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 ${stacked ? 'flex-col items-stretch' : ''}`}>
+    <div className={`flex min-h-14 gap-x-4 gap-y-2 px-4 py-3 ${stacked ? 'flex-col' : 'flex-wrap items-center justify-between'}`}>
       <div className="min-w-0">
         <div className="flex items-center gap-1 text-sm font-medium">
           <span id={id}>{label}</span>

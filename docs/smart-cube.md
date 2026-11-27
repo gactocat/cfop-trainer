@@ -29,8 +29,11 @@ and PLL:
 1. The setup must start from the practice's goal state: F2L solved (F2L),
    F2L solved and the last layer oriented (OLL), solved apart from a last-layer
    turn (PLL). Until then the case screen asks for it.
-2. Each turn advances through the setup; turned tokens dim. A half-done step
-   shows what is left, and wrong turns show the turns that take them back.
+2. Each turn advances through the setup; turned tokens dim. The rest of a
+   half-done step shows on the 3D cube, which turns it part of the way; turns
+   that take wrong ones back take the next token's place, in red, so no line
+   comes and goes. What the cube needs first (step 1) and why it is not
+   connected go in one line under the setup whose height is always kept.
 3. When the cube reaches the setup's state the case is ready and the
    recognition counts under the cube. The first turn after that starts the
    timer; ready to first turn is kept as recognition time.
@@ -192,7 +195,7 @@ the reset without a cube.
 ## Test cube
 
 For trying the smart cube screens without a cube (on cfop.app and in the iOS
-app too), the smart cube dialog ends with a small "Connect a test cube". The
+app too), the smart cube dialog ends with a "Test cube" row and its Connect button. The
 test cube (`lib/smart-cube/test-cube.ts`) stands where the Bluetooth stack
 would: it answers the session's encrypted commands and sends encrypted
 notifications (turns with its own clock, state reports, battery, a hardware

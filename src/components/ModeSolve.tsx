@@ -27,9 +27,9 @@ import type { Penalty, SolveRecord } from '@/lib/solve/solve-record';
 import { remainingGuide } from '@/lib/test-cube-hints';
 import { setTimerFocus } from '@/lib/timer-focus';
 import { SolveRecordsButton } from './SolveRecordsButton';
-import { CubeStatus, DnfButton, ResultHead, ScrambleHead, SolveFrame, TimerHead } from './SolveScreens';
+import { cubeSolveStatus, DnfButton, ResultHead, ScrambleHead, SolveFrame, TimerHead } from './SolveScreens';
 import { SolveStages } from './SolveStages';
-import { CubeProblem, SolveToolbar } from './SolveToolbar';
+import { SolveToolbar } from './SolveToolbar';
 import { VirtualCube } from './VirtualCube';
 
 // A solve from a random-state scramble, of any kind (solve-modes.ts): a
@@ -230,6 +230,8 @@ export function ModeSolve({ mode }: { mode: SolveMode }) {
   const tokens = rerouted ? screen!.tokens : scramble?.split(' ') ?? [];
   const done = !byCube || !screen ? null : screen.phase === 'ready' ? tokens.length : screen.routeKind === null ? null : screen.doneTokens;
 
+  const status = byCube && scramble ? cubeSolveStatus(screen, cube.state !== null) : null;
+
   const records = <SolveRecordsButton event={mode} snapshot={solves} onDelete={onDelete} />;
 
   if (on === 'result' && result) {
@@ -301,13 +303,14 @@ export function ModeSolve({ mode }: { mode: SolveMode }) {
         head={(
           <ScrambleHead
             toolbar={mounted && <SolveToolbar settings={settings} onNewScramble={next} newDisabled={!scramble} />}
-            problem={mounted && <CubeProblem />}
             scramble={scramble}
             failed={failed}
             tokens={tokens}
             done={done}
+            undo={byCube && screen?.phase === 'scramble' ? screen.undo : ''}
             rerouted={rerouted}
-            status={byCube && scramble && <CubeStatus screen={screen} synced={cube.state !== null} />}
+            status={status && t(status)}
+            lines={3}
           />
         )}
       />

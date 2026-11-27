@@ -16,7 +16,7 @@ import { PllLLView } from './PllLLView';
 import { PLL_IDS, type PllCategory, type PllId } from '@/types/pll';
 
 const CARD_CLASS =
-  'group flex flex-col h-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-2 sm:p-3 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors';
+  'group flex flex-col h-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-2 sm:p-3 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors';
 
 // Cards at least 10rem wide fill each row: two across on a phone held
 // upright (360 to 500 px), more on wider screens. The case view inside is

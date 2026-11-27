@@ -13,6 +13,7 @@ import { OLLAlgorithmRow } from './OLLAlgorithmRow';
 import { OLL3DPlayer } from './OLL3DPlayer';
 import { OLLLLView } from './OLLLLView';
 import { SmartSolveHistory } from './SmartSolveHistory';
+import { buttonClass, CARD, LINK, Segmented } from './ui';
 
 type CubeView = '2d' | '3d';
 
@@ -57,7 +58,7 @@ export function OLLDetail({ ollId }: OLLDetailProps) {
     return (
       <div className="space-y-4">
         <p>{t('oll.detail.notFound', { id: ollId })}</p>
-        <Link href="/oll" className="text-emerald-600 hover:underline text-sm">
+        <Link href="/oll" className={`${LINK} text-sm`}>
           {t('oll.detail.backToAll')}
         </Link>
       </div>
@@ -70,47 +71,22 @@ export function OLLDetail({ ollId }: OLLDetailProps) {
         <div className="space-y-2">
           {/* The header shows the case's name; the heading stays for screen readers. */}
           <h1 className="sr-only">{def.name}</h1>
-          <a href={`https://www.speedcubedb.com/a/3x3/OLL/OLL_${def.number}`} target="_blank" rel="noreferrer" className="inline-block text-sm text-emerald-600 dark:text-emerald-400 hover:underline">
+          <a href={`https://www.speedcubedb.com/a/3x3/OLL/OLL_${def.number}`} target="_blank" rel="noreferrer" className={`${LINK} inline-block text-sm`}>
             {t('oll.source')}
           </a>
         </div>
         <div className="flex flex-col items-center md:items-end gap-2">
-          <div
-            role="tablist"
-            aria-label={t('oll.detail.cubePreview')}
-            className="inline-flex rounded-md border border-zinc-200 dark:border-zinc-800 text-xs overflow-hidden"
-          >
-            <button
-              type="button"
-              role="tab"
-              aria-selected={view === '2d'}
-              onClick={() => setView('2d')}
-              className={`px-3 py-1 font-medium ${
-                view === '2d'
-                  ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
-                  : 'bg-transparent text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
-              }`}
-            >
-              2D
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={view === '3d'}
-              disabled={!star}
-              onClick={() => setView('3d')}
-              className={`px-3 py-1 font-medium ${
-                view === '3d'
-                  ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
-                  : 'bg-transparent text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
-              } disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent`}
-              title={star ? undefined : t('oll.detail.starToPreview3d')}
-            >
-              3D
-            </button>
-          </div>
+          <Segmented
+            label={t('oll.detail.cubePreview')}
+            value={view}
+            onChange={setView}
+            options={[
+              { value: '2d', label: '2D' },
+              { value: '3d', label: '3D', disabled: !star, title: star ? undefined : t('oll.detail.starToPreview3d') },
+            ]}
+          />
           {(view === '2d' || !star) && (
-            <div className="rounded-lg p-2 bg-zinc-100 dark:bg-zinc-900">
+            <div className="rounded-xl p-2 bg-zinc-100 dark:bg-zinc-900">
               <OLLLLView ollId={ollId} auf={displayAuf} algorithm={star?.algorithm} size={220} />
             </div>
           )}
@@ -118,7 +94,7 @@ export function OLLDetail({ ollId }: OLLDetailProps) {
       </div>
 
       {view === '3d' && star && (
-        <div className="rounded-lg p-2 bg-zinc-100 dark:bg-zinc-900">
+        <div className="rounded-xl p-2 bg-zinc-100 dark:bg-zinc-900">
           <OLL3DPlayer
             algorithm={star.algorithm}
             auf={star.auf}
@@ -134,7 +110,7 @@ export function OLLDetail({ ollId }: OLLDetailProps) {
             <button
               type="button"
               onClick={() => setAdding(true)}
-              className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-3 py-1.5 font-medium"
+              className={buttonClass('primary', 'sm')}
             >
               {t('detail.add')}
             </button>
@@ -142,7 +118,7 @@ export function OLLDetail({ ollId }: OLLDetailProps) {
         </header>
 
         {adding && (
-          <div className="rounded-lg border border-emerald-300 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 p-3">
+          <div className={`${CARD} p-3`}>
             <OLLAlgorithmForm
               ollId={ollId}
               onSubmit={(algorithm, auf) => {

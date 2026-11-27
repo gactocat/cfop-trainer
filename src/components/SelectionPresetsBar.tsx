@@ -2,6 +2,7 @@
 
 import { useT } from '@/hooks/useT';
 import type { SelectionPreset } from '@/lib/selection-presets-store';
+import { buttonClass, INPUT_SM } from './ui';
 
 interface SelectionPresetsBarProps<Id extends string> {
   presets: SelectionPreset<Id>[];
@@ -18,8 +19,6 @@ function sameSet<Id>(a: Set<Id>, b: Id[]): boolean {
   return a.size === b.length && b.every((id) => a.has(id));
 }
 
-const BUTTON =
-  'rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800';
 
 export function SelectionPresetsBar<Id extends string>({
   presets,
@@ -59,7 +58,7 @@ export function SelectionPresetsBar<Id extends string>({
             const preset = presets.find((p) => p.id === e.target.value);
             if (preset) onLoad(preset.ids);
           }}
-          className="rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 py-1 text-xs max-w-[14rem]"
+          className={`${INPUT_SM} max-w-[14rem]`}
         >
           <option value="">{t('selection.savedSets')}</option>
           {presets.map((p) => (
@@ -70,7 +69,7 @@ export function SelectionPresetsBar<Id extends string>({
         </select>
       )}
       {selectionMode && selected.size > 0 && (
-        <button type="button" onClick={saveAs} className={BUTTON}>
+        <button type="button" onClick={saveAs} className={buttonClass('secondary', 'sm')}>
           {t('selection.save')}
         </button>
       )}
@@ -78,7 +77,7 @@ export function SelectionPresetsBar<Id extends string>({
         <button
           type="button"
           onClick={remove}
-          className={`${BUTTON} text-rose-600 dark:text-rose-400`}
+          className={buttonClass('danger', 'sm')}
         >
           {t('selection.deleteSet', { name: active.name })}
         </button>

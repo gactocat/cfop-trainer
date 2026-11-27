@@ -23,10 +23,11 @@ import { HeaderPanelButton } from './HeaderPanelButton';
 import { InfoTip } from './InfoTip';
 import { PracticeSettingsButton, type PracticeScope } from './PracticeSettings';
 import { SessionStats } from './SessionStats';
-import { SmartCubeSetupStatus } from './SmartCubeSetupGuide';
-import { DigitsArea, OUTLINE, PRIMARY, QUIET, ScrambleHead, SolveFrame, useNow } from './SolveScreens';
-import { CubeConnection, CubeProblem, ICON_BUTTON } from './SolveToolbar';
+import { setupStatusKey } from './SmartCubeSetupGuide';
+import { DigitsArea, ScrambleHead, SolveFrame, useNow } from './SolveScreens';
+import { CubeConnection } from './SolveToolbar';
 import { TimerDigits } from './TimerDigits';
+import { buttonClass, Icon, iconButtonClass } from './ui';
 import { VirtualCube } from './VirtualCube';
 
 const CHIP = 'rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium tabular-nums text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200';
@@ -41,12 +42,7 @@ function hintOf(practice: TrainerPractice, flavor: TrainerFlavor, scope: Practic
 }
 
 function SessionIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="size-4.5">
-      <path d="M3 3v18h18" />
-      <path d="M8 17v-5M13 17V8M18 17v-8" />
-    </svg>
-  );
+  return <Icon><path d="M3 3v18h18" /><path d="M8 17v-5M13 17V8M18 17v-8" /></Icon>;
 }
 
 /** The recognition counting up from `since` (performance.now()), until the first turn. */
@@ -65,7 +61,7 @@ function PracticeToolbar({ scope }: { scope: PracticeScope }) {
   return (
     <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
       <span className="mr-1"><CubeConnection /></span>
-      <PracticeSettingsButton scope={scope} className={ICON_BUTTON} />
+      <PracticeSettingsButton scope={scope} className={iconButtonClass()} />
     </div>
   );
 }
@@ -100,8 +96,7 @@ function PracticeResultHead({ result, elapsed, solution, caseStats, settle, onRe
     <div className="flex w-full flex-col items-center gap-5">
       {result && !undone && (
         <div className="absolute right-3 top-3 sm:right-4 sm:top-4">
-          <button type="button" onClick={() => onUndo(result.key)} title="Esc"
-            className="rounded-md border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
+          <button type="button" onClick={() => onUndo(result.key)} title="Esc" className={buttonClass('secondary', 'sm')}>
             {t('solve.result.undo')}
           </button>
         </div>
@@ -121,8 +116,8 @@ function PracticeResultHead({ result, elapsed, solution, caseStats, settle, onRe
       </dl>
       {solution && <div className="max-w-xl text-center font-mono text-sm leading-6 break-words text-zinc-700 dark:text-zinc-300">{solution}</div>}
       <div className="flex items-center gap-2">
-        <button type="button" onClick={onRetry} className={OUTLINE}>{t('solve.result.retry')}</button>
-        <button type="button" onClick={onNext} className={PRIMARY}>
+        <button type="button" onClick={onRetry} className={buttonClass('secondary')}>{t('solve.result.retry')}</button>
+        <button type="button" onClick={onNext} className={buttonClass('primary')}>
           {t('trainer.noScramble.next')}
           <kbd className="ml-2 hidden font-mono text-[10px] font-normal opacity-70 sm:inline">Space</kbd>
         </button>
@@ -146,9 +141,9 @@ function RoundDone({ total, results, listHref, onRestart }: {
       <h2 className="text-xl font-semibold">{t('practice.round.done', { total })}</h2>
       <SessionStats results={results} open heading={false} />
       <div className="flex items-center gap-2">
-        <Link href={listHref} onClick={up} className={OUTLINE}>{t('practice.round.toList')}</Link>
+        <Link href={listHref} onClick={up} className={buttonClass('secondary')}>{t('practice.round.toList')}</Link>
         {/* Focused, so Space or Enter deals the next round. */}
-        <button type="button" autoFocus onClick={onRestart} className={PRIMARY}>{t('practice.round.again')}</button>
+        <button type="button" autoFocus onClick={onRestart} className={buttonClass('primary')}>{t('practice.round.again')}</button>
       </div>
     </div>
   );
@@ -254,8 +249,8 @@ export function PracticeScreens(props: PracticeScreensProps) {
       <>
         {header}
         <SolveFrame label={t('practice.screen.case')} cube={null} cubeSize="hidden"
-          head={<ScrambleHead toolbar={toolbar} scramble={undefined} tokens={[]} done={null}
-            status={<div className="py-16">{empty}</div>} />} />
+          head={<ScrambleHead toolbar={toolbar} scramble={undefined} tokens={[]} done={null} />}
+          tail={<div className="py-16 text-center">{empty}</div>} />
       </>
     );
   }
@@ -322,7 +317,7 @@ export function PracticeScreens(props: PracticeScreensProps) {
             </DigitsArea>
           )}
           tail={flavor === 'no-scramble' && state === 'running' && (
-            <button type="button" onClick={onReset} className={QUIET}>{t('trainer.noScramble.reset')}</button>
+            <button type="button" onClick={onReset} className={buttonClass('secondary', 'sm')}>{t('trainer.noScramble.reset')}</button>
           )}
         />
       </>
@@ -333,6 +328,7 @@ export function PracticeScreens(props: PracticeScreensProps) {
   const scramble = flavor === 'inverse' ? setup ?? null
     : flavor === 'smart-setup' ? (guided ? guided.plan.tokens.join(' ') : setup ?? null)
       : undefined;
+  const setupStatus = flavor === 'smart-setup' && guided ? setupStatusKey(guided, practice) : null;
   const ready = flavor === 'no-scramble' ? virtual?.shownAt ?? null
     : flavor === 'smart-setup' && guided?.phase === 'ready' ? guided.readySince : null;
   return (
@@ -347,14 +343,15 @@ export function PracticeScreens(props: PracticeScreensProps) {
           <ScrambleHead
             toolbar={toolbar}
             lead={progress ? <span className={CHIP}>{progress}</span> : undefined}
-            problem={mounted && <CubeProblem />}
             scramble={scramble}
             tokens={guided ? guided.plan.tokens : scramble?.split(' ') ?? []}
             done={flavor === 'smart-setup' && guided ? guided.doneTokens : null}
-            status={flavor === 'smart-setup' && guided && guided.phase !== 'ready' && <SmartCubeSetupStatus view={guided} practice={practice} />}
+            undo={flavor === 'smart-setup' && guided?.phase === 'setup' ? guided.undo : ''}
+            status={setupStatus && t(setupStatus)}
           />
         )}
-        tail={ready !== null && <RecognitionCount key={ready} since={ready} />}
+        // Its place is kept from the start, so the cube does not move when the count comes.
+        tail={<div className="flex h-12 items-center">{ready !== null && <RecognitionCount key={ready} since={ready} />}</div>}
       />
     </>
   );

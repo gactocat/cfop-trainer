@@ -129,7 +129,13 @@ CI (`.github/workflows/ci.yml`) runs the same three steps on every PR.
   scramble, for example) goes through `rotationNeutral` in `lib/cube-rotation.ts`
   before being inverted.
 - Styling is Tailwind utility classes inline, with `dark:` variants for every
-  colour. No CSS modules.
+  colour. No CSS modules. Controls come from `src/components/ui.tsx`
+  (`buttonClass`, `iconButtonClass`, `Segmented` for a choice, `Switch` for
+  on / off, `SettingsGroup` and `SettingRow` for settings, `CARD`, `INPUT`):
+  extend those rather than styling a new button or toggle in place.
+- Layout stays put: a message that comes and goes takes a place kept for it
+  (the solve and practice screens' status line, a row's second line) or
+  replaces words in place, so nothing around it moves.
 - UI text is translated (English, Japanese). Never put user-facing strings in
   components: add a key to `src/i18n/messages.ts` (both locales) and read it
   with `useT()` — `t(key, params)` for plain strings, `tn(stem, count)` for

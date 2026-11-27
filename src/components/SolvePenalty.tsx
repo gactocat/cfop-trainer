@@ -4,6 +4,7 @@ import { useT } from '@/hooks/useT';
 import { saveSolve } from '@/lib/solve-store';
 import { withPenalty, type Penalty, type SolveRecord } from '@/lib/solve/solve-record';
 import { formatRecordTime, formatSolveTime } from '@/lib/solve/solve-stats';
+import { buttonClass } from './ui';
 
 /** A solve's time with its penalty ("8.90+", "DNF"), and under a DNF the time it would have been. */
 export function RecordTime({ record, className = '', small = 'text-[11px]' }: { record: SolveRecord; className?: string; small?: string }) {
@@ -33,9 +34,7 @@ export function PenaltyButtons({ record }: { record: SolveRecord }) {
         aria-label={aria}
         title={aria}
         onClick={() => toggle(penalty)}
-        className={`rounded-md border px-2.5 py-1 font-mono text-xs font-semibold tabular-nums ${on
-          ? 'border-zinc-800 bg-zinc-800 text-white dark:border-zinc-200 dark:bg-zinc-200 dark:text-zinc-900'
-          : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800'}`}
+        className={`${buttonClass(on ? 'pressed' : 'secondary', 'sm')} font-mono tabular-nums`}
       >
         {label}
       </button>

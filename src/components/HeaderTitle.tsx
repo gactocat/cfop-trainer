@@ -11,6 +11,7 @@ import { SOLVE_MODE, SOLVE_MODES } from '@/lib/solve/solve-modes';
 import { F2L_IDS, type F2LId } from '@/types/f2l';
 import { OLL_IDS, type OLLId } from '@/types/oll';
 import type { PllId } from '@/types/pll';
+import { iconButtonClass } from './ui';
 
 const STAGES = { f2l: 'F2L', oll: 'OLL', pll: 'PLL' } as const;
 const RANDOM_TITLE = { f2l: 'trainer.f2lTitle', oll: 'trainer.ollTitle', pll: 'trainer.pllTitle' } as const;
@@ -116,7 +117,7 @@ export function HeaderTitle() {
   return (
     <div className="flex min-w-0 shrink items-center gap-1">
       <Link href={page.up.href} onClick={back} aria-label={label} title={label}
-        className="-ml-1.5 inline-flex size-9 shrink-0 items-center justify-center rounded-md text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100">
+        className={`${iconButtonClass()} -ml-1.5`}>
         <BackIcon />
       </Link>
       <span className="truncate text-base font-semibold tracking-tight sm:text-lg">{page.title}</span>

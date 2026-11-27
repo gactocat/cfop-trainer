@@ -7,39 +7,35 @@ import { openAppDialog } from '@/lib/app-dialog';
 import { isNativeApp } from '@/lib/native';
 import { connect, connectLast, startScan, unsupportedReason } from '@/lib/smart-cube-store';
 import { BatteryLevel } from './BatteryLevel';
-import { PROBLEM, STATUS } from './SmartCubePanel';
+import { cubeStatusKey } from './SmartCubePanel';
 import { SolveSettingsButton } from './SolveSettings';
+import { buttonClass, Icon, iconButtonClass } from './ui';
 
-export const ICON_BUTTON = 'inline-flex size-8 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-40 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100';
+export const CUBE_ICON = <Icon className="size-4"><path d="M12 2 21 7v10l-9 5-9-5V7z" /><path d="M3 7l9 5 9-5M12 12v10" /></Icon>;
 
-function CubeIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="size-4">
-      <path d="M12 2 21 7v10l-9 5-9-5V7z" />
-      <path d="M3 7l9 5 9-5M12 12v10" />
-    </svg>
-  );
-}
+const BUSY = ['choosing', 'scanning', 'reading-mac', 'connecting'];
 
-// The smart cube, small: connect it, or see it is connected and its
-// battery. The smart cube dialog keeps the rest (holding, MAC, disconnect).
+// The smart cube, small, the same on a scramble's or a case's toolbar and
+// under the practice's settings: a button to connect it, or once connected
+// its battery, which opens the smart cube dialog (holding, MAC, disconnect).
+// One size in every state, so connecting moves nothing around it.
 export function CubeConnection() {
   const { t } = useT();
   const cube = useSmartCube();
   const { lastCube } = useSmartCubeSettings();
-  const chip = 'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium';
+  const chip = buttonClass('secondary', 'sm');
   // A connected cube shows even where Bluetooth cannot connect one (the test cube).
   if (cube.status === 'connected') {
+    const name = cube.virtual ? t('smartCube.test.title') : cube.deviceName ?? t('smartCube.title');
     return (
-      <button type="button" onClick={() => openAppDialog('smartCube')}
-        className={`${chip} border border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100 dark:hover:bg-emerald-950`}>
-        <CubeIcon />
+      <button type="button" onClick={() => openAppDialog('smartCube')} title={name} aria-label={`${name}, ${t('smartCube.status.connected')}`} className={chip}>
+        <span aria-hidden className="size-2 rounded-full bg-emerald-500" />
         {cube.battery === null ? t('smartCube.status.connected') : <BatteryLevel level={cube.battery} />}
       </button>
     );
   }
   if (unsupportedReason() !== null) return null;
-  const busy = ['choosing', 'scanning', 'reading-mac', 'connecting'].includes(cube.status);
+  const busy = BUSY.includes(cube.status);
   const onConnect = () => {
     if (cube.status === 'needs-mac') {
       openAppDialog('smartCube');
@@ -53,20 +49,11 @@ export function CubeConnection() {
     }
   };
   return (
-    <button type="button" disabled={busy} onClick={onConnect} title={busy ? t(STATUS[cube.status]) : undefined}
-      className={`${chip} border border-emerald-600 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 dark:border-emerald-500 dark:text-emerald-300 dark:hover:bg-emerald-950/40`}>
-      <CubeIcon />
-      {t(cube.status === 'needs-mac' ? 'practice.cube.enterMac' : busy ? 'smartCube.status.connecting' : 'practice.cube.connect')}
+    <button type="button" disabled={busy} onClick={onConnect} title={t(cubeStatusKey(cube))} className={chip}>
+      {CUBE_ICON}
+      {t(cube.status === 'needs-mac' ? 'practice.cube.enterMac' : busy ? 'smartCube.status.connecting' : 'practice.cube.connectShort')}
     </button>
   );
-}
-
-/** Why the smart cube is not connected, when something went wrong. */
-export function CubeProblem() {
-  const { t } = useT();
-  const { problem, status } = useSmartCube();
-  if (!problem || status === 'connected') return null;
-  return <p role="alert" className="text-xs text-amber-800 dark:text-amber-200">{t(PROBLEM[problem])}</p>;
 }
 
 // The scramble screen's controls, for any kind of solve: the smart cube
@@ -81,12 +68,10 @@ export function SolveToolbar({ settings, onNewScramble, newDisabled }: {
     <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
       <span className="mr-1"><CubeConnection /></span>
       <button type="button" onClick={onNewScramble} disabled={newDisabled} aria-label={t('solve.scramble.new')} title={t('solve.scramble.new')}
-        className={ICON_BUTTON}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="size-4.5">
-          <path d="M20 11a8 8 0 0 0-14.7-4.4L4 8m0-4v4h4M4 13a8 8 0 0 0 14.7 4.4L20 16m0 4v-4h-4" />
-        </svg>
+        className={iconButtonClass()}>
+        <Icon><path d="M20 11a8 8 0 0 0-14.7-4.4L4 8m0-4v4h4M4 13a8 8 0 0 0 14.7 4.4L20 16m0 4v-4h-4" /></Icon>
       </button>
-      <SolveSettingsButton settings={settings} disabled={false} className={ICON_BUTTON} />
+      <SolveSettingsButton settings={settings} disabled={false} className={iconButtonClass()} />
     </div>
   );
 }

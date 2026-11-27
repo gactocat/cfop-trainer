@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { useMounted } from '@/hooks/useMounted';
 import { useSmartCube, useSmartCubeSettings } from '@/hooks/useSmartCube';
 import { useT } from '@/hooks/useT';
@@ -21,6 +21,7 @@ import {
   stopScan,
   unsupportedReason,
   type SmartCubeProblem,
+  type SmartCubeSnapshot,
   type SmartCubeStatus,
 } from '@/lib/smart-cube-store';
 import { connectTestCube } from '@/lib/test-cube-store';
@@ -30,6 +31,7 @@ import { clearSmartSolves, MAX_SMART_SOLVES } from '@/lib/smart-solve-store';
 import { useSmartSolveCount } from '@/hooks/useSmartSolves';
 import { BatteryLevel } from './BatteryLevel';
 import { MarkSolvedButton } from './MarkSolvedButton';
+import { buttonClass, INPUT, LINK, Segmented, SettingRow, SettingsGroup } from './ui';
 
 export const UNSUPPORTED: Record<SmartCubeUnsupported, MessageKey> = {
   ios: 'smartCube.unsupported.ios',
@@ -63,18 +65,35 @@ const HOLDING_LABELS: Record<CubeHolding, MessageKey> = {
   'white-green': 'smartCube.holding.whiteGreen',
 };
 
-const button = 'rounded-md border border-zinc-300 px-3 py-1.5 text-sm font-medium hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800';
-const primary = 'rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 dark:bg-emerald-600 dark:hover:bg-emerald-700';
+/**
+ * What the smart cube is doing, in a line: why it cannot connect here, what
+ * went wrong, what it is waiting for, or that it is connected (with its name).
+ * The same words under its setting and in the dialog.
+ */
+export function cubeStatusKey(cube: Pick<SmartCubeSnapshot, 'status' | 'problem'>): MessageKey {
+  const unsupported = cube.status === 'connected' ? null : unsupportedReason();
+  if (unsupported) return UNSUPPORTED[unsupported];
+  if (cube.problem && cube.status !== 'connected') return PROBLEM[cube.problem];
+  return STATUS[cube.status];
+}
 
-function Row({ label, children }: { label: string; children: ReactNode }) {
+const HOLDINGS_HELP: MessageKey = 'smartCube.holding.help';
+
+/** What the dialog says about the smart cube, behind the (i) by its title. */
+export function SmartCubeInfo() {
+  const { t } = useT();
   return (
-    <div className="flex justify-between gap-3 text-sm">
-      <span className="text-zinc-500 dark:text-zinc-400">{label}</span>
-      <span className="text-right">{children}</span>
-    </div>
+    <>
+      <span className="block">{t('smartCube.description')}</span>
+      <span className="block">{t('smartCube.usage')}</span>
+    </>
   );
 }
 
+// The smart cube dialog, as setting rows like the top page's: the cube
+// (what it is doing, and connecting or disconnecting it; once connected its
+// battery, state and "mark as solved"), the MAC address, how it is held, the
+// solves it recorded, and the test cube. Explanations are behind each (i).
 export function SmartCubePanel() {
   const { t, tn } = useT();
   const mounted = useMounted();
@@ -101,158 +120,139 @@ export function SmartCubePanel() {
   const state = cube.state === null
     ? t('smartCube.state.unknown')
     : t(stateEquals(cube.state, SOLVED) ? 'smartCube.state.solved' : 'smartCube.state.unsolved');
+  const name = cube.virtual ? t('smartCube.test.title') : cube.deviceName;
+  const model = connected && cube.model && !cube.virtual ? ` (${cube.model}${cube.firmware ? ` ${cube.firmware}` : ''})` : '';
+  const sm = (variant: Parameters<typeof buttonClass>[0]) => buttonClass(variant, 'sm');
 
   return (
-    <div className="space-y-4 text-sm">
-      <div className="space-y-1 text-zinc-600 dark:text-zinc-300">
-        <p>{t('smartCube.description')}</p>
-        <p>{t('smartCube.usage')}</p>
-      </div>
-
-      {unsupported && (
-        <p role="note" className="rounded-md bg-zinc-100 px-3 py-2 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
-          {t(UNSUPPORTED[unsupported])}
-        </p>
-      )}
-      {(!unsupported || testCube) && (
-        <>
-          <div className="space-y-2">
+    <div className="space-y-3 text-sm">
+      {(!unsupported || testCube) ? (
+        <SettingsGroup>
+          <SettingRow
+            label={name ? `${name}${model}` : t('smartCube.device')}
+            detail={(
+              <span aria-live="polite" className={cube.problem && !connected ? 'text-amber-800 dark:text-amber-200' : ''}>
+                {t(cubeStatusKey(cube))}
+                {cube.problem === 'bluetooth-denied' && !connected && (
+                  <>{' '}<button type="button" className={LINK} onClick={() => void openBluetoothSettings()}>{t('smartCube.openSettings')}</button></>
+                )}
+              </span>
+            )}
+          >
             <div className="flex flex-wrap gap-2">
-              {connected && (
-                <button type="button" className={button} onClick={disconnect}>{t('smartCube.disconnect')}</button>
-              )}
+              {connected && <button type="button" className={sm('secondary')} onClick={disconnect}>{t('smartCube.disconnect')}</button>}
               {/* A real cube can be connected in place of the test cube. */}
               {unsupported || (connected && !cube.virtual) ? null : native ? (
                 <>
                   {lastCube && (
-                    <button type="button" className={primary} disabled={busy} onClick={() => void connectLast(mac)}>
+                    <button type="button" className={sm('primary')} disabled={busy} onClick={() => void connectLast(mac)}>
                       {t('smartCube.connectLast', { name: lastCube.name })}
                     </button>
                   )}
                   {scanning ? (
-                    <button type="button" className={button} onClick={() => void stopScan()}>{t('smartCube.stopScan')}</button>
+                    <button type="button" className={sm('secondary')} onClick={() => void stopScan()}>{t('smartCube.stopScan')}</button>
                   ) : (
-                    <button type="button" className={lastCube ? button : primary} disabled={busy} onClick={() => void startScan()}>
+                    <button type="button" className={sm(lastCube ? 'secondary' : 'primary')} disabled={busy} onClick={() => void startScan()}>
                       {t('smartCube.scan')}
                     </button>
                   )}
                 </>
               ) : (
-                <button type="button" className={primary} disabled={busy} onClick={() => void connect(mac)}>{t('smartCube.connect')}</button>
+                <button type="button" className={sm('primary')} disabled={busy} onClick={() => void connect(mac)}>{t('smartCube.connect')}</button>
               )}
               {canReconnect && (
-                <button type="button" className={button} onClick={() => void connectChosen()}>{t('smartCube.reconnect')}</button>
+                <button type="button" className={sm('secondary')} onClick={() => void connectChosen()}>{t('smartCube.reconnect')}</button>
               )}
             </div>
-            <div aria-live="polite" className="space-y-1">
-              <Row label={t('smartCube.device')}>
-                {cube.virtual ? t('smartCube.test.title') : cube.deviceName ?? '-'}
-                {connected && cube.model && !cube.virtual ? ` (${cube.model}${cube.firmware ? ` ${cube.firmware}` : ''})` : ''}
-              </Row>
-              <p className="text-zinc-700 dark:text-zinc-200">{t(STATUS[cube.status])}</p>
-              {cube.problem && (
-                <div role="alert" className="space-y-2 rounded-md bg-amber-50 px-3 py-2 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-                  <p>{t(PROBLEM[cube.problem])}</p>
-                  {cube.problem === 'bluetooth-denied' && (
-                    <button type="button" className="text-sm font-medium underline" onClick={() => void openBluetoothSettings()}>
-                      {t('smartCube.openSettings')}
+          </SettingRow>
+          {native && !connected && cube.found.length > 0 && (
+            <ul aria-label={t('smartCube.found')} className="divide-y divide-zinc-200 dark:divide-zinc-800">
+              {cube.found.map((found) => (
+                <li key={found.deviceId}>
+                  <SettingRow label={found.name}>
+                    <button type="button" className={sm('secondary')} disabled={cube.status === 'connecting'}
+                      onClick={() => void connectFound(found.deviceId, mac)}>
+                      {t('smartCube.connectFound')}
                     </button>
-                  )}
-                </div>
-              )}
-              {native && !connected && cube.found.length > 0 && (
-                <ul aria-label={t('smartCube.found')} className="divide-y divide-zinc-200 rounded-md border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
-                  {cube.found.map((found) => (
-                    <li key={found.deviceId} className="flex items-center justify-between gap-3 px-3 py-2">
-                      <span className="font-medium">{found.name}</span>
-                      <button
-                        type="button"
-                        className={button}
-                        disabled={cube.status === 'connecting'}
-                        onClick={() => void connectFound(found.deviceId, mac)}
-                      >
-                        {t('smartCube.connectFound')}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {connected && <>
-                <Row label={t('smartCube.battery')}>{cube.battery === null ? '-' : <BatteryLevel level={cube.battery} labelled />}</Row>
-                <Row label={t('smartCube.state')}>{state}</Row>
-                <div className="pt-2"><MarkSolvedButton variant="button" /></div>
-              </>}
-            </div>
-          </div>
-
-          {!unsupported && <div className="space-y-2 border-t border-zinc-200 pt-3 dark:border-zinc-800">
-            <label className="block space-y-1">
-              <span className="font-medium">{t('smartCube.mac.label')}</span>
-              <input
-                value={mac}
-                onChange={(event) => setMac(event.target.value)}
-                placeholder="AB:12:CD:34:EF:56"
-                spellCheck={false}
-                autoCapitalize="characters"
-                className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 font-mono dark:border-zinc-700 dark:bg-zinc-950"
-              />
-            </label>
-            {askMac && (
-              <button type="button" className={primary} onClick={() => void connectChosen(mac)}>{t('smartCube.continue')}</button>
-            )}
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">{t(native ? 'smartCube.mac.helpNative' : 'smartCube.mac.help')}</p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('smartCube.mac.howTo')}</p>
-            {Object.keys(macs).length > 0 && (
-              <button type="button" className="text-xs underline" onClick={() => { forgetMac(); setForgot(true); }}>
-                {t('smartCube.forgetMacs')}
-              </button>
-            )}
-            {forgot && Object.keys(macs).length === 0 && <p className="text-xs">{t('smartCube.forgotMacs')}</p>}
-          </div>}
-
-          <div className="space-y-2 border-t border-zinc-200 pt-3 dark:border-zinc-800">
-            <h3 className="font-medium">{t('smartCube.holding.title')}</h3>
-            <div role="radiogroup" aria-label={t('smartCube.holding.aria')} className="flex flex-col gap-1">
-              {CUBE_HOLDINGS.map((value) => (
-                <label key={value} className="flex items-center gap-2">
-                  <input type="radio" name="smart-cube-holding" checked={holding === value} onChange={() => setHolding(value)} />
-                  {t(HOLDING_LABELS[value])}
-                </label>
+                  </SettingRow>
+                </li>
               ))}
-            </div>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('smartCube.holding.help')}</p>
-          </div>
-        </>
+            </ul>
+          )}
+          {/* Kept while not connected (showing "-"), so connecting adds no rows. */}
+          <SettingRow label={t('smartCube.battery')}>
+            <span className="text-sm">{!connected || cube.battery === null ? '-' : <BatteryLevel level={cube.battery} labelled />}</span>
+          </SettingRow>
+          <SettingRow label={t('smartCube.state')} info={t('smartCube.markSolved.help')}>
+            <span className="flex items-center gap-3">
+              <span className="text-sm text-zinc-600 dark:text-zinc-300">{connected ? state : '-'}</span>
+              <MarkSolvedButton variant="button" />
+            </span>
+          </SettingRow>
+        </SettingsGroup>
+      ) : (
+        <SettingsGroup>
+          <SettingRow label={t('smartCube.device')} detail={t(UNSUPPORTED[unsupported])} />
+        </SettingsGroup>
       )}
 
-      {(!unsupported || (solveCount ?? 0) > 0) && (
-        <div className="space-y-2 border-t border-zinc-200 pt-3 dark:border-zinc-800">
-          <h3 className="font-medium">{t('smartCube.records.title')}</h3>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('smartCube.records.help', { max: MAX_SMART_SOLVES })}</p>
-          <div className="flex flex-wrap items-center gap-3">
-            <span>{solveCount === null ? '-' : tn('smartCube.records.count', solveCount)}</span>
+      {(!unsupported || testCube) && (
+        <SettingsGroup>
+          {!unsupported && (
+            <SettingRow label={t('smartCube.mac.label')} stacked info={(
+              <>
+                <span className="block">{t(native ? 'smartCube.mac.helpNative' : 'smartCube.mac.help')}</span>
+                <span className="block">{t('smartCube.mac.howTo')}</span>
+              </>
+            )}>
+              {(labelId) => (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input value={mac} onChange={(event) => setMac(event.target.value)} aria-labelledby={labelId}
+                      placeholder="AB:12:CD:34:EF:56" spellCheck={false} autoCapitalize="characters"
+                      className={`${INPUT} font-mono`} />
+                    {askMac && (
+                      <button type="button" className={buttonClass('primary')} onClick={() => void connectChosen(mac)}>{t('practice.cube.connectShort')}</button>
+                    )}
+                  </div>
+                  {Object.keys(macs).length > 0 && (
+                    <button type="button" className={`${LINK} text-xs`} onClick={() => { forgetMac(); setForgot(true); }}>
+                      {t('smartCube.forgetMacs')}
+                    </button>
+                  )}
+                  {forgot && Object.keys(macs).length === 0 && <p role="status" className="text-xs text-zinc-500 dark:text-zinc-400">{t('smartCube.forgotMacs')}</p>}
+                </div>
+              )}
+            </SettingRow>
+          )}
+          <SettingRow label={t('smartCube.holding.title')} info={t(HOLDINGS_HELP)} stacked>
+            <Segmented label={t('smartCube.holding.aria')} value={holding} onChange={setHolding} vertical
+              options={CUBE_HOLDINGS.map((value) => ({ value, label: t(HOLDING_LABELS[value]) }))} />
+          </SettingRow>
+        </SettingsGroup>
+      )}
+
+      <SettingsGroup>
+        {(!unsupported || (solveCount ?? 0) > 0) && (
+          <SettingRow label={t('smartCube.records.title')} info={t('smartCube.records.help', { max: MAX_SMART_SOLVES })}
+            detail={solveCount === null ? '-' : tn('smartCube.records.count', solveCount)}>
             {(solveCount ?? 0) > 0 && (
-              <button
-                type="button"
-                className={button}
-                onClick={() => { if (window.confirm(t('smartCube.records.confirmClear'))) void clearSmartSolves(); }}
-              >
+              <button type="button" className={sm('danger')}
+                onClick={() => { if (window.confirm(t('smartCube.records.confirmClear'))) void clearSmartSolves(); }}>
                 {t('smartCube.records.clear')}
               </button>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* Closes the dialog, so the test cube's panel can be used at once. */}
-      {!testCube && (
-        <div className="space-y-1 border-t border-zinc-200 pt-3 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
-          <button type="button" className="font-medium underline hover:text-zinc-900 dark:hover:text-zinc-100" onClick={() => { void connectTestCube(); closeAppDialog(); }}>
-            {t('smartCube.test.connect')}
-          </button>
-          <p>{t('smartCube.test.help')}</p>
-        </div>
-      )}
+          </SettingRow>
+        )}
+        {/* Closes the dialog, so the test cube's panel can be used at once. */}
+        {!testCube && (
+          <SettingRow label={t('smartCube.test.title')} info={t('smartCube.test.help')}>
+            <button type="button" className={sm('secondary')} onClick={() => { void connectTestCube(); closeAppDialog(); }}>
+              {t('practice.cube.connectShort')}
+            </button>
+          </SettingRow>
+        )}
+      </SettingsGroup>
     </div>
   );
 }

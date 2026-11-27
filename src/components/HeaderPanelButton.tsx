@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { useMounted } from '@/hooks/useMounted';
 import { HEADER_ACTIONS_ID } from '@/lib/header-slots';
 import { FullScreenModal } from './FullScreenModal';
+import { iconButtonClass } from './ui';
 
 // A page's panel kept out of the way of what it is for (a solve page's
 // records, a practice's session): an icon at the right of the app header,
@@ -28,7 +29,7 @@ export function HeaderPanelButton({ label, icon, lead, children }: {
           {lead}
           <div className="ml-auto flex shrink-0 items-center">
             <button type="button" onClick={() => setOpen(true)} aria-label={label} title={label} aria-haspopup="dialog"
-              className="inline-flex size-9 items-center justify-center rounded-md border border-zinc-300 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
+              className={iconButtonClass('outline')}>
               {icon}
             </button>
           </div>

@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { F2L_PRESET_ALGORITHMS } from '@/data/f2l-preset-algorithms';
 import { useT } from '@/hooks/useT';
+import { buttonClass, INPUT, Segmented } from '@/components/ui';
 import { splitF2LAuf } from '@/lib/f2l-auf';
 import type { F2LId } from '@/types/f2l';
 import { AUFS, type Auf } from '@/types/pll';
@@ -65,7 +66,7 @@ export function F2LAlgorithmForm({
         <div className="flex items-center gap-2">
           <label
             htmlFor="f2l-preset-picker"
-            className="text-xs text-zinc-500 shrink-0"
+            className="text-xs text-zinc-500 dark:text-zinc-400 shrink-0"
           >
             {t('algForm.presets', { count: presets.length })}
           </label>
@@ -73,7 +74,7 @@ export function F2LAlgorithmForm({
             id="f2l-preset-picker"
             onChange={handlePresetChange}
             defaultValue=""
-            className="flex-1 min-w-0 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 py-1.5 text-base sm:text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className={`${INPUT} flex-1 font-mono`}
           >
             <option value="">—</option>
             {presets.map((alg, i) => (
@@ -85,34 +86,11 @@ export function F2LAlgorithmForm({
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-2 items-stretch">
+      <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
         <fieldset className="shrink-0">
           <legend className="sr-only">{t('algForm.startingOrientation')}</legend>
-          <div
-            role="radiogroup"
-            aria-label={t('algForm.startingOrientationAuf')}
-            className="inline-flex rounded-md bg-zinc-100 dark:bg-zinc-800 p-0.5 gap-0.5 h-full"
-          >
-            {AUFS.map((a) => {
-              const active = a === auf;
-              return (
-                <button
-                  key={a}
-                  type="button"
-                  role="radio"
-                  aria-checked={active}
-                  onClick={() => setAuf(a)}
-                  className={`px-2 text-xs font-mono rounded transition-colors ${
-                    active
-                      ? 'bg-emerald-600 text-white'
-                      : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
-                  }`}
-                >
-                  {AUF_LABEL[a]}
-                </button>
-              );
-            })}
-          </div>
+          <Segmented label={t('algForm.startingOrientationAuf')} value={auf} onChange={setAuf} mono
+            options={AUFS.map((a) => ({ value: a, label: AUF_LABEL[a] }))} />
         </fieldset>
 
         <input
@@ -120,13 +98,13 @@ export function F2LAlgorithmForm({
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder={placeholder ?? t('algForm.placeholderF2l')}
-          className="flex-1 min-w-0 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-base sm:text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className={`${INPUT} flex-1 font-mono`}
           autoFocus
         />
         <div className="flex gap-2">
           <button
             type="submit"
-            className="rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-4 py-2 font-medium"
+            className={buttonClass('primary')}
           >
             {submitLabel ?? t('common.save')}
           </button>
@@ -134,7 +112,7 @@ export function F2LAlgorithmForm({
             <button
               type="button"
               onClick={onCancel}
-              className="rounded-md border border-zinc-300 dark:border-zinc-700 text-sm px-4 py-2 font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              className={buttonClass('secondary')}
             >
               {t('common.cancel')}
             </button>

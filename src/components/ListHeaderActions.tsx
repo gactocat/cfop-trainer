@@ -14,8 +14,8 @@ import { InfoTip } from './InfoTip';
 import { SelectIcon } from './SelectIcon';
 import { SelectionPresetsBar } from './SelectionPresetsBar';
 import { ShuffleIcon } from './ShuffleIcon';
+import { buttonClass, iconButtonClass } from './ui';
 
-const OUTLINE = 'rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800';
 
 // A list page's controls, in the app header: the page's (i) after its
 // title, then Select (an icon, with the number of cases shown when some are
@@ -66,11 +66,7 @@ export function ListHeaderActions<Id extends string>({
               aria-label={selectLabel}
               title={selectLabel}
               onClick={() => onSelectionModeChange(!selectionMode)}
-              className={`relative inline-flex h-9 w-9 items-center justify-center rounded-md border text-lg transition-colors ${
-                selectionMode
-                  ? 'border-emerald-600 bg-emerald-50 text-emerald-700 dark:border-emerald-500 dark:bg-emerald-950 dark:text-emerald-300'
-                  : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800'
-              }`}
+              className={`${iconButtonClass('outline', selectionMode)} text-lg`}
             >
               <SelectIcon />
               {leftOut && !selectionMode && (
@@ -83,7 +79,7 @@ export function ListHeaderActions<Id extends string>({
               href={randomPracticePath(practice)}
               aria-label={t('common.randomTraining')}
               title={t('common.randomTraining')}
-              className="inline-flex h-9 items-center gap-1.5 rounded-md bg-emerald-600 px-3 text-sm font-medium text-white hover:bg-emerald-700"
+              className={buttonClass('primary')}
             >
               <ShuffleIcon />
               {/* Short on a phone, so the title and both buttons keep to one row. */}
@@ -99,8 +95,8 @@ export function ListHeaderActions<Id extends string>({
           <span className="tabular-nums text-zinc-500" title={t('grid.selectedForRandom', { count: selection.count, total })}>
             {t('grid.shown', { count: selection.count, total })}
           </span>
-          <button type="button" onClick={selection.selectAll} className={OUTLINE}>{t('common.selectAll')}</button>
-          <button type="button" onClick={selection.clear} className={OUTLINE}>{t('common.clear')}</button>
+          <button type="button" onClick={selection.selectAll} className={buttonClass('secondary', 'sm')}>{t('common.selectAll')}</button>
+          <button type="button" onClick={selection.clear} className={buttonClass('secondary', 'sm')}>{t('common.clear')}</button>
           <SelectionPresetsBar
             presets={presets.presets}
             selected={selection.selected}
@@ -114,7 +110,7 @@ export function ListHeaderActions<Id extends string>({
           <button
             type="button"
             onClick={() => onSelectionModeChange(false)}
-            className="ml-auto sm:ml-0 rounded-md bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-700"
+            className={`${buttonClass('primary', 'sm')} ml-auto sm:ml-0`}
           >
             {t('common.done')}
           </button>

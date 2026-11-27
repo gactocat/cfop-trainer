@@ -6,6 +6,7 @@ import { startAccountSession } from '@/lib/account-session';
 import { reloadAccount } from '@/lib/persistence';
 import { openAccountDialog } from '@/lib/app-dialog';
 import { usePathname } from 'next/navigation';
+import { LINK } from './ui';
 
 export function AccountSession() {
   useEffect(() => { void startAccountSession(); }, []);
@@ -13,8 +14,9 @@ export function AccountSession() {
 }
 // Problems with the account, and its loading. Saving says nothing: it runs in
 // the background and retries by itself, and only saves failing for a while
-// are mentioned.
-export function StorageStatus() {
+// are mentioned. Over a page it floats at the bottom (`floating`), so coming
+// and going it moves nothing; in the account dialog it is in line.
+export function StorageStatus({ floating = false }: { floating?: boolean }) {
   const { t } = useT();
   const state = usePersistence();
   const message = state.error ? `account.error.${state.error}` as const
@@ -25,12 +27,14 @@ export function StorageStatus() {
     : !state.online ? 'account.offline' : null;
   if (!message) return null;
   return (
-    <div role={state.error ? 'alert' : 'status'} className="mb-4 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
+    <div role={state.error ? 'alert' : 'status'} className={`rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 ${floating
+      ? 'fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 mx-auto max-w-md shadow-lg'
+      : ''}`}>
       <p>{t(message)}</p>
       {(state.error === 'load' || state.error === 'conflict') && (
         <button disabled={!state.online} onClick={() => {
           if (!state.dirty || window.confirm(t('account.discardWarning'))) void reloadAccount();
-        }} className="mt-2 underline disabled:opacity-50">{t('account.reload')}</button>
+        }} className={`${LINK} mt-1`}>{t('account.reload')}</button>
       )}
     </div>
   );
@@ -55,10 +59,10 @@ export function AccountBoundary({ children }: { children: ReactNode }) {
   // their records on the device, so they never wait for the account either.
   if (['/', '/account', '/account/', '/privacy', '/privacy/', '/support', '/support/'].includes(pathname) || pathname.startsWith('/solve/')) return children;
   return <>
-    <StorageStatus />
+    <StorageStatus floating />
     <Fragment key={state.generation}>
       {ready ? <WritableArea>{children}</WritableArea> : (
-        <button className="text-sm underline" onClick={openAccountDialog}>{t('account.open')}</button>
+        <button className={`${LINK} text-sm`} onClick={openAccountDialog}>{t('account.open')}</button>
       )}
     </Fragment>
   </>;

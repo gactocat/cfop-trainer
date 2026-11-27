@@ -1,8 +1,10 @@
 'use client';
 
+import { useMounted } from '@/hooks/useMounted';
 import { choosePracticeMode, usePracticeMode, type PracticeMode } from '@/hooks/useTrainerMode';
 import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
+import { Segmented } from './ui';
 
 export const PRACTICE_MODE_OPTIONS: { value: PracticeMode; label: MessageKey; title: MessageKey }[] = [
   { value: 'setup', label: 'practice.mode.on', title: 'practice.mode.withSetupTitle' },
@@ -12,32 +14,13 @@ export const PRACTICE_MODE_OPTIONS: { value: PracticeMode; label: MessageKey; ti
 export function TrainerModeToggle() {
   const mode = usePracticeMode();
   const { t } = useT();
+  const mounted = useMounted();
   return (
-    <div
-      role="radiogroup"
-      aria-label={t('practice.mode.title')}
-      className="inline-flex flex-wrap rounded-md bg-zinc-100 dark:bg-zinc-800 p-0.5 gap-0.5"
-    >
-      {PRACTICE_MODE_OPTIONS.map((opt) => {
-        const active = opt.value === mode;
-        return (
-          <button
-            key={opt.value}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            title={t(opt.title)}
-            onClick={() => choosePracticeMode(opt.value)}
-            className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
-              active
-                ? 'bg-emerald-600 text-white'
-                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
-            }`}
-          >
-            {t(opt.label)}
-          </button>
-        );
-      })}
-    </div>
+    <Segmented
+      label={t('practice.mode.title')}
+      value={mounted ? mode : null}
+      onChange={choosePracticeMode}
+      options={PRACTICE_MODE_OPTIONS.map((option) => ({ value: option.value, label: t(option.label), title: t(option.title) }))}
+    />
   );
 }

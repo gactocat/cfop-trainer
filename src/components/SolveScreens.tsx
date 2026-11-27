@@ -2,7 +2,10 @@
 
 import { Fragment, useEffect, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import type { CubeSolveScreen } from '@/hooks/useCubeSolve';
+import { useMounted } from '@/hooks/useMounted';
+import { useSmartCube } from '@/hooks/useSmartCube';
 import { useT } from '@/hooks/useT';
+import type { MessageKey } from '@/i18n/messages';
 import type { CubeColour } from '@/lib/smart-cube/holding';
 import { inspectionCall, inspectionShown } from '@/lib/solve/inspection';
 import type { SolveRecord } from '@/lib/solve/solve-record';
@@ -10,19 +13,17 @@ import type { TimerFace } from '@/lib/solve/solve-screen';
 import { formatRecordTime, formatSolveTime } from '@/lib/solve/solve-stats';
 import { CubeColourMark } from './CubeColourMark';
 import { Figure } from './Figure';
+import { InfoTip } from './InfoTip';
+import { PROBLEM } from './SmartCubePanel';
 import { PenaltyButtons } from './SolvePenalty';
 import { TimerDigits } from './TimerDigits';
+import { buttonClass, CARD, LABEL } from './ui';
 
 // The three screens of a solve from a scramble (scramble, timer, result),
 // built from the app's parts so every kind of solve looks and works the
 // same; the page wires them to its solve (ModeSolve). Practice is built
 // from the same parts (PracticeScreens).
 
-const CARD = 'rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900';
-const LABEL = 'text-[11px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400';
-export const PRIMARY = 'rounded-md bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700';
-export const OUTLINE = 'rounded-md border border-zinc-300 px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800';
-export const QUIET = 'rounded-md border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100';
 
 // The cube's place and size: large in the room left on the scramble screen,
 // small under the timer (medium where it is the thing to solve: a practice
@@ -91,71 +92,119 @@ export function SolveFrame({ label, head, cube, cubeSize, tail, onPress }: {
   );
 }
 
-/** The scramble's tokens, those already turned dimmed and the next underlined. */
-export function Tokens({ tokens, done }: { tokens: readonly string[]; done: number | null }) {
+/**
+ * The scramble's tokens, those already turned dimmed and the next
+ * underlined. Turns to take back (`undo`, with a cube) take the next token's
+ * place, in red, until they are made, so no line of their own comes and goes.
+ */
+export function Tokens({ tokens, done, undo = '' }: { tokens: readonly string[]; done: number | null; undo?: string }) {
+  const shown = undo && done !== null
+    ? [...tokens.slice(0, done), undo, ...tokens.slice(done + 1)]
+    : tokens;
   return (
     <>
-      {tokens.map((token, i) => (
-        <Fragment key={i}>
-          {i > 0 && ' '}
-          <span className={done === null ? '' : i < done ? 'opacity-35' : i === done ? 'underline decoration-2 underline-offset-[6px]' : ''}>{token}</span>
-        </Fragment>
-      ))}
+      {shown.map((token, i) => {
+        const fix = undo && done !== null && i === done;
+        return (
+          <Fragment key={i}>
+            {i > 0 && ' '}
+            <span className={done === null ? '' : i < done ? 'opacity-35'
+              : i === done ? `underline decoration-2 underline-offset-[6px] ${fix ? 'text-rose-600 dark:text-rose-400' : ''}` : ''}>
+              {token}
+            </span>
+          </Fragment>
+        );
+      })}
     </>
   );
 }
 
-/** What the smart cube needs next, under the scramble: nothing while the turns go as shown. */
-export function CubeStatus({ screen, synced }: { screen: CubeSolveScreen | null; synced: boolean }) {
+/**
+ * The line under the scramble, its height kept whether or not there is
+ * something to say, so nothing moves when there is: why the smart cube is not
+ * connected (when something went wrong), else `children` (what the cube
+ * needs before the scramble can be followed). Two lines at most; the whole
+ * of a longer one is in its tooltip and in the smart cube dialog.
+ */
+export function StatusLine({ children }: { children?: ReactNode }) {
   const { t } = useT();
-  const chip = 'inline-block rounded-md px-3 py-1.5 text-sm font-semibold';
-  if (!synced || !screen) return <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('solve.cube.syncing')}</p>;
-  if (screen.routeFailed) return <p role="alert" className="text-sm text-amber-800 dark:text-amber-200">{t('solve.cube.routeFailed')}</p>;
-  if (screen.routeKind === null) return <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('solve.cube.routing')}</p>;
-  if (screen.undo) return <p aria-live="polite" className={`${chip} bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-200`}>{t('smartCube.trainer.undo', { moves: screen.undo })}</p>;
-  if (screen.remaining) return <p aria-live="polite" className={`${chip} bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200`}>{t('smartCube.trainer.remaining', { moves: screen.remaining })}</p>;
-  if (screen.routeKind === 'reroute') return <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('solve.cube.reroute')}</p>;
+  const mounted = useMounted();
+  const { problem, status } = useSmartCube();
+  const problemKey = mounted && problem && status !== 'connected' ? PROBLEM[problem] : null;
+  const text = problemKey ? t(problemKey) : children;
+  return (
+    <div aria-live="polite" className="flex h-10 w-full items-center justify-center text-center text-sm leading-5">
+      {text && (
+        <p role={problemKey ? 'alert' : undefined} title={typeof text === 'string' ? text : undefined}
+          className={`line-clamp-2 ${problemKey ? 'text-amber-800 dark:text-amber-200' : 'text-zinc-500 dark:text-zinc-400'}`}>
+          {text}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** What the smart cube needs before its scramble can be followed: nothing while the turns go as shown. */
+export function cubeSolveStatus(screen: CubeSolveScreen | null, synced: boolean): MessageKey | null {
+  if (!synced || !screen) return 'solve.cube.syncing';
+  if (screen.routeFailed) return 'solve.cube.routeFailed';
+  if (screen.routeKind === null) return 'solve.cube.routing';
   return null;
 }
 
 /**
  * The scramble screen's top: its controls, then the scramble (or, with a
- * cube elsewhere, the turns to it) and what the cube needs. A practice's
- * case screen has the same top, with its setup for the scramble (none
- * without a setup: `scramble` undefined) and `lead` at the left.
+ * cube elsewhere, the turns to it: its title takes the lead's place) and the
+ * status line. A practice's case screen has the same top, with its setup for
+ * the scramble (none without a setup: `scramble` undefined) and `lead` at the
+ * left. Every part keeps its place before the page knows what goes in it
+ * (the controls come in the browser, the scramble from its worker).
  */
-export function ScrambleHead({ toolbar, lead, problem, scramble, failed = false, tokens, done, rerouted = false, status }: {
+export function ScrambleHead({ toolbar, lead, scramble, failed = false, tokens, done, undo, rerouted = false, status, lines = 2 }: {
   toolbar: ReactNode;
   lead?: ReactNode;
-  problem?: ReactNode;
   scramble: string | null | undefined;
   failed?: boolean;
   tokens: readonly string[];
   /** Turns done (with a cube); null without one. */
   done: number | null;
+  /** Turns to take back, shown in the next token's place. */
+  undo?: string;
   /** The tokens are a route worked out from where the cube is. */
   rerouted?: boolean;
   status?: ReactNode;
+  /** Lines kept for the scramble on a phone before it comes (a solve's is longer than a case's setup). */
+  lines?: 2 | 3;
 }) {
   const { t } = useT();
   return (
     <div className="flex w-full flex-col gap-3">
-      <div className="flex items-start justify-between gap-3">
-        {rerouted ? <h2 className={`${LABEL} min-w-0 pt-2`}>{t('solve.cube.routeTitle')}</h2> : lead ?? <span />}
+      <div className="flex min-h-9 items-start justify-between gap-3">
+        {rerouted && scramble ? (
+          <h2 className={`${LABEL} flex min-w-0 items-center gap-1 pt-2`}>
+            {t('solve.cube.routeTitle')}
+            <InfoTip>
+              <span className="block">{t('solve.cube.reroute')}</span>
+              <span className="block font-mono">{t('solve.cube.scrambleWas', { scramble })}</span>
+            </InfoTip>
+          </h2>
+        ) : lead ?? <span />}
         {toolbar}
       </div>
-      {problem}
       {scramble !== undefined && (
-        <p aria-live="polite" className="min-h-[2.5em] w-full text-center font-mono text-xl font-semibold leading-relaxed tracking-wide break-words text-zinc-900 sm:text-2xl dark:text-zinc-50">
-          {scramble ? <Tokens tokens={tokens} done={done} /> : (
+        <p aria-live="polite" className={`relative w-full text-center font-mono text-xl font-semibold leading-relaxed tracking-wide break-words text-zinc-900 sm:min-h-[3.25em] sm:text-2xl dark:text-zinc-50 ${lines === 3 ? 'min-h-[4.875em]' : 'min-h-[3.25em]'}`}>
+          {scramble ? (
+            <>
+              {/* The tokens as written hold the height; what is shown goes over them. */}
+              <span aria-hidden className="invisible"><Tokens tokens={tokens} done={null} /></span>
+              <span className="absolute inset-0"><Tokens tokens={tokens} done={done} undo={undo} /></span>
+            </>
+          ) : (
             <span className="text-base font-normal text-zinc-500 dark:text-zinc-400">{t(failed ? 'solve.scramble.failed' : 'solve.scramble.making')}</span>
           )}
         </p>
       )}
-      {rerouted && scramble && (
-        <p className="text-center font-mono text-xs text-zinc-500 dark:text-zinc-400">{t('solve.cube.scrambleWas', { scramble })}</p>
-      )}
-      {status && <div className="flex justify-center text-center">{status}</div>}
+      <StatusLine>{status}</StatusLine>
     </div>
   );
 }
@@ -200,7 +249,7 @@ export function DnfButton({ onDnf }: { onDnf: () => void }) {
   const { t } = useT();
   return (
     <button type="button" onClick={onDnf} aria-label={t('solve.penalty.dnfAria')} title={t('solve.penalty.dnfAria')}
-      className={`${QUIET} font-mono`}>
+      className={`${buttonClass('secondary', 'sm')} font-mono`}>
       DNF
     </button>
   );
@@ -228,8 +277,7 @@ export function ResultHead({ record, moves, tps, crossColour, onRetry, onNext, o
     <div className="flex w-full flex-col items-center gap-5">
       <div className="absolute right-3 top-3 flex items-center gap-1.5 sm:right-4 sm:top-4">
         <PenaltyButtons record={record} />
-        <button type="button" onClick={onUndo}
-          className="rounded-md border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
+        <button type="button" onClick={onUndo} className={buttonClass('secondary', 'sm')}>
           {t('solve.result.undo')}
         </button>
       </div>
@@ -248,8 +296,8 @@ export function ResultHead({ record, moves, tps, crossColour, onRetry, onNext, o
       </dl>
       <p className="max-w-xl text-center font-mono text-xs leading-5 break-words text-zinc-500 dark:text-zinc-400">{record.scramble}</p>
       <div className="flex items-center gap-2">
-        <button type="button" onClick={onRetry} className={OUTLINE}>{t('solve.result.retry')}</button>
-        <button type="button" onClick={onNext} className={PRIMARY}>
+        <button type="button" onClick={onRetry} className={buttonClass('secondary')}>{t('solve.result.retry')}</button>
+        <button type="button" onClick={onNext} className={buttonClass('primary')}>
           {t('trainer.noScramble.next')}
           <kbd className="ml-2 hidden font-mono text-[10px] font-normal opacity-70 sm:inline">Space</kbd>
         </button>

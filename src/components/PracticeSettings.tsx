@@ -11,11 +11,12 @@ import { isCubeFlavor, trainerFlavor, type TrainerFlavor } from '@/lib/practice-
 import { setAutoAdvance } from '@/lib/smart-cube-settings-store';
 import { unsupportedReason } from '@/lib/smart-cube-store';
 import { AppModal } from './AppModal';
-import { AufStartToggle } from './AufStartToggle';
-import { InfoTip } from './InfoTip';
-import { SmartCubeConnect } from './SmartCubeConnect';
+import { AufStartHelp, AufStartToggle } from './AufStartToggle';
 import { GearIcon } from './SolveSettings';
+import { cubeStatusKey } from './SmartCubePanel';
+import { CubeConnection } from './SolveToolbar';
 import { PRACTICE_MODE_OPTIONS, TrainerModeToggle } from './TrainerModeToggle';
+import { ChoiceHelp, SettingRow, SettingsGroup, Switch } from './ui';
 
 /** Random practice draws from the selected cases; case practice repeats one case. */
 export type PracticeScope = 'random' | 'case';
@@ -28,72 +29,54 @@ function modeHelp(flavor: TrainerFlavor, scope: PracticeScope): MessageKey {
   return scope === 'case' ? 'practice.mode.noSetupHelpCase' : 'practice.mode.noSetupHelp';
 }
 
-// How to practise: the smart cube, the mode (with or without setup), the
-// AUF, with a cube whether the next case comes by itself, and for random
-// practice whether to take each selected case once. Kept as chosen (mode
-// and AUF in the practice settings, the others on this device); a change
-// takes effect with the next case (at once while a case waits).
+// How to practise, as setting rows like the top page's: the smart cube, the
+// mode (with or without setup), the AUF, with a cube whether the next case
+// comes by itself, and for random practice whether to take each selected
+// case once. Kept as chosen (mode and AUF in the practice settings, the
+// others on this device); a change takes effect with the next case (at once
+// while a case waits).
 function PracticeSettingsForm({ scope }: { scope: PracticeScope }) {
   const { t } = useT();
   const mounted = useMounted();
   const mode = usePracticeMode();
-  const connected = useSmartCube().status === 'connected';
+  const cube = useSmartCube();
+  const connected = cube.status === 'connected';
   const flavor = trainerFlavor(mode, connected);
   const { autoAdvance } = useSmartCubeSettings();
   const { eachOnce, setEachOnce } = usePracticeOptions();
   const cubeAvailable = mounted && unsupportedReason() === null;
-  const check = 'h-4 w-4 accent-emerald-600';
+  const cubeName = cube.virtual ? t('smartCube.test.title') : cube.deviceName;
   return (
-    <div className="space-y-5">
-      <section className="space-y-2">
-        <h3 className="flex items-center gap-1 text-sm font-medium">
-          {t('smartCube.title')}
-          {cubeAvailable && !connected && (
-            <InfoTip>{t(mode === 'setup' ? 'practice.cube.offerSetup' : 'practice.cube.offerNoSetup')}</InfoTip>
-          )}
-        </h3>
-        <SmartCubeConnect />
-      </section>
-      <section className="space-y-2">
-        <h3 className="flex items-center gap-1 text-sm font-medium">
-          {t('practice.mode.title')}
-          <InfoTip>
-            {PRACTICE_MODE_OPTIONS.map((option) => (
-              <span key={option.value} className="block">
-                <span className="font-medium text-zinc-800 dark:text-zinc-100">{t(option.label)}</span>
-                {' — '}{t(modeHelp(trainerFlavor(option.value, connected), scope))}
-              </span>
-            ))}
-          </InfoTip>
-        </h3>
+    <SettingsGroup>
+      <SettingRow
+        label={t('smartCube.title')}
+        info={cubeAvailable && !connected ? t(mode === 'setup' ? 'practice.cube.offerSetup' : 'practice.cube.offerNoSetup') : undefined}
+        detail={mounted ? (connected && cubeName ? cubeName : t(cubeStatusKey(cube))) : ' '}
+      >
+        {mounted && <CubeConnection />}
+      </SettingRow>
+      <SettingRow
+        label={t('practice.mode.title')}
+        info={<ChoiceHelp items={PRACTICE_MODE_OPTIONS.map((option) => ({
+          label: t(option.label), text: t(modeHelp(trainerFlavor(option.value, connected), scope)),
+        }))} />}
+      >
         <TrainerModeToggle />
-      </section>
-      <section>
+      </SettingRow>
+      <SettingRow label={t('practice.auf.title')} info={<AufStartHelp />}>
         <AufStartToggle />
-      </section>
-      {(isCubeFlavor(flavor) || scope === 'random') && (
-        <section className="space-y-3 border-t border-zinc-100 pt-4 dark:border-zinc-800">
-          {isCubeFlavor(flavor) && (
-            <div className="flex items-center gap-1">
-              <label className="flex items-center gap-2 text-sm font-medium select-none">
-                <input type="checkbox" checked={autoAdvance} onChange={(event) => setAutoAdvance(event.target.checked)} className={check} />
-                {t('trainer.setup.autoAdvance')}
-              </label>
-              <InfoTip>{t('trainer.setup.autoAdvanceHelp')}</InfoTip>
-            </div>
-          )}
-          {scope === 'random' && (
-            <div className="flex items-center gap-1">
-              <label className="flex items-center gap-2 text-sm font-medium select-none">
-                <input type="checkbox" checked={mounted && eachOnce} onChange={(event) => setEachOnce(event.target.checked)} className={check} />
-                {t('practice.round.label')}
-              </label>
-              <InfoTip>{t('practice.round.help')}</InfoTip>
-            </div>
-          )}
-        </section>
+      </SettingRow>
+      {isCubeFlavor(flavor) && (
+        <SettingRow label={t('trainer.setup.autoAdvance')} info={t('trainer.setup.autoAdvanceHelp')}>
+          {(labelId) => <Switch checked={autoAdvance} onChange={setAutoAdvance} labelledBy={labelId} />}
+        </SettingRow>
       )}
-    </div>
+      {scope === 'random' && (
+        <SettingRow label={t('practice.round.label')} info={t('practice.round.help')}>
+          {(labelId) => <Switch checked={mounted && eachOnce} onChange={setEachOnce} labelledBy={labelId} />}
+        </SettingRow>
+      )}
+    </SettingsGroup>
   );
 }
 

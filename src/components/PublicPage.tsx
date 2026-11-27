@@ -2,6 +2,7 @@
 
 import { useT } from '@/hooks/useT';
 import { openAccountDialog } from '@/lib/app-dialog';
+import { LINK } from './ui';
 
 export function PublicPage({ kind }: { kind: 'privacy' | 'support' }) {
   const { t } = useT();
@@ -14,9 +15,9 @@ export function PublicPage({ kind }: { kind: 'privacy' | 'support' }) {
     {sections.map((section) => <section key={section} className="space-y-2">
       <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{t(`${kind}.${section}.title` as Parameters<typeof t>[0])}</h2>
       <p className="whitespace-pre-line">{t(`${kind}.${section}.body` as Parameters<typeof t>[0])}</p>
-      {section === 'data' && <a href="https://vercel.com/legal/privacy-notice" target="_blank" rel="noreferrer" className="inline-block text-emerald-700 underline dark:text-emerald-400">{t('privacy.data.vercelPolicy')}</a>}
-      {section === 'delete' && <button type="button" onClick={openAccountDialog} className="text-emerald-700 underline dark:text-emerald-400">{t('account.open')}</button>}
+      {section === 'data' && <a href="https://vercel.com/legal/privacy-notice" target="_blank" rel="noreferrer" className={`${LINK} inline-block underline`}>{t('privacy.data.vercelPolicy')}</a>}
+      {section === 'delete' && <button type="button" onClick={openAccountDialog} className={`${LINK} underline`}>{t('account.open')}</button>}
     </section>)}
-    <p><a href="mailto:gactocat@gmail.com" className="break-all text-emerald-700 underline dark:text-emerald-400">gactocat@gmail.com</a></p>
+    <p><a href="mailto:gactocat@gmail.com" className={`${LINK} break-all underline`}>gactocat@gmail.com</a></p>
   </article>;
 }

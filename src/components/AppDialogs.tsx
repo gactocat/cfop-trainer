@@ -8,7 +8,7 @@ import type { MessageKey } from '@/i18n/messages';
 import { closeAppDialog, getAppDialog, getAppDialogServerSnapshot, openAccountDialog, subscribeAppDialog, type AppDialog } from '@/lib/app-dialog';
 import { AccountPanel } from './AccountPanel';
 import { AppModal } from './AppModal';
-import { SmartCubePanel } from './SmartCubePanel';
+import { SmartCubeInfo, SmartCubePanel } from './SmartCubePanel';
 
 const DIALOG_TITLES = {
   account: 'account.title',
@@ -30,7 +30,7 @@ export function AppDialogs() {
 
   if (!dialog) return null;
   return (
-    <AppModal key={dialog} title={t(DIALOG_TITLES[dialog])} onClose={closeAppDialog}>
+    <AppModal key={dialog} title={t(DIALOG_TITLES[dialog])} info={dialog === 'smartCube' ? <SmartCubeInfo /> : undefined} onClose={closeAppDialog}>
       {dialog === 'account' ? <AccountPanel key={state.generation} /> : <SmartCubePanel />}
     </AppModal>
   );

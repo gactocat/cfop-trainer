@@ -10,10 +10,9 @@ import { countedMs, formatRecordTime, formatSolveTime, solveStats } from '@/lib/
 import { Figure } from './Figure';
 import { PenaltyButtons } from './SolvePenalty';
 import { SolveStages } from './SolveStages';
+import { buttonClass, CARD, LABEL, LINK } from './ui';
 
 const PAGE = 50;
-const CARD = 'rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900';
-const LABEL = 'text-[11px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400';
 
 /** How the solve was timed: by the smart cube, or with the on-screen timer. */
 export function TimerBadge({ record }: { record: SolveRecord }) {
@@ -74,7 +73,7 @@ function SolveRow({ number, record, onDelete }: { number: number; record: SolveR
             <button
               type="button"
               onClick={() => { if (window.confirm(t('solve.history.confirmDelete'))) onDelete(); }}
-              className="rounded-md border border-zinc-300 px-3 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+              className={buttonClass('danger', 'sm')}
             >
               {t('common.delete')}
             </button>
@@ -89,7 +88,6 @@ function SolveRow({ number, record, onDelete }: { number: number; record: SolveR
 // account says nothing: it runs in the background and retries by itself.
 function SyncNote({ event, snapshot }: { event: SolveEvent; snapshot: SolvesSnapshot }) {
   const { t } = useT();
-  const link = 'font-medium text-emerald-700 underline hover:text-emerald-900 dark:text-emerald-300 dark:hover:text-emerald-100';
   const { where, status } = snapshot;
   const note = status === 'unavailable' ? 'solve.records.unavailable'
     : where === 'account' ? 'solve.records.account'
@@ -99,7 +97,7 @@ function SyncNote({ event, snapshot }: { event: SolveEvent; snapshot: SolvesSnap
       {status === 'error' ? (
         <p role="alert" className="text-amber-800 dark:text-amber-200">
           {t('solve.records.loadFailed')}{' '}
-          <button type="button" onClick={() => retrySolveSync(event)} className={link}>{t('solve.records.reload')}</button>
+          <button type="button" onClick={() => retrySolveSync(event)} className={LINK}>{t('solve.records.reload')}</button>
         </p>
       ) : <p>{t(note)}</p>}
     </div>
@@ -109,15 +107,13 @@ function SyncNote({ event, snapshot }: { event: SolveEvent; snapshot: SolvesSnap
 function ImportOffer({ event, count }: { event: SolveEvent; count: number }) {
   const { t } = useT();
   return (
-    <div className="mt-3 rounded-lg border border-zinc-200 p-3 text-xs dark:border-zinc-800">
+    <div className="mt-3 rounded-xl border border-zinc-200 p-3 text-xs dark:border-zinc-800">
       <p className="text-zinc-700 dark:text-zinc-200">{t('solve.records.offer', { count })}</p>
       <div className="mt-2 flex flex-wrap gap-2">
-        <button type="button" onClick={() => void importDeviceSolves(event)}
-          className="rounded-md bg-emerald-600 px-3 py-1.5 font-semibold text-white hover:bg-emerald-700">
+        <button type="button" onClick={() => void importDeviceSolves(event)} className={buttonClass('primary', 'sm')}>
           {t('solve.records.import')}
         </button>
-        <button type="button" onClick={() => declineSolveImport(event)}
-          className="rounded-md border border-zinc-300 px-3 py-1.5 font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
+        <button type="button" onClick={() => declineSolveImport(event)} className={buttonClass('secondary', 'sm')}>
           {t('solve.records.skipImport')}
         </button>
       </div>
@@ -141,7 +137,7 @@ export function SolveRecords({ event, snapshot, onDelete, className = '' }: {
   const [shown, setShown] = useState(PAGE);
   const average = (ms: number | null) => formatSolveTime(ms, { average: true });
   return (
-    <section aria-labelledby="solve-records" className={`${CARD} ${className}`}>
+    <section aria-labelledby="solve-records" className={`${CARD} p-4 ${className}`}>
       <h2 id="solve-records" className="flex items-baseline justify-between gap-2">
         <span className={LABEL}>{t('solve.records.title')}</span>
         {stats.count > 0 && <span className="text-xs text-zinc-500 dark:text-zinc-400">{tn('common.solves', stats.count)}</span>}
@@ -172,7 +168,7 @@ export function SolveRecords({ event, snapshot, onDelete, className = '' }: {
         <button
           type="button"
           onClick={() => setShown((n) => n + PAGE)}
-          className="mt-2 text-xs font-medium text-emerald-700 hover:underline dark:text-emerald-300"
+          className={`${LINK} mt-2 text-xs`}
         >
           {t('solve.records.more', { count: Math.min(PAGE, solves.length - shown) })}
         </button>

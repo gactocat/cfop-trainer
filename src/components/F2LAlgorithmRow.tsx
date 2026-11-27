@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { F2LAlgorithmForm } from './F2LAlgorithmForm';
 import { TimeHistoryPanel } from './TimeHistoryPanel';
+import { buttonClass } from './ui';
 import { useAufDisplay } from '@/hooks/usePracticeSettings';
 import { useT } from '@/hooks/useT';
 import { prefixAuf } from '@/lib/f2l-auf';
@@ -40,7 +41,7 @@ export function F2LAlgorithmRow({
 
   return (
     <li
-      className={`rounded-lg border ${
+      className={`rounded-xl border ${
         record.isStarred
           ? 'border-amber-400 dark:border-amber-500'
           : 'border-zinc-200 dark:border-zinc-800'
@@ -116,14 +117,14 @@ export function F2LAlgorithmRow({
             <button
               type="button"
               onClick={() => onPractice(record.id)}
-              className="text-xs px-2 py-1 rounded-md font-medium text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
+              className={buttonClass('ghostAccent', 'sm')}
             >
               {t('algRow.practice')}
             </button>
             <button
               type="button"
               onClick={() => setExpanded((v) => !v)}
-              className="text-xs px-2 py-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              className={buttonClass('ghost', 'sm')}
               aria-expanded={expanded}
             >
               {expanded ? t('common.close') : t('algRow.times')}
@@ -131,7 +132,7 @@ export function F2LAlgorithmRow({
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="text-xs px-2 py-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              className={buttonClass('ghost', 'sm')}
             >
               {t('common.edit')}
             </button>
@@ -140,7 +141,7 @@ export function F2LAlgorithmRow({
               onClick={() => {
                 if (confirm(t('algRow.confirmDelete'))) onRemove(record.id);
               }}
-              className="text-xs px-2 py-1 rounded-md text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50"
+              className={buttonClass('ghostDanger', 'sm')}
             >
               {t('common.delete')}
             </button>
