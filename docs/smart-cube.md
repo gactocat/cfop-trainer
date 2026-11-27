@@ -8,7 +8,7 @@ instead of offering a connection.
 
 ## Using it
 
-Gear menu, Smart cube: connect, see battery and model, choose how the cube is
+Settings, Smart cube: connect, see battery and model, choose how the cube is
 held, and enter the MAC address if Chrome cannot read it. The practice options
 (random practice and an algorithm's practice on its case page) also offer
 "Connect smart cube" and show the connected cube with its battery; they open

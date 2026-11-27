@@ -93,7 +93,7 @@ answers. Confirm the final categories and provider practices before submission.
 
 Prepare an app description, screenshots from supported physical/simulated
 screen sizes, age rating, and review notes. Explain guest mode, account deletion
-under Gear > Account, and provide a dedicated review account if requested.
+under Settings > Account, and provide a dedicated review account if requested.
 Never commit that account's password. Register the app under the intended Apple
 Developer team, increment the build number, Archive, and distribute through
 TestFlight before submitting to the App Store.
