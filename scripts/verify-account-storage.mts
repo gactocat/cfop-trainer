@@ -1,8 +1,8 @@
 // Run with Node 24 and scripts/register-src-alias.mjs.
 import assert from 'node:assert/strict';
 import {
-  activateAccountStorage, activateGuestStorage, canWriteData, getPersistenceSnapshot,
-  initializeAccount, lockSession, readStoredValue, reloadAccount, retryAccountSave,
+  activateAccountStorage, activateGuestStorage, canWriteData, flushAccount, getPersistenceSnapshot,
+  initializeAccount, lockSession, readStoredValue, reloadAccount,
   setStorageOnline, type AccountBackend,
 } from '@/lib/persistence';
 import { createLocalStore } from '@/lib/local-store';
@@ -78,15 +78,35 @@ assert.deepEqual(store.getSnapshot(), [1, 2]);
 setStorageOnline(true);
 
 // A lost response retries the same write id and does not duplicate the commit.
+// A failed save says nothing and keeps the data writable; it is tried again
+// by itself (flushAccount here stands in for the retry's timer).
 loseResponse = true;
 store.mutate((values) => [...values, 3]);
 await tick();
 const committedRevision = server!.revision;
-assert.equal(getPersistenceSnapshot().error, 'save');
+assert.equal(getPersistenceSnapshot().error, null);
+assert.equal(getPersistenceSnapshot().stalled, false);
 assert.equal(getPersistenceSnapshot().dirty, true);
-retryAccountSave();
-await tick();
+assert.equal(canWriteData(), true, 'a failed save does not lock the data');
+await flushAccount();
 assert.equal(server!.revision, committedRevision);
+assert.equal(getPersistenceSnapshot().dirty, false);
+
+// Saves failing again and again are mentioned (stalled) until one goes through.
+fail = true;
+store.mutate((values) => [...values, 7]);
+await tick();
+await flushAccount();
+assert.equal(getPersistenceSnapshot().stalled, false, 'two failures in a row are not mentioned');
+await flushAccount();
+assert.equal(getPersistenceSnapshot().stalled, true, 'the third is');
+store.mutate((values) => [...values, 8]);
+await tick();
+fail = false;
+await flushAccount();
+await tick();
+assert.equal(server!.data[key], '[1,2,3,7,8]', 'edits made while failing are saved too');
+assert.equal(getPersistenceSnapshot().stalled, false);
 assert.equal(getPersistenceSnapshot().dirty, false);
 
 // Updates during an in-flight request are serialized after it.
@@ -143,11 +163,11 @@ server = null;
 await activateAccountStorage('user-b', 'b@example.test', backend);
 fail = true;
 await initializeAccount(false);
-assert.equal(getPersistenceSnapshot().error, 'save');
+assert.equal(getPersistenceSnapshot().mode, 'choice');
+assert.equal(getPersistenceSnapshot().dirty, true);
 assert.equal(server, null);
 fail = false;
-retryAccountSave();
-await tick();
+await flushAccount();
 assert.equal(getPersistenceSnapshot().mode, 'account');
 assert.deepEqual(store.getSnapshot(), []);
 assert.deepEqual(guestData(guest), guestData(originalGuest));

@@ -91,12 +91,12 @@ function SolveRow({ number, record, onDelete }: { number: number; record: SolveR
   );
 }
 
-// Where the solves are kept (this device or the account), what is not saved
-// yet, and the offer to bring this device's solves into the account.
+// Where the solves are kept (this device or the account). Saving to the
+// account says nothing: it runs in the background and retries by itself.
 function SyncNote({ snapshot }: { snapshot: SolvesSnapshot }) {
   const { t } = useT();
   const link = 'font-medium text-emerald-700 underline hover:text-emerald-900 dark:text-emerald-300 dark:hover:text-emerald-100';
-  const { where, status, unsaved, failed } = snapshot;
+  const { where, status } = snapshot;
   const note = status === 'unavailable' ? 'solve.records.unavailable'
     : where === 'account' ? 'solve.records.account'
       : where === 'device-for-account' ? 'solve.records.deviceForAccount' : 'solve.records.device';
@@ -108,12 +108,6 @@ function SyncNote({ snapshot }: { snapshot: SolvesSnapshot }) {
           <button type="button" onClick={() => retrySolveSync('cfop')} className={link}>{t('solve.records.reload')}</button>
         </p>
       ) : <p>{t(note)}</p>}
-      {unsaved > 0 && (
-        <p className={failed ? 'text-amber-800 dark:text-amber-200' : ''}>
-          {t('solve.records.unsaved', { count: unsaved })}{' '}
-          {failed && <button type="button" onClick={() => retrySolveSync('cfop')} className={link}>{t('solve.records.retry')}</button>}
-        </p>
-      )}
     </div>
   );
 }

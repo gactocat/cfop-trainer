@@ -2,7 +2,9 @@
 // signed-in user keeps them in the account (one row each in the `solves`
 // table, outside the account document, so older app versions never see
 // them); changes are saved at once, and kept in an outbox on the device until
-// the server has them, so a solve timed offline is not lost. When the server
+// the server has them, so a solve timed offline is not lost. A failed save
+// is tried again by itself, after a wait that grows to a minute, and when
+// back online; the screen says nothing about it. When the server
 // cannot keep solves yet (its migration is not applied), a signed-in user
 // keeps them on the device as before.
 //
@@ -56,13 +58,15 @@ export interface SolvesSnapshot {
   where: 'device' | 'account' | 'device-for-account';
   /** Account changes the server does not have yet. */
   unsaved: number;
-  /** The last save failed; it is tried again when back online or by hand. */
+  /** The last save failed; it is tried again by itself, and when back online. */
   failed: boolean;
   /** Device solves not in the account, offered for import; 0 when none or already decided. */
   offer: number;
 }
 
 const SAVE_BATCH = 200;
+/** Waits before saving again after a failed save; the last repeats. */
+const RETRY_MS = [2000, 5000, 15000, 30000, 60000];
 const LOADING: SolvesSnapshot = { status: 'loading', solves: [], where: 'device', unsaved: 0, failed: false, offer: 0 };
 export const EMPTY_OUTBOX: Outbox = { upserts: {}, deletes: [] };
 
@@ -99,6 +103,12 @@ export function createSolveLibrary(deps: {
   const snapshots = new Map<SolveEvent, SolvesSnapshot>();
   const listeners = new Set<() => void>();
   let flushing = false;
+  let failures = 0;
+  let retryTimer: ReturnType<typeof setTimeout> | null = null;
+  const cancelRetry = () => {
+    if (retryTimer !== null) clearTimeout(retryTimer);
+    retryTimer = null;
+  };
   // Ids the account has had while signed in here (loaded, saved or deleted):
   // the device's copies of these are never imported, so a solve deleted from
   // the account does not come back with the device's solves.
@@ -200,6 +210,7 @@ export function createSolveLibrary(deps: {
     if (!userId || !account || flushing || !deps.online()) return;
     const outbox = memory.readOutbox(userId);
     if (outboxSize(outbox) === 0) return;
+    cancelRetry();
     flushing = true;
     const events = [...snapshots.keys()];
     try {
@@ -214,11 +225,18 @@ export function createSolveLibrary(deps: {
         deletes: now.deletes.filter((id) => !outbox.deletes.includes(id)),
       };
       memory.writeOutbox(userId, left);
+      failures = 0;
       for (const event of events) if (snapshots.get(event)?.where === 'account') set(event, { unsaved: outboxSize(left), failed: false });
       flushing = false;
       if (outboxSize(left) > 0) await flush();
     } catch {
-      if (user() === userId) for (const event of events) if (snapshots.get(event)?.where === 'account') set(event, { failed: true });
+      if (user() !== userId) return;
+      for (const event of events) if (snapshots.get(event)?.where === 'account') set(event, { failed: true });
+      failures++;
+      retryTimer = setTimeout(() => {
+        retryTimer = null;
+        void flush();
+      }, RETRY_MS[Math.min(failures, RETRY_MS.length) - 1]);
     } finally {
       flushing = false;
     }
@@ -257,6 +275,8 @@ export function createSolveLibrary(deps: {
       if (same) return;
       source = next;
       generation++;
+      cancelRetry();
+      failures = 0;
       for (const event of snapshots.keys()) void load(event);
     },
     /** Keep a new solve, or a changed one (a penalty set or taken off). */
@@ -297,7 +317,7 @@ export function createSolveLibrary(deps: {
       memory.setImportDecision(userId, 'declined');
       set(event, { offer: 0 });
     },
-    /** Try again: a failed save, or a failed load. */
+    /** Try again now: a failed save, or a failed load. */
     retry(event: SolveEvent) {
       if (snapshots.get(event)?.status === 'error') void load(event);
       else void flush();

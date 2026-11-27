@@ -495,6 +495,15 @@ function feed(session: CubeSolveSession, alg: string) {
     await settle(); await settle();
     snap = w.library.getSnapshot('cfop');
     ok(!snap.failed && snap.unsaved === 0 && w.serverRows.has(solve(5).id) && !w.serverRows.has(solve(1).id), 'retried: saved and deleted on the server');
+    // A failed save goes again by itself after two seconds.
+    w.failures.save = 1;
+    await w.library.save(solve(6));
+    await settle();
+    ok(w.library.getSnapshot('cfop').failed && !w.serverRows.has(solve(6).id), 'a failed save waits');
+    await new Promise((resolve) => setTimeout(resolve, 2100));
+    await settle();
+    snap = w.library.getSnapshot('cfop');
+    ok(!snap.failed && snap.unsaved === 0 && w.serverRows.has(solve(6).id), 'and is saved without asking');
     // The offer: bring the device's solves in once; the device keeps its copies.
     await w.library.importDevice('cfop');
     await settle(); await settle();

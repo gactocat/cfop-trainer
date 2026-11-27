@@ -9,7 +9,9 @@ export type PersistenceState = {
   online: boolean;
   saving: boolean;
   dirty: boolean;
-  error: 'load' | 'save' | 'conflict' | 'session' | 'local' | null;
+  /** Saves have failed several times in a row; they are still being retried. */
+  stalled: boolean;
+  error: 'load' | 'conflict' | 'session' | 'local' | null;
   generation: number;
 };
 export interface AccountBackend {
@@ -19,13 +21,25 @@ export interface AccountBackend {
 const configured = !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
 const initial: PersistenceState = {
   mode: configured || process.env.NEXT_PUBLIC_NATIVE_APP === '1' ? 'boot' : 'guest', userId: null, email: null, online: true,
-  saving: false, dirty: false, error: null, generation: 0,
+  saving: false, dirty: false, stalled: false, error: null, generation: 0,
 };
 let state = initial;
 let data: AccountData = {};
 let revision = 0;
 let backend: AccountBackend | null = null;
 let pending: { data: AccountData; revision: number; writeId: string } | null = null;
+// Saves happen in the background and say nothing. A failed one is tried
+// again by itself, after a wait that grows to a minute; only after a few
+// failures in a row does the page say the account is not saved yet.
+const RETRY_MS = [2000, 5000, 15000, 30000, 60000];
+const STALLED_AFTER = 3;
+let failures = 0;
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
+function stopRetrying() {
+  if (retryTimer !== null) clearTimeout(retryTimer);
+  retryTimer = null;
+  failures = 0;
+}
 const listeners = new Set<() => void>();
 const dataListeners = new Set<() => void>();
 function update(patch: Partial<PersistenceState>) {
@@ -78,7 +92,8 @@ export function activateGuestStorage() {
   pending = null;
   backend = null;
   revision = 0;
-  update({ mode: 'guest', userId: null, email: null, dirty: false, saving: false, error: null,
+  stopRetrying();
+  update({ mode: 'guest', userId: null, email: null, dirty: false, saving: false, stalled: false, error: null,
     generation: state.generation + 1 });
   invalidate();
 }
@@ -86,7 +101,8 @@ export function reportGuestStorageError() { update({ mode: 'boot', error: 'local
 export function lockSession() {
   data = {};
   pending = null;
-  update({ mode: 'boot', error: 'session', dirty: false, saving: false, generation: state.generation + 1 });
+  stopRetrying();
+  update({ mode: 'boot', error: 'session', dirty: false, saving: false, stalled: false, generation: state.generation + 1 });
   invalidate();
 }
 export async function activateAccountStorage(userId: string, email: string | null, remote: AccountBackend) {
@@ -95,7 +111,8 @@ export async function activateAccountStorage(userId: string, email: string | nul
   pending = null;
   revision = 0;
   backend = remote;
-  update({ mode: 'loading', userId, email, dirty: false, saving: false, error: null,
+  stopRetrying();
+  update({ mode: 'loading', userId, email, dirty: false, saving: false, stalled: false, error: null,
     generation: state.generation + 1 });
   invalidate();
   await reloadAccount();
@@ -112,7 +129,8 @@ export async function reloadAccount() {
     data = row ? parseAccountData(row.data) : {};
     revision = row?.revision ?? 0;
     pending = null;
-    update({ mode: row ? 'account' : 'choice', dirty: false, error: null });
+    stopRetrying();
+    update({ mode: row ? 'account' : 'choice', dirty: false, stalled: false, error: null });
     invalidate();
   } catch {
     if (generation === state.generation && current === loadSequence) update({ error: 'load' });
@@ -138,6 +156,8 @@ export async function initializeAccount(importGuest: boolean) {
 }
 export async function flushAccount() {
   if (!backend || !state.userId || !state.online || state.saving || !state.dirty || state.error) return;
+  if (retryTimer !== null) clearTimeout(retryTimer);
+  retryTimer = null;
   const generation = state.generation;
   const remote = backend;
   const userId = state.userId;
@@ -149,24 +169,30 @@ export async function flushAccount() {
     if (generation !== state.generation) return;
     revision = nextRevision;
     pending = null;
-    update({ mode: 'account', saving: false, dirty: data !== attempt.data, error: null });
+    failures = 0;
+    update({ mode: 'account', saving: false, dirty: data !== attempt.data, stalled: false, error: null });
     invalidate();
     if (state.dirty) void flushAccount();
   } catch (error) {
     if (generation !== state.generation) return;
     const conflict = typeof error === 'object' && error !== null && 'code' in error && error.code === 'PT409';
-    update({ saving: false, error: conflict ? 'conflict' : 'save' });
+    if (conflict) {
+      update({ saving: false, error: 'conflict' });
+      return;
+    }
+    // The same write id goes again, so a save whose answer was lost is not made twice.
+    failures++;
+    update({ saving: false, stalled: failures >= STALLED_AFTER });
+    retryTimer = setTimeout(() => {
+      retryTimer = null;
+      void flushAccount();
+    }, RETRY_MS[Math.min(failures, RETRY_MS.length) - 1]);
   }
-}
-export function retryAccountSave() {
-  if (state.error !== 'save') return;
-  update({ error: null });
-  void flushAccount();
 }
 export function setStorageOnline(online: boolean) {
   update({ online });
-  // Resume only edits made before the connection dropped. Failed saves still
-  // require an explicit retry; offline edits never enter a queue.
+  // Back online: save at once what was changed before the connection
+  // dropped, or what failed to save. Offline edits never enter a queue.
   if (online && state.dirty && !state.error) void flushAccount();
 }
 export function notifyGuestStorageChanged() {

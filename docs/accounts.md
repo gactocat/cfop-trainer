@@ -203,12 +203,17 @@ build. See [Vercel environment variables](https://vercel.com/docs/environment-va
   Reloading offline cannot restore private account data from disk.
 - Writes are serialized and use a revision check to prevent overwriting changes
   from another tab/device. A conflict requires explicitly reloading the server
-  copy. A lost response can be retried with the same write id. Unsaved edits
-  stay in memory, show a warning, and trigger a browser leave-page warning.
+  copy. Saving shows nothing on screen. A failed save is retried by itself
+  with the same write id (after 2 s, then longer, up to once a minute, and at
+  once when back online or after the next change), so a lost response never
+  commits twice. Data stays editable meanwhile. After three failed saves in a
+  row the page says the account is not saved yet, until a save succeeds.
+  Unsaved edits stay in memory and trigger a browser leave-page warning.
 - Use **Reload server data** in the Account modal to pick up another device's
   changes. This version does not stream live updates between devices.
-- Each document is limited to 8 MiB. A size-limit failure is shown as a failed
-  save. Large histories may eventually need normalized, paginated tables.
+- Each document is limited to 8 MiB. A size-limit failure keeps failing, so it
+  shows as not saved yet. Large histories may eventually need normalized,
+  paginated tables.
 - The service worker caches the public app shell and assets only; auth/account
   routes and API requests are excluded. Supabase requests bypass it entirely.
 
@@ -230,7 +235,8 @@ Before enabling production sign-in, verify with a configured test project:
   directly to the table. Passing another expected user id to the save function
   must be rejected, including during an account switch.
 - Edit from two tabs to verify the revision conflict, and interrupt a save to
-  verify the retry/unsaved warning. Sign out and confirm guest data returns.
+  verify it is retried by itself and the leave-page warning. Sign out and
+  confirm guest data returns.
 - Test guest offline writes and account offline read-only behavior, including
   the full-screen trainer. Confirm private data never appears in Cache Storage.
 

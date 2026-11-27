@@ -98,7 +98,8 @@ Where they are kept (`lib/solve/solve-library.ts`, wired in
   enforce, so older versions never see them. Every change (a new solve, a
   penalty, a delete) is saved at once and kept in an outbox in localStorage
   (`cfop:solve-outbox:v1`) until the server has it, so a solve timed offline
-  is saved later; a failed save shows a "Save now" button.
+  is saved later. Saving shows nothing: a failed save is tried again by
+  itself (after 2 s, then longer, up to a minute) and when back online.
 - Signing in offers to bring the device's solves into the account, once per
   account and device (`cfop:solve-import:v1`). Choosing to import device data
   at the first sign-in brings them in without asking. Ids are kept, so an
