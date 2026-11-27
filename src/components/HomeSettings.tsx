@@ -45,7 +45,7 @@ export function HomeSettings() {
   const account = state.mode === 'account' ? state.email
     : state.mode === 'guest' ? t('home.settings.guest') : null;
   return (
-    <section aria-labelledby="settings-heading" className="mt-10 sm:mt-14">
+    <section aria-labelledby="settings-heading">
       <h2 id="settings-heading" className="mb-3 text-sm font-medium text-zinc-600 dark:text-zinc-400">{t('settings.title')}</h2>
       <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
         <WritableArea>

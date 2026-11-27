@@ -1,7 +1,7 @@
 // The top page's entries, in groups: the algorithms of each CFOP stage, and
 // solves from a scramble: CFOP, then the cross, F2L and the last layer on
 // their own (SOLVE_MODE_ENTRIES, from lib/solve/solve-modes.ts). CFOP is the
-// solve, so it is featured: a wide card above the others.
+// solve, so it is featured: it takes the whole row of its group.
 
 import type { MessageKey } from '@/i18n/messages';
 import { SOLVE_MODE, SOLVE_MODES, type SolveMode } from '@/lib/solve/solve-modes';
@@ -14,7 +14,7 @@ export interface HomeEntry {
   href: string;
   name: string;
   art: HomeEntryArt;
-  /** Shown larger than the rest of its group, on a row of its own. */
+  /** Takes the whole row of its group, tinted (the same tile otherwise). */
   featured?: boolean;
 }
 
