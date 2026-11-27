@@ -19,7 +19,7 @@ function CubeIcon() {
   );
 }
 
-// The smart cube in the practice options: a button to connect one, then the
+// The smart cube in the practice settings: a button to connect one, then the
 // cube's name and battery. The smart cube dialog keeps the rest (MAC
 // address, holding, marking the cube solved, the iOS app's list of cubes
 // found), and this opens it when a step needs it. Where Bluetooth is unavailable it says why instead.

@@ -13,18 +13,17 @@ import { useNativeTimer } from '@/hooks/useNativeTimer';
 import { recordSmartSolve, type SmartSolve } from '@/hooks/useSmartCubeTrainer';
 import { useNoScrambleTrainer } from '@/hooks/useNoScrambleTrainer';
 import { usePracticeLog } from '@/hooks/usePracticeLog';
-import { usePracticeRun } from '@/hooks/usePracticeRun';
+import { usePracticeOptions, usePracticeRound, type PracticeRound } from '@/hooks/usePracticeRound';
 import { useOfferTestCubeMoves } from '@/hooks/useTestCube';
 import { useSmartSetupPractice } from '@/hooks/useSmartSetupPractice';
 import { useSmartCubeSettings } from '@/hooks/useSmartCube';
-import { useTrainerMode } from '@/hooks/useTrainerMode';
+import { usePracticeFlavor } from '@/hooks/useTrainerMode';
 import { useT } from '@/hooks/useT';
 import { combineAuf, invertAuf, prefixAuf, splitF2LAuf } from '@/lib/f2l-auf';
 import { buildF2LSetup, seededRandom } from '@/lib/f2l-scramble';
 import { aufStartOf } from '@/lib/auf-start';
 import { movesPerSecond, solutionMoves } from '@/lib/move-count';
 import { saveCubeSolve, type CaseTimes } from '@/lib/practice-log';
-import { doneCases, nextRoundCase, roundPosition, shuffled } from '@/lib/practice-round';
 import { aufDisplayOf } from '@/lib/practice-settings-store';
 import { pickStaleWeighted } from '@/lib/stale-weighted-pick';
 import { guideTurns, remainingGuide } from '@/lib/test-cube-hints';
@@ -32,15 +31,17 @@ import { deleteSmartSolve } from '@/lib/smart-solve-store';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import { F2L_IDS, type F2LAlgorithmRecord, type F2LId } from '@/types/f2l';
 import type { Auf } from '@/types/pll';
+import type { TrainerState } from '@/lib/practice-screen';
 import { F2L3DPlayer } from './F2L3DPlayer';
-import { NoScrambleStage } from './NoScrambleStage';
-import { RoundComplete } from './RoundComplete';
-import { SessionStats } from './SessionStats';
-import { SmartSetupStage } from './SmartSetupStage';
-import { TapStage } from './TapStage';
+import { PracticeScreens } from './PracticeScreens';
 import { holdingFrame } from '@/lib/smart-cube/holding';
 
-type TrainerState = 'idle' | 'running' | 'stopped';
+/** The case drawn, with the seed of its setup (scramble and orientation offset) and the round it was dealt from. */
+interface Drawn {
+  id: F2LId;
+  seed: number;
+  round: PracticeRound<F2LId> | null;
+}
 
 interface F2LTrainerProps {
   ids: readonly F2LId[];
@@ -82,39 +83,40 @@ export function F2LTrainer({ ids, selected, algorithmFor, caseTimes }: F2LTraine
   const { settings: scrambleSettings } = usePracticeSettings();
   const aufMode = aufDisplayOf(scrambleSettings, 'f2l');
   const single = caseTimes !== undefined;
-  // Fixed when the practice started (see TrainerFlavorContext). No setup runs
-  // on the virtual cube with a smart cube and as the hold timer without one;
-  // with setup is guided on the cube with one, and applied by hand without.
-  const mode = useTrainerMode();
+  const [state, setState] = useState<TrainerState>('idle');
+  // As the settings and the cube say between cases, kept through an attempt
+  // (see usePracticeFlavor). No setup runs on the virtual cube with a smart
+  // cube and as the hold timer without one; with setup is guided on the
+  // cube with one, and applied by hand without.
+  const mode = usePracticeFlavor(state !== 'idle');
   const noScramble = mode === 'no-scramble';
   const smartSetup = mode === 'smart-setup';
   const cubeDriven = noScramble || smartSetup;
   const inverse = mode === 'inverse' || smartSetup;
   // Both setups and no-scramble show the case before timing, so draw it ahead.
   const drawAhead = inverse || noScramble;
-  const [state, setState] = useState<TrainerState>('idle');
-  const [current, setCurrent] = useState<F2LId | null>(null);
+  // The case with the seed for its setup, drawn together so the setup is
+  // stable across re-renders but different on every draw.
+  const [drawn, setDrawn] = useState<Drawn | null>(null);
+  const current = drawn?.id ?? null;
+  const setupSeed = drawn?.seed ?? 0;
+  // Same case again: the next start keeps the case on screen instead of drawing one.
+  const [again, setAgain] = useState(false);
   const [elapsed, setElapsed] = useState(0);
-  // Seed for the current case's setup (scramble and orientation offset);
-  // drawn with the case so the setup is stable across re-renders but
-  // different on every draw.
-  const [setupSeed, setSetupSeed] = useState(0);
   const mounted = useMounted();
   const startRef = useRef(0);
   const rafRef = useRef<number | null>(null);
   // A cube-driven practice without a connected cube has nothing to solve, so Space waits.
   const startBlockedRef = useRef(false);
 
-  // This session's solves, in memory only: closing the practice or starting
-  // it again begins empty.
+  // This session's solves, in memory only: leaving the page begins a new one.
   const { log, results, settle } = usePracticeLog();
   const latest = results[0];
   const pool = useMemo(() => ids.filter((id) => selected.has(id)), [ids, selected]);
-  // Each selected case once, in an order dealt when the session starts.
-  const run = usePracticeRun();
-  const eachOnce = run.eachOnce && !single;
-  const [order] = useState(() => shuffled(pool));
-  const complete = eachOnce && state === 'idle' && nextRoundCase(order, results) === null;
+  // Each selected case once (random practice), dealt when switched on.
+  const { eachOnce } = usePracticeOptions();
+  const round = usePracticeRound({ on: mounted && eachOnce && !single, pool, results, idle: state === 'idle' });
+  const complete = round.complete;
   // Cases not solved yet in this session come up more often.
   const lastSolved = useMemo(() => {
     const map = new Map<string, number>();
@@ -124,12 +126,12 @@ export function F2LTrainer({ ids, selected, algorithmFor, caseTimes }: F2LTraine
 
   // Draw from the selected cases (all of `ids` if none, which cannot start),
   // with a fresh seed for the case's setup; null once a round is done.
-  const pickRandom = useCallback((): { id: F2LId; seed: number } | null => {
-    const id = eachOnce
-      ? nextRoundCase(order, results)
+  const pickRandom = useCallback((): Drawn | null => {
+    const id = round.round
+      ? round.nextCase
       : pickStaleWeighted(pool.length > 0 ? pool : ids, (id) => lastSolved.get(id), Date.now());
-    return id === null ? null : { id, seed: Math.floor(Math.random() * 0x7fffffff) };
-  }, [eachOnce, order, results, pool, ids, lastSolved]);
+    return id === null ? null : { id, seed: Math.floor(Math.random() * 0x7fffffff), round: round.round };
+  }, [round.round, round.nextCase, pool, ids, lastSolved]);
 
   const noneSelected = mounted && selected.size === 0;
 
@@ -150,28 +152,27 @@ export function F2LTrainer({ ids, selected, algorithmFor, caseTimes }: F2LTraine
   // solve, or when the mode is switched); standard mode draws on start. This is
   // the "adjust state during render" pattern: React re-renders immediately with
   // the new state. Gated on `mounted` so the server markup stays deterministic.
-  if (mounted && state === 'idle' && drawAhead && current === null && !noneSelected && !complete) {
-    const next = pickRandom();
-    if (next) {
-      setCurrent(next.id);
-      setSetupSeed(next.seed);
-    }
+  // A round switched on or dealt again redraws the case from it.
+  if (mounted && state === 'idle' && drawAhead && !noneSelected && !complete &&
+      (drawn === null || drawn.round !== round.round || !selected.has(drawn.id))) {
+    setDrawn(pickRandom());
+    setAgain(false);
   }
 
   const start = useCallback(() => {
     if (!mounted || noneSelected || complete) return;
-    // Inverse mode times the case already shown on the start screen; standard
-    // mode draws one now.
-    if (!drawAhead || !current) {
+    // With setup (or a cube), the case already shown is timed; without, one
+    // is drawn now (unless the same case goes again).
+    if ((!drawAhead && !again) || !current) {
       const next = pickRandom();
       if (!next) return;
-      setCurrent(next.id);
-      setSetupSeed(next.seed);
+      setDrawn(next);
     }
+    setAgain(false);
     startRef.current = Date.now();
     setElapsed(0);
     setState('running');
-  }, [pickRandom, mounted, noneSelected, complete, drawAhead, current]);
+  }, [pickRandom, mounted, noneSelected, complete, drawAhead, again, current]);
 
   // Stop with a time measured elsewhere (the smart cube's clock).
   const stopWith = useCallback((seconds: number) => {
@@ -183,7 +184,15 @@ export function F2LTrainer({ ids, selected, algorithmFor, caseTimes }: F2LTraine
   const next = useCallback(() => {
     setState('idle');
     setElapsed(0);
-    setCurrent(null);
+    setAgain(false);
+    setDrawn(null);
+  }, []);
+
+  // The same case again, from the case screen.
+  const retry = useCallback(() => {
+    setState('idle');
+    setElapsed(0);
+    setAgain(true);
   }, []);
 
   // Abandon the attempt but keep the case (a reset while timing, Escape, leaving the app).
@@ -295,53 +304,34 @@ export function F2LTrainer({ ids, selected, algorithmFor, caseTimes }: F2LTraine
   // Escape takes back the latest solve on the result screen.
   useEscapeKey(() => { if (latest && !latest.undone) log.undo(latest.key); }, state === 'stopped');
 
-  if (complete) return <RoundComplete total={order.length} results={results} onBack={run.finish} />;
-
   const showingKept = state === 'stopped' && !!latest && !latest.undone;
-  const progress = eachOnce
-    ? t('practice.round.progress', { n: roundPosition(doneCases(order, results).size, order.length, showingKept), total: order.length })
-    : undefined;
-  const selectedNote = mounted && !single && !eachOnce
-    ? t('trainer.selectedCount', { count: selected.size, total: ids.length })
-    : '';
-  const sessionNote = [selectedNote, single ? '' : t('trainer.session.notKept')].filter(Boolean).join(' · ');
-
-  if (noScramble && !noneSelected) {
-    return (
-      <NoScrambleStage
-        state={state} view={virtual.view} connected={virtual.connected} log={{ results, settle }}
-        elapsed={elapsed} selectedNote={sessionNote} progress={progress}
-        onReset={virtual.reset} onStop={virtual.stopByHand} onNext={virtual.next} onUndo={(key) => log.undo(key)}
-      />
-    );
-  }
-
-  if (smartSetup && !noneSelected) {
-    return (
-      <SmartSetupStage
-        practice="f2l" state={state} view={guided.view} connected={guided.connected} log={{ results, settle }}
-        elapsed={elapsed} selectedNote={sessionNote} progress={progress}
-        onStop={guided.stopByHand} onNext={guided.next} onUndo={(key) => log.undo(key)}
-      />
-    );
-  }
-
-  if (noneSelected) {
-    return (
-      <div className="w-full flex-1 min-h-[200px] rounded-lg flex flex-col items-center justify-center gap-2 select-none bg-zinc-200 dark:bg-zinc-800 text-zinc-500">
-        <div className="text-sm font-medium uppercase tracking-wider">
-          {t('trainer.noneSelected')}
-        </div>
-        <div className="text-xs">{t('trainer.f2l.tickOne')}</div>
-      </div>
-    );
-  }
+  const position = round.position(showingKept);
+  // The speedcubedb primary stands in (greyed) when no algorithm is saved.
+  const solution = shown && (shown.body ? (
+    aufMode === 'cube' ? (
+      <span className={shown.star ? '' : 'text-zinc-500'}>
+        <span className="inline-block min-w-[2.5em] mr-2 px-1.5 py-0.5 text-[10px] rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 align-middle">
+          {shown.effectiveAuf}
+        </span>
+        {shown.body}
+      </span>
+    ) : (
+      <span className={shown.star ? '' : 'text-zinc-500'}>{prefixAuf(shown.effectiveAuf, shown.body)}</span>
+    )
+  ) : (
+    <span className="italic text-zinc-500">{t('trainer.f2l.noAlgorithm')}</span>
+  ));
 
   return (
-    <TapStage
-      phase={hold.phase} pressProps={hold.pressProps} elapsed={elapsed}
-      setup={inverse ? (shown?.setup.scramble ?? '') : null}
-      caseView={shown && (
+    <PracticeScreens
+      practice="f2l"
+      scope={single ? 'case' : 'random'}
+      flavor={mode}
+      state={state}
+      hold={hold}
+      elapsed={elapsed}
+      setup={inverse && shown ? shown.setup.scramble : null}
+      caseLook={shown && (
         <F2L3DPlayer
           algorithm={shown.body}
           setupAlg={shown.def?.setupAlg ?? ''}
@@ -351,37 +341,30 @@ export function F2LTrainer({ ids, selected, algorithmFor, caseTimes }: F2LTraine
           className="w-full h-full"
         />
       )}
-      caseBox="w-[200px] h-[200px] sm:w-[260px] sm:h-[260px]"
-      note={eachOnce ? undefined : selectedNote}
-      progress={progress}
-      result={state === 'stopped' ? latest : undefined}
-      solution={shown && (
-        <div className="max-w-2xl w-full text-center font-mono text-sm break-words text-zinc-700 dark:text-zinc-300">
-          {/* The speedcubedb primary stands in (greyed) when no algorithm is saved. */}
-          {shown.body ? (
-            aufMode === 'cube' ? (
-              <p className={shown.star ? '' : 'text-zinc-500'}>
-                <span className="inline-block min-w-[2.5em] mr-2 px-1.5 py-0.5 text-[10px] rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 align-middle">
-                  {shown.effectiveAuf}
-                </span>
-                {shown.body}
-              </p>
-            ) : (
-              <p className={shown.star ? '' : 'text-zinc-500'}>{prefixAuf(shown.effectiveAuf, shown.body)}</p>
-            )
-          ) : (
-            <p className="italic text-zinc-500">{t('trainer.f2l.noAlgorithm')}</p>
-          )}
+      virtual={virtual.view}
+      guided={guided.view}
+      results={results}
+      settle={settle}
+      solution={solution}
+      caseStats={caseTimes && caseTimes.count > 0
+        ? t('detail.caseStats', { best: formatSeconds(caseTimes.best), ao5: formatSeconds(caseTimes.ao5), solves: tn('common.solves', caseTimes.count) })
+        : undefined}
+      progress={position && t('practice.round.progress', position)}
+      sessionNote={single ? undefined : t('trainer.session.notKept')}
+      empty={noneSelected && (
+        <div className="flex flex-col items-center gap-2 text-center text-zinc-500 dark:text-zinc-400">
+          <div className="text-sm font-medium uppercase tracking-wider">{t('trainer.noneSelected')}</div>
+          <div className="text-xs">{t('trainer.f2l.tickOne')}</div>
         </div>
       )}
-      extra={caseTimes && caseTimes.count > 0 && (
-        <div className="text-xs font-mono text-zinc-500 dark:text-zinc-400">
-          {t('detail.caseStats', { best: formatSeconds(caseTimes.best), ao5: formatSeconds(caseTimes.ao5), solves: tn('common.solves', caseTimes.count) })}
-        </div>
-      )}
-      onNext={next}
+      roundDone={complete && round.round
+        ? { total: round.round.order.length, results: round.results, listHref: '/f2l', onRestart: round.restart }
+        : null}
+      onNext={cubeDriven ? cube.next : next}
       onUndo={(key) => log.undo(key)}
-      session={<SessionStats results={results} note={single ? undefined : t('trainer.session.notKept')} />}
+      onRetry={() => { log.clearSettle(); retry(); }}
+      onStopByHand={cube.stopByHand}
+      onReset={virtual.reset}
     />
   );
 }

@@ -3,15 +3,17 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, type MouseEvent } from 'react';
+import { useCallback, useEffect, type MouseEvent } from 'react';
 import { getPllDefinition } from '@/data/pll-definitions';
 import { useT } from '@/hooks/useT';
+import { practicePageOf } from '@/lib/practice-pages';
 import { SOLVE_MODE, SOLVE_MODES } from '@/lib/solve/solve-modes';
 import { F2L_IDS, type F2LId } from '@/types/f2l';
 import { OLL_IDS, type OLLId } from '@/types/oll';
 import type { PllId } from '@/types/pll';
 
 const STAGES = { f2l: 'F2L', oll: 'OLL', pll: 'PLL' } as const;
+const RANDOM_TITLE = { f2l: 'trainer.f2lTitle', oll: 'trainer.ollTitle', pll: 'trainer.pllTitle' } as const;
 /** Solves from a scramble, under /solve: each kind's label (CFOP, Cross, F2L, LL). */
 const SOLVES: Record<string, string> = Object.fromEntries(SOLVE_MODES.map((mode) => [SOLVE_MODE[mode].slug, SOLVE_MODE[mode].label]));
 type Stage = keyof typeof STAGES;
@@ -29,12 +31,21 @@ function caseName(stage: Stage, id: string, t: Translate): string | undefined {
   return F2L_IDS.includes(id as F2LId) ? t('common.f2lCase', { number }) : undefined;
 }
 
-// The page's title and the page one level up: a case leads to its list,
-// everything else to the top page. Null on the top page itself (and on
-// /account, which shows it).
+// The page's title and the page one level up: a case and random practice
+// lead to their list, a case's practice to the case, everything else to
+// the top page. Null on the top page itself (and on /account, which shows
+// it).
 function pageFor(pathname: string, t: Translate): Page | null {
   const [first, id] = pathname.split('/').filter(Boolean).map(decodeURIComponent);
   const home = { href: '/', label: HOME };
+  const practice = practicePageOf(pathname);
+  if (practice?.kind === 'random') {
+    return { title: t(RANDOM_TITLE[practice.practice]), up: { href: `/${practice.practice}`, label: STAGES[practice.practice] } };
+  }
+  if (practice?.kind === 'case') {
+    const name = caseName(practice.practice, practice.caseId, t);
+    return name ? { title: t('casePractice.title', { name }), up: { href: `/${practice.practice}/${encodeURIComponent(practice.caseId)}`, label: name } } : null;
+  }
   if (first === 'privacy' || first === 'support') return { title: t(`${first}.title`), up: home };
   if (first === 'solve') return id && id in SOLVES ? { title: SOLVES[id], up: home } : null;
   if (!isStage(first)) return null;
@@ -59,6 +70,21 @@ function track(pathname: string) {
   currentPath = path;
 }
 
+/**
+ * A link up to `href` that steps back in history instead when the page
+ * just left is that one, so it comes back as it was left (scrolled down a
+ * long list, for example): the link's onClick.
+ */
+export function useUpLink(href: string) {
+  const router = useRouter();
+  return useCallback((event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    if (previousPath !== href) return;
+    event.preventDefault();
+    router.back();
+  }, [href, router]);
+}
+
 function BackIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
@@ -72,10 +98,10 @@ function BackIcon() {
 // button to the page one level up and the page's title.
 export function HeaderTitle() {
   const { t } = useT();
-  const router = useRouter();
   const pathname = usePathname() ?? '/';
   useEffect(() => { track(pathname); }, [pathname]);
   const page = pageFor(pathname, t);
+  const back = useUpLink(page?.up.href ?? '/');
 
   if (!page) {
     return (
@@ -87,12 +113,6 @@ export function HeaderTitle() {
   }
 
   const label = t('nav.backTo', { page: page.up.label });
-  const back = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
-    if (previousPath !== page.up.href) return;
-    event.preventDefault();
-    router.back();
-  };
   return (
     <div className="flex min-w-0 shrink items-center gap-1">
       <Link href={page.up.href} onClick={back} aria-label={label} title={label}

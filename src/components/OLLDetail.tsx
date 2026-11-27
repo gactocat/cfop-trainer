@@ -1,15 +1,15 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { getOLLDefinition } from '@/data/oll-definitions';
 import { useOLLAlgorithms } from '@/hooks/useOLLAlgorithms';
 import { useT } from '@/hooks/useT';
+import { casePracticePath } from '@/lib/practice-pages';
 import { type OLLId } from '@/types/oll';
 import { OLLAlgorithmForm } from './OLLAlgorithmForm';
 import { OLLAlgorithmRow } from './OLLAlgorithmRow';
-import { CasePracticeModal } from './CasePracticeModal';
-import { OLLCaseTrainer } from './OLLRandomTrainer';
 import { OLL3DPlayer } from './OLL3DPlayer';
 import { OLLLLView } from './OLLLLView';
 import { SmartSolveHistory } from './SmartSolveHistory';
@@ -24,8 +24,7 @@ export function OLLDetail({ ollId }: OLLDetailProps) {
   const { t } = useT();
   const def = getOLLDefinition(ollId);
   const [adding, setAdding] = useState(false);
-  // The algorithm being practised (its id), or null.
-  const [practising, setPractising] = useState<string | null>(null);
+  const router = useRouter();
   const [view, setView] = useState<CubeView>('2d');
   const {
     ready,
@@ -50,7 +49,6 @@ export function OLLDetail({ ollId }: OLLDetailProps) {
         }),
     [all, ollId],
   );
-  const practised = records.find((r) => r.id === practising) ?? null;
 
   const star = ready ? starredFor(ollId) : null;
   const displayAuf = star?.auf ?? 'U0';
@@ -171,7 +169,7 @@ export function OLLDetail({ ollId }: OLLDetailProps) {
                 onRemove={remove}
                 onAddTime={addTime}
                 onRemoveTime={removeTime}
-                onPractice={setPractising}
+                onPractice={(algorithmId) => router.push(casePracticePath('oll', ollId, algorithmId))}
               />
             ))}
           </ul>
@@ -180,14 +178,6 @@ export function OLLDetail({ ollId }: OLLDetailProps) {
 
       <SmartSolveHistory practice="oll" caseId={ollId} />
 
-      <CasePracticeModal
-        practice="oll"
-        name={def.name}
-        algorithm={practised}
-        onClose={() => setPractising(null)}
-      >
-        {practised && <OLLCaseTrainer record={practised} />}
-      </CasePracticeModal>
     </div>
   );
 }

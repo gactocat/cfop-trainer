@@ -1,15 +1,15 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { getF2LDefinition } from '@/data/f2l-definitions';
 import { useF2LAlgorithms } from '@/hooks/useF2LAlgorithms';
 import { useT } from '@/hooks/useT';
+import { casePracticePath } from '@/lib/practice-pages';
 import type { F2LId } from '@/types/f2l';
 import { F2LAlgorithmForm } from './F2LAlgorithmForm';
 import { F2LAlgorithmRow } from './F2LAlgorithmRow';
-import { CasePracticeModal } from './CasePracticeModal';
-import { F2LCaseTrainer } from './F2LRandomTrainer';
 import { F2L3DPlayer } from './F2L3DPlayer';
 import { SmartSolveHistory } from './SmartSolveHistory';
 
@@ -21,8 +21,7 @@ export function F2LDetail({ f2lId }: F2LDetailProps) {
   const { t } = useT();
   const def = getF2LDefinition(f2lId);
   const [adding, setAdding] = useState(false);
-  // The algorithm being practised (its id), or null.
-  const [practising, setPractising] = useState<string | null>(null);
+  const router = useRouter();
   const {
     ready,
     all,
@@ -46,7 +45,6 @@ export function F2LDetail({ f2lId }: F2LDetailProps) {
         }),
     [all, f2lId],
   );
-  const practised = records.find((r) => r.id === practising) ?? null;
 
   const star = ready ? starredFor(f2lId) : null;
 
@@ -120,7 +118,7 @@ export function F2LDetail({ f2lId }: F2LDetailProps) {
                 onRemove={remove}
                 onAddTime={addTime}
                 onRemoveTime={removeTime}
-                onPractice={setPractising}
+                onPractice={(algorithmId) => router.push(casePracticePath('f2l', f2lId, algorithmId))}
               />
             ))}
           </ul>
@@ -129,14 +127,6 @@ export function F2LDetail({ f2lId }: F2LDetailProps) {
 
       <SmartSolveHistory practice="f2l" caseId={f2lId} />
 
-      <CasePracticeModal
-        practice="f2l"
-        name={t('common.f2lCase', { number: def.number })}
-        algorithm={practised}
-        onClose={() => setPractising(null)}
-      >
-        {practised && <F2LCaseTrainer record={practised} />}
-      </CasePracticeModal>
     </div>
   );
 }

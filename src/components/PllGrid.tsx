@@ -50,7 +50,7 @@ function formatLastDate(iso: string | undefined, intl: string): string {
   }
 }
 
-export function PllGrid({ onRandom }: { onRandom: () => void }) {
+export function PllGrid() {
   const { ready: algReady, starredFor } = useAlgorithms();
   const selection = usePllRandomSelection();
   const presets = useSelectionPresets(pllSelectionPresets);
@@ -99,7 +99,6 @@ export function PllGrid({ onRandom }: { onRandom: () => void }) {
         presets={presets}
         selectionMode={selectionMode}
         onSelectionModeChange={setSelectionMode}
-        onRandom={onRandom}
       />
 
       {mounted && !selectionMode && totalVisible === 0 && (

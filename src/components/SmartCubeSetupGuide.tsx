@@ -4,23 +4,6 @@ import { useT } from '@/hooks/useT';
 import type { SmartTrainerView } from '@/hooks/useSmartCubeTrainer';
 import type { TrainerPractice } from '@/lib/smart-cube/trainer-session';
 
-// The setup on the start screen, with the tokens already turned dimmed and the
-// next one underlined.
-export function SmartCubeSetupTokens({ view }: { view: SmartTrainerView }) {
-  return (
-    <>
-      {view.plan.tokens.map((token, i) => (
-        <span
-          key={i}
-          className={i < view.doneTokens ? 'opacity-40' : i === view.doneTokens ? 'underline decoration-2 underline-offset-8' : ''}
-        >
-          {i > 0 ? ' ' : ''}{token}
-        </span>
-      ))}
-    </>
-  );
-}
-
 // What to do next on the cube: solve to the starting state, finish a half
 // turn, take back wrong turns, or start solving.
 export function SmartCubeSetupStatus({ view, practice }: { view: SmartTrainerView; practice: TrainerPractice }) {

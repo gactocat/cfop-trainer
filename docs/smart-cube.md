@@ -9,10 +9,11 @@ instead of offering a connection.
 ## Using it
 
 Settings, Smart cube: connect, see battery and model, choose how the cube is
-held, and enter the MAC address if Chrome cannot read it. The practice options
-(random practice and an algorithm's practice on its case page) also offer
-"Connect smart cube" and show the connected cube with its battery; they open
-the dialog for the MAC address and, in the iOS app, for the list of cubes.
+held, and enter the MAC address if Chrome cannot read it. The practice pages
+(random practice and an algorithm's practice under its case) also offer
+"Connect smart cube" on the case screen and in the practice's settings, and
+show the connected cube with its battery; they open the dialog for the MAC
+address and, in the iOS app, for the list of cubes.
 The battery is drawn as a battery icon that fills by fifths (red at 20% or
 less) with its level beside it (`BatteryLevel`), wherever it is shown. The cube's data is
 encrypted with its MAC; Chrome reads it from the cube's advertisements only
@@ -27,25 +28,27 @@ and PLL:
 
 1. The setup must start from the practice's goal state: F2L solved (F2L),
    F2L solved and the last layer oriented (OLL), solved apart from a last-layer
-   turn (PLL). Until then the start screen asks for it.
+   turn (PLL). Until then the case screen asks for it.
 2. Each turn advances through the setup; turned tokens dim. A half-done step
    shows what is left, and wrong turns show the turns that take them back.
-3. When the cube reaches the setup's state the screen turns blue (ready). The
-   first turn after that starts the timer; ready to first turn is shown as
-   recognition time.
+3. When the cube reaches the setup's state the case is ready and the
+   recognition counts under the cube. The first turn after that starts the
+   timer; ready to first turn is kept as recognition time.
 4. The timer stops when the goal state is reached: F2L solved, last layer
    oriented, or solved apart from the final AUF. The time is the cube clock
    between the first and the last turn, so Bluetooth delivery delay does not
    count.
 
-With setup and a cube connected when the practice starts (`smart-setup` in
-`lib/practice-mode.ts`), the practice uses the same calm screen as no scramble
-(`SmartSetupStage`, sharing `CubeStage` with `NoScrambleStage`): the guide
-beside a 3D cube, the frame's colour for the state, a recognition timer from ready to the first
-turn, and the solve recorded as it stops, with Undo, Next and the automatic
-next case as below (`useSmartSetupPractice`). Space still starts and stops the
-timer by hand. Without a connected cube, with setup shows the setup to apply
-by hand and no setup is the tap timer, as before.
+With setup and a cube connected (`smart-setup` in `lib/practice-mode.ts`),
+the practice runs on the three screens every practice has
+(`PracticeScreens`, built from the solve's parts): the case screen with the
+guide over a 3D cube and the recognition under it once the case is ready,
+the timer screen from the first turn with the cube small, and the result,
+recorded as the goal stops it, with Undo, the same case again, Next and the
+automatic next case as below (`useSmartSetupPractice`). Space still starts
+and stops the timer by hand. Without a connected cube, with setup shows the
+setup to apply by hand over the case it makes, and no setup is the hold
+timer, the case appearing as it starts.
 
 The 3D cube beside a setup (and on a CFOP solve's scramble and timer
 screens) is the cube as it is: the smart cube's tracked state, held as the
@@ -100,7 +103,7 @@ The simulator has no Bluetooth, so only builds can be checked there.
 
 A GAN cube does not advertise while it is linked, so no other app can find it
 until the link itself is gone. Disconnect (in the smart cube dialog and the
-practice options) and every other end of a connection (a lost or silent link,
+practice settings) and every other end of a connection (a lost or silent link,
 a wrong MAC, the test cube taking over) stop notifications first, waiting a
 second at most as other GAN clients do, and then disconnect: `gatt.disconnect()`
 in the browser, the plugin's disconnect (CoreBluetooth's
@@ -119,7 +122,7 @@ the background.
 
 ## No scramble
 
-No setup with a cube connected when the practice starts. The case is
+No setup with a cube connected. The case is
 built as a virtual cube (the trainer's setup applied to a solved cube, in the
 chosen holding) and drawn with one persistent 3D player; the smart cube's
 turns move the virtual cube, while the physical cube's own state (FACELETS)
@@ -132,11 +135,12 @@ what the practice ignores (the last layer for F2L, all but its top colour for
 OLL, nothing for PLL), using the masks of the F2L and OLL views built for the
 holding's last layer.
 
-The practice runs from the cube alone, so its screen is not the standard
-mode's full-colour tap target. The virtual cube stays in one place; its frame
-shows the state (green waiting, red timing, amber solved), with the timer or
-the result beside it and this session's solves (count, mean, ao5, best and the
-latest cases) in a panel. A solve is recorded as soon as the goal stops it
+The practice runs from the cube alone on the same three screens: the virtual
+cube large on the case screen, with the recognition counting under it (the
+case is only on the screen, so it stays large until the first turn); small
+under the timer once it runs, with "Back to the case"; kept mounted (one
+WebGL context) on the result. This session's figures are behind an icon in
+the header. A solve is recorded as soon as the goal stops it
 and Undo (or Escape) takes it back. Next (or Space) brings the next case;
 with "Next case by itself" (`autoAdvance`, off by default) it also comes once
 the cube has been still for 1.5 seconds, so a final AUF or setting the cube
@@ -146,11 +150,12 @@ case" does. Stopping by hand records the host-timed attempt the same way, and
 leaving the iOS app abandons the attempt. The app keeps the screen on while a
 cube is connected in this mode.
 
-A practice asks for a smart cube, its mode (setup on or off), the AUF
-(pre-applied: turned by the algorithm's AUF so it can start at once; in
-algorithm: not turned, so the AUF is part of the solve; or random) and, with
-a cube, the automatic next case each time it opens, starting from the last
-choices. The AUF choice does not depend on the list's AUF display, which only
+A practice's settings, behind the gear on its case screen, are the smart
+cube, its mode (setup on or off), the AUF (pre-applied: turned by the
+algorithm's AUF so it can start at once; in algorithm: not turned, so the AUF
+is part of the solve; or random), with a cube the automatic next case, and
+for random practice each selected case once. The page starts on a case at
+once; a change takes effect with the next case (at once while a case waits). The AUF choice does not depend on the list's AUF display, which only
 changes how the solution is written (see `lib/auf-start.ts`). It is stored as
 `randomAuf` and `alignAuf`; neither flag, once "as set", reads as in
 algorithm.
@@ -159,8 +164,10 @@ versions know: no setup as `standard`, with setup as `inverse`. The three-mode
 version kept no scramble as a device-local `noScramble` flag in
 `cfop:smart-cube:v1`; it reads as no setup and is cleared once a mode is
 chosen (`src/lib/practice-mode.ts`). `autoAdvance` stays device-local. How the
-practice runs is fixed when it starts, so a cube lost mid-session leaves the
-no-scramble screen asking to reconnect rather than switching to the tap timer.
+practice runs follows the settings and the cube while a case waits, and is
+kept from the start of an attempt to the next case (`usePracticeFlavor`), so
+a cube lost mid-attempt leaves it on the cube, where a press still stops it,
+rather than switching to the tap timer.
 Recorded solves carry `mode: 'no-scramble'`.
 
 ## Mark as solved
@@ -178,7 +185,7 @@ setup starts again from solved; the solve page's scramble guide routes again
 from it. Practice without a setup does not use the cube's state.
 
 The dialog is the button's only place for a real cube; the screens that show
-a connected cube (the practice options, the solve page's battery) open the
+a connected cube (the practice's battery, the solve page's battery) open the
 dialog rather than repeating it. The test cube's panel keeps one, for trying
 the reset without a cube.
 
@@ -271,7 +278,7 @@ unchanged, so older app versions are unaffected.
 - `trainer-session.ts`: the need-base, setup, ready, running, done state machine.
 - `guide-cube.ts`: the 3D guide cube: the state for cubing.js and the next move.
 - `virtual-session.ts`: the no-scramble attempt (`useNoScrambleTrainer`,
-  `NoScrambleStage`, `VirtualCube`).
+  `PracticeScreens`, `VirtualCube`).
 - `support.ts`: why a cube cannot connect here, from the user agent (the iOS
   app always can).
 - `src/lib/smart-cube-store.ts`: the connection. FACELETS events (about once a

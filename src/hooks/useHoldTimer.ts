@@ -39,6 +39,9 @@ export function useHoldTimer({ active, state, pressOnNext, onStart, onStop, onAb
   };
 } {
   const [press, setPress] = useState<'idle' | 'pressed' | 'armed'>('idle');
+  // A hold left over when the timer is switched off (the press on the last
+  // result that ends a round) must not come back with it.
+  if (!active && press !== 'idle') setPress('idle');
   const phase: HoldPhase = !active ? 'idle' : state === 'running' ? 'running' : state === 'stopped' ? 'stopped' : press;
   const phaseRef = useRef(phase);
   useEffect(() => { phaseRef.current = phase; });

@@ -15,22 +15,27 @@ import { TimerDigits } from './TimerDigits';
 
 // The three screens of a solve from a scramble (scramble, timer, result),
 // built from the app's parts so every kind of solve looks and works the
-// same; the page wires them to its solve (CfopSolve).
+// same; the page wires them to its solve (ModeSolve). Practice is built
+// from the same parts (PracticeScreens).
 
 const CARD = 'rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900';
 const LABEL = 'text-[11px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400';
-const PRIMARY = 'rounded-md bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700';
-const OUTLINE = 'rounded-md border border-zinc-300 px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800';
-const QUIET = 'rounded-md border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100';
+export const PRIMARY = 'rounded-md bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700';
+export const OUTLINE = 'rounded-md border border-zinc-300 px-5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800';
+export const QUIET = 'rounded-md border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100';
 
-// The cube's place and size: large in the room left on the scramble screen, small under the timer.
+// The cube's place and size: large in the room left on the scramble screen,
+// small under the timer (medium where it is the thing to solve: a practice
+// case shown as the timer starts).
 const CUBE_PLACE = {
   large: 'flex w-full flex-1 items-center justify-center',
+  medium: 'flex justify-center',
   small: 'flex justify-center',
   hidden: 'hidden',
 } as const;
 const CUBE_SIZE = {
   large: 'size-64 sm:size-80',
+  medium: 'size-56 sm:size-64',
   small: 'size-36 sm:size-44',
   hidden: '',
 } as const;
@@ -39,7 +44,7 @@ const CUBE_SIZE = {
 const ownPress = (target: EventTarget | null) => !!(target as Element | null)?.closest?.('button, a, input, select, textarea, label, [data-own-press]');
 
 /** Redraws every frame while `on`; returns performance.now(). */
-function useNow(on: boolean): number {
+export function useNow(on: boolean): number {
   const [now, setNow] = useState(0);
   useEffect(() => {
     if (!on) return;
@@ -87,7 +92,7 @@ export function SolveFrame({ label, head, cube, cubeSize, tail, onPress }: {
 }
 
 /** The scramble's tokens, those already turned dimmed and the next underlined. */
-function Tokens({ tokens, done }: { tokens: readonly string[]; done: number | null }) {
+export function Tokens({ tokens, done }: { tokens: readonly string[]; done: number | null }) {
   return (
     <>
       {tokens.map((token, i) => (
@@ -113,32 +118,40 @@ export function CubeStatus({ screen, synced }: { screen: CubeSolveScreen | null;
   return null;
 }
 
-/** The scramble screen's top: its controls, then the scramble (or, with a cube elsewhere, the turns to it) and what the cube needs. */
-export function ScrambleHead({ toolbar, problem, scramble, failed, tokens, done, rerouted, status }: {
+/**
+ * The scramble screen's top: its controls, then the scramble (or, with a
+ * cube elsewhere, the turns to it) and what the cube needs. A practice's
+ * case screen has the same top, with its setup for the scramble (none
+ * without a setup: `scramble` undefined) and `lead` at the left.
+ */
+export function ScrambleHead({ toolbar, lead, problem, scramble, failed = false, tokens, done, rerouted = false, status }: {
   toolbar: ReactNode;
+  lead?: ReactNode;
   problem?: ReactNode;
-  scramble: string | null;
-  failed: boolean;
+  scramble: string | null | undefined;
+  failed?: boolean;
   tokens: readonly string[];
   /** Turns done (with a cube); null without one. */
   done: number | null;
   /** The tokens are a route worked out from where the cube is. */
-  rerouted: boolean;
+  rerouted?: boolean;
   status?: ReactNode;
 }) {
   const { t } = useT();
   return (
     <div className="flex w-full flex-col gap-3">
       <div className="flex items-start justify-between gap-3">
-        {rerouted ? <h2 className={`${LABEL} min-w-0 pt-2`}>{t('solve.cube.routeTitle')}</h2> : <span />}
+        {rerouted ? <h2 className={`${LABEL} min-w-0 pt-2`}>{t('solve.cube.routeTitle')}</h2> : lead ?? <span />}
         {toolbar}
       </div>
       {problem}
-      <p aria-live="polite" className="min-h-[2.5em] w-full text-center font-mono text-xl font-semibold leading-relaxed tracking-wide break-words text-zinc-900 sm:text-2xl dark:text-zinc-50">
-        {scramble ? <Tokens tokens={tokens} done={done} /> : (
-          <span className="text-base font-normal text-zinc-500 dark:text-zinc-400">{t(failed ? 'solve.scramble.failed' : 'solve.scramble.making')}</span>
-        )}
-      </p>
+      {scramble !== undefined && (
+        <p aria-live="polite" className="min-h-[2.5em] w-full text-center font-mono text-xl font-semibold leading-relaxed tracking-wide break-words text-zinc-900 sm:text-2xl dark:text-zinc-50">
+          {scramble ? <Tokens tokens={tokens} done={done} /> : (
+            <span className="text-base font-normal text-zinc-500 dark:text-zinc-400">{t(failed ? 'solve.scramble.failed' : 'solve.scramble.making')}</span>
+          )}
+        </p>
+      )}
       {rerouted && scramble && (
         <p className="text-center font-mono text-xs text-zinc-500 dark:text-zinc-400">{t('solve.cube.scrambleWas', { scramble })}</p>
       )}
@@ -148,7 +161,7 @@ export function ScrambleHead({ toolbar, problem, scramble, failed, tokens, done,
 }
 
 /** Where the timer's digits sit, on the timer screen and the result alike, so the result's time takes the timer's place. */
-function DigitsArea({ children, under }: { children: ReactNode; under: ReactNode }) {
+export function DigitsArea({ children, under }: { children: ReactNode; under: ReactNode }) {
   return (
     <div className="flex min-h-[26vh] w-full flex-col items-center justify-end gap-2">
       {children}

@@ -41,7 +41,10 @@ CI (`.github/workflows/ci.yml`) runs the same three steps on every PR.
 ## Layout
 
 - `src/app/` — routes. `/` (home), `/pll`, `/pll/[id]`, `/f2l`, `/f2l/[id]`,
-  `/random`, `/account`, `/solve/[mode]` (cfop, cross, f2l, ll), `manifest.ts`. Detail routes use
+  `/oll`, `/oll/[id]`, random practice at `/pll/random` (and OLL, F2L), an
+  algorithm's practice at `/pll/[id]/practice?alg=<record id>`
+  (`lib/practice-pages.ts`), `/random` (a redirect), `/account`,
+  `/solve/[mode]` (cfop, cross, f2l, ll), `manifest.ts`. Detail routes use
   `generateStaticParams`. The top page's groups and entries are data in
   `src/data/home-entries.ts`. Extra extensions limit where a route exists
   (`next.config.ts`): `page.dev.tsx` only under `next dev`, `route.web.ts`
@@ -49,7 +52,9 @@ CI (`.github/workflows/ci.yml`) runs the same three steps on every PR.
 - `src/components/` — UI. Almost everything is a `'use client'` component.
   PLL and F2L have parallel component sets (`PllGrid` / `F2LGrid`,
   `RandomTrainer` / `F2LRandomTrainer`, ...); keep them in step when changing
-  shared behaviour.
+  shared behaviour. Practice and solves share their screens: a case (or
+  scramble), the timer and the result, built from `SolveScreens`
+  (`PracticeScreens`, `ModeSolve`).
 - `src/hooks/` — React hooks that wrap a store (`useAlgorithms`,
   `useF2LAlgorithms`, `use*RandomSelection`, `use*RandomSolves`, settings
   toggles) plus `useSpacebar` and `useMounted`.

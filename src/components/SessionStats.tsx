@@ -11,11 +11,13 @@ const moves1 = (value: number | null) => (value === null ? '-' : value.toFixed(1
 
 // This session as a whole (mean time, moves and TPS), and behind "Details",
 // case by case: recognition and solving (mean, with the best below), moves
-// and TPS. `open` shows the details from the start (the end of a round).
-export function SessionStats({ results, note, open = false, className = '' }: {
+// and TPS. `open` shows the details from the start (the session's panel,
+// the end of a round); `heading` is left out where the panel's title says it.
+export function SessionStats({ results, note, open = false, heading = true, className = '' }: {
   results: readonly PracticeResult[];
   note?: string;
   open?: boolean;
+  heading?: boolean;
   className?: string;
 }) {
   const { t } = useT();
@@ -28,12 +30,12 @@ export function SessionStats({ results, note, open = false, className = '' }: {
   );
   return (
     <aside className={`w-full max-w-md rounded-lg border border-zinc-200 bg-white p-4 text-sm dark:border-zinc-800 dark:bg-zinc-900 xl:w-96 ${className}`}>
-      <h3 className="flex items-baseline justify-between gap-2 text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-        {t('trainer.noScramble.session')}
+      <h3 className={`flex items-baseline gap-2 text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400 ${heading ? 'justify-between' : 'justify-end'}`}>
+        {heading && t('trainer.noScramble.session')}
         {totals.count > 0 && <span className="normal-case tracking-normal">{t('trainer.session.count', { count: totals.count })}</span>}
       </h3>
       {totals.count === 0 ? (
-        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">{t('trainer.noScramble.empty')}</p>
+        <p className={`${heading ? 'mt-3' : ''} text-xs text-zinc-500 dark:text-zinc-400`}>{t('trainer.noScramble.empty')}</p>
       ) : (
         <>
           <dl className="mt-3 grid grid-cols-3 gap-2">

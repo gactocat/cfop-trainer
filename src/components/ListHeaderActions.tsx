@@ -1,10 +1,12 @@
 'use client';
 
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useMounted } from '@/hooks/useMounted';
 import { useT } from '@/hooks/useT';
 import { HEADER_ACTIONS_ID, HEADER_TOOLBAR_ID } from '@/lib/header-slots';
+import { randomPracticePath } from '@/lib/practice-pages';
 import type { SelectionPreset } from '@/lib/selection-presets-store';
 import type { Practice } from '@/types/practice';
 import { AufDisplaySetting } from './AufModeToggle';
@@ -19,9 +21,9 @@ const OUTLINE = 'rounded-md border border-zinc-300 dark:border-zinc-700 px-2.5 p
 // title, then Select (an icon, with the number of cases shown when some are
 // left out) and random practice. While selecting, the selection's tools and
 // the list's AUF display take a second header row, so they stay in reach
-// down a long list.
+// down a long list. Random practice is a page of its own.
 export function ListHeaderActions<Id extends string>({
-  practice, info, total, selection, presets, selectionMode, onSelectionModeChange, onRandom,
+  practice, info, total, selection, presets, selectionMode, onSelectionModeChange,
 }: {
   practice: Practice;
   info: ReactNode;
@@ -40,7 +42,6 @@ export function ListHeaderActions<Id extends string>({
   };
   selectionMode: boolean;
   onSelectionModeChange: (selecting: boolean) => void;
-  onRandom: () => void;
 }) {
   const { t } = useT();
   // The header's slots exist once the page is in the browser.
@@ -78,9 +79,8 @@ export function ListHeaderActions<Id extends string>({
                 </span>
               )}
             </button>
-            <button
-              type="button"
-              onClick={onRandom}
+            <Link
+              href={randomPracticePath(practice)}
               aria-label={t('common.randomTraining')}
               title={t('common.randomTraining')}
               className="inline-flex h-9 items-center gap-1.5 rounded-md bg-emerald-600 px-3 text-sm font-medium text-white hover:bg-emerald-700"
@@ -89,7 +89,7 @@ export function ListHeaderActions<Id extends string>({
               {/* Short on a phone, so the title and both buttons keep to one row. */}
               <span className="sm:hidden">{t('common.randomShort')}</span>
               <span className="hidden sm:inline">{t('common.randomTraining')}</span>
-            </button>
+            </Link>
           </div>
         </>,
         actions,

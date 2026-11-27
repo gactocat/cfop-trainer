@@ -2,7 +2,8 @@
 // node --import ./scripts/register-src-alias.mjs scripts/verify-practice.mts
 //
 // Session figures (the whole session and per case), the AUF a case starts
-// with, the hold-to-start timer, each selected case once, and move counts.
+// with, the hold-to-start timer, the practice's screens and pages, each
+// selected case once, and move counts.
 import assert from 'node:assert/strict';
 import { cube3x3x3 } from 'cubing/puzzles';
 import { F2L_PRESET_ALGORITHMS } from '@/data/f2l-preset-algorithms';
@@ -15,6 +16,8 @@ import { appendUTurn, prefixAuf, splitF2LAuf } from '@/lib/f2l-auf';
 import { buildF2LSetup, seededRandom } from '@/lib/f2l-scramble';
 import { holdStep, type HoldInput, type HoldPhase } from '@/lib/hold-timer';
 import { saveCubeSolve, type CaseTimes } from '@/lib/practice-log';
+import { casePracticePath, practicePageOf, randomPracticePath } from '@/lib/practice-pages';
+import { practiceScreenOf } from '@/lib/practice-screen';
 import { countMoves, movesPerSecond, solutionMoves } from '@/lib/move-count';
 import { doneCases, nextRoundCase, roundPosition, shuffled } from '@/lib/practice-round';
 import { buildLastLayerSetup, buildPracticeSetup } from '@/lib/last-layer-setup';
@@ -109,6 +112,42 @@ ok(walk(['held', 'release'], 'idle').phase === 'idle', 'nothing happens without 
 ok(walk(['press'], 'stopped').effects === 'next' && walk(['press'], 'stopped').phase === 'idle', 'a press on the result goes on');
 ok(walk(['press', 'held', 'release'], 'stopped', true).effects === 'next,start', 'without a setup, holding on the result starts the next case');
 ok(walk(['press', 'release'], 'stopped', true).phase === 'idle', 'a short press on the result only goes on');
+
+// --- The practice's screens: the case, the timer once a press is held (or the attempt runs), the result
+ok(practiceScreenOf({ state: 'idle', hold: 'idle' }) === 'case', 'a case waits on the case screen');
+ok(practiceScreenOf({ state: 'idle', hold: 'pressed' }) === 'timer' && practiceScreenOf({ state: 'idle', hold: 'armed' }) === 'timer',
+  'a press held brings up the timer, red then green');
+ok(practiceScreenOf({ state: 'running', hold: 'running' }) === 'timer', 'the timer runs on the timer screen');
+ok(practiceScreenOf({ state: 'running', hold: 'idle' }) === 'timer', 'a cube attempt (no hold timer) runs on the timer screen');
+ok(practiceScreenOf({ state: 'stopped', hold: 'stopped' }) === 'result' && practiceScreenOf({ state: 'stopped', hold: 'idle' }) === 'result',
+  'a stopped attempt shows its result');
+const screens = (inputs: HoldInput[]) => {
+  let phase: HoldPhase = 'idle';
+  let state: 'idle' | 'running' | 'stopped' = 'idle';
+  const seen: string[] = [];
+  for (const input of inputs) {
+    const step = holdStep(phase, input);
+    phase = step.phase;
+    if (step.effect === 'start') state = 'running';
+    if (step.effect === 'stop') state = 'stopped';
+    if (step.effect === 'abort' || step.effect === 'next') state = 'idle';
+    const screen = practiceScreenOf({ state, hold: phase });
+    if (seen.at(-1) !== screen) seen.push(screen);
+  }
+  return seen.join(' > ');
+};
+ok(screens(['press', 'held', 'release', 'press', 'release', 'press']) === 'timer > result > case', 'hold, go, stop, then on to the next case');
+ok(screens(['press', 'release']) === 'timer > case', 'letting go too soon goes back to the case');
+ok(screens(['press', 'held', 'release', 'cancel']) === 'timer > case', 'Escape while running goes back to the case');
+
+// --- The practice's pages
+ok(randomPracticePath('pll') === '/pll/random' && randomPracticePath('f2l') === '/f2l/random', 'random practice under its list');
+ok(casePracticePath('oll', 'OLL-21', 'a b') === '/oll/OLL-21/practice?alg=a%20b', 'case practice under its case, the algorithm in the query');
+const page = (path: string) => JSON.stringify(practicePageOf(path));
+ok(page('/oll/random') === JSON.stringify({ kind: 'random', practice: 'oll' }), 'a random practice page');
+ok(page('/f2l/F2L-17/practice/') === JSON.stringify({ kind: 'case', practice: 'f2l', caseId: 'F2L-17' }), 'a case practice page (with the iOS trailing slash)');
+ok(['/pll', '/pll/T', '/solve/cfop', '/pll/random/x', '/pll/T/practice/x', '/zbll/random', '/'].every((path) => practicePageOf(path) === null),
+  'other pages are not practice pages');
 
 // --- Each selected case once
 const cases = ['T', 'Aa', 'Ua', 'Z'];
@@ -221,4 +260,4 @@ for (const [id, presets] of Object.entries(F2L_PRESET_ALGORITHMS) as [F2LId, rea
   });
 }
 
-console.log(`Verified ${checks} checks: session figures, move counts, the hold timer, each case once, the AUF choice, ${lastLayer} last-layer practice cases and ${f2l} aligned F2L setups.`);
+console.log(`Verified ${checks} checks: session figures, move counts, the hold timer, the practice's screens and pages, each case once, the AUF choice, ${lastLayer} last-layer practice cases and ${f2l} aligned F2L setups.`);

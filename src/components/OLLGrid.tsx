@@ -61,7 +61,7 @@ function formatLastDate(iso: string | undefined, intl: string): string {
   }
 }
 
-export function OLLGrid({ onRandom }: { onRandom: () => void }) {
+export function OLLGrid() {
   const { ready: algReady, starredFor } = useOLLAlgorithms();
   const selection = useOLLRandomSelection();
   const presets = useSelectionPresets(ollSelectionPresets);
@@ -110,7 +110,6 @@ export function OLLGrid({ onRandom }: { onRandom: () => void }) {
         presets={presets}
         selectionMode={selectionMode}
         onSelectionModeChange={setSelectionMode}
-        onRandom={onRandom}
       />
 
       {mounted && !selectionMode && totalVisible === 0 && (

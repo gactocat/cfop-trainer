@@ -23,7 +23,7 @@ function CubeIcon() {
 
 // The smart cube, small: connect it, or see it is connected and its
 // battery. The smart cube dialog keeps the rest (holding, MAC, disconnect).
-function CubeConnection() {
+export function CubeConnection() {
   const { t } = useT();
   const cube = useSmartCube();
   const { lastCube } = useSmartCubeSettings();

@@ -51,7 +51,7 @@ function formatLastDate(iso: string | undefined, intl: string): string {
   }
 }
 
-export function F2LGrid({ onRandom }: { onRandom: () => void }) {
+export function F2LGrid() {
   const { ready: algReady, starredFor } = useF2LAlgorithms();
   const selection = useF2LRandomSelection();
   const presets = useSelectionPresets(f2lSelectionPresets);
@@ -99,7 +99,6 @@ export function F2LGrid({ onRandom }: { onRandom: () => void }) {
         presets={presets}
         selectionMode={selectionMode}
         onSelectionModeChange={setSelectionMode}
-        onRandom={onRandom}
       />
 
       {mounted && !selectionMode && totalVisible === 0 && (
