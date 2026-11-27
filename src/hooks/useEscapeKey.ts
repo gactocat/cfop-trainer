@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 
 // Fire `handler` when the user presses Escape, while `active`. Listens in the
 // capture phase and stops the event there, so an enclosing dialog that closes
-// on Escape (FullScreenModal, the settings dialog) does not also react: on
+// on Escape (a settings dialog) does not also react: on
 // the trainer's result screen Escape means "discard this time", not "leave".
 // Ignored while focus is in a text-entry control.
 export function useEscapeKey(handler: () => void, active = true): void {

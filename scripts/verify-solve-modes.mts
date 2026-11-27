@@ -17,6 +17,7 @@ import {
   type ColourHolding, type CubeColour, type Frame,
 } from '@/lib/smart-cube/holding';
 import { planSetup } from '@/lib/smart-cube/setup-guide';
+import { solvePageOf, solveRecordPath, solveRecordsPath } from '@/lib/solve/solve-pages';
 import { cubeSolveTurn, restartCubeSolve, startCubeSolve, type CubeSolveSession } from '@/lib/smart-cube/solve-session';
 import { mergeTurns } from '@/lib/smart-cube/solve-record';
 import { cfopLevel, cfopStages, CFOP_STAGES, splitCfop, type TimedTurn } from '@/lib/solve/cfop-split';
@@ -629,5 +630,14 @@ function WCA_FRAME() { return colourFrame(WCA)!; }
   console.log(`Scrambles: ${speed.join(', ')}.`);
   console.log(`Scramble lengths: ${SOLVE_MODES.map((m) => `${m} ${lengthRange(m)}`).join(', ')}.`);
 }
+
+// The pages of each kind of solve: the solve, its records, one solve.
+assert.equal(solveRecordsPath('ll'), '/solve/ll/records');
+assert.equal(solveRecordPath('cfop', 'a b'), '/solve/cfop/records/detail?id=a%20b');
+assert.deepEqual(solvePageOf('/solve/cross'), { mode: 'cross', kind: 'solve' });
+assert.deepEqual(solvePageOf('/solve/f2l/records/'), { mode: 'f2l', kind: 'records' }, 'the iOS trailing slash');
+assert.deepEqual(solvePageOf('/solve/cfop/records/detail'), { mode: 'cfop', kind: 'record' });
+for (const path of ['/solve', '/solve/zbll', '/solve/cfop/x', '/solve/cfop/records/x', '/pll/random']) assert.equal(solvePageOf(path), null, path);
+checks += 8;
 
 console.log(`verify-solve-modes: ${checks} checks passed.`);

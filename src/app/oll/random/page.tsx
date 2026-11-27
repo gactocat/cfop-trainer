@@ -1,6 +1,4 @@
-import { OLLRandomTrainer } from '@/components/OLLRandomTrainer';
-
-// Random practice of the OLLs ticked in the list.
+// The practice itself is the layout's (it stays behind its session page).
 export default function OLLRandomPage() {
-  return <OLLRandomTrainer />;
+  return null;
 }

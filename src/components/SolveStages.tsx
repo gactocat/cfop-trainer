@@ -24,46 +24,60 @@ const STAGE_LABEL: Record<CfopStage, MessageKey> = {
 const seconds = (ms: number) => formatSolveTime(ms);
 
 // A cube solve stage by stage, the stages of its kind (CFOP: the cross, each
-// F2L pair, OLL and PLL; a part on its own: its own stages): its
-// time, then in small type recognition (from the stage before to its first
-// turn) and execution, moves and TPS, and its moves in the user's notation,
-// held as for the solve (the cross at the bottom). Beside Cross, the colour
-// the solve was built on. Stages that ended on the same turn as the one
-// before are marked as skipped. The same on a result and in the records.
+// F2L pair, OLL and PLL; a part on its own: its own stages), as a table:
+// its time, recognition (from the stage before to its first turn) and
+// execution, moves and TPS, and under them its moves in the user's
+// notation, held as for the solve (the cross at the bottom). Beside Cross,
+// the colour the solve was built on. Stages that ended on the same turn as
+// the one before are marked as skipped. The same on a result and on the
+// solve's page in the records.
 export function SolveStages({ record, className = '' }: { record: SolveRecord; className?: string }) {
   const { t } = useT();
   const reading = useMemo(() => readModeRecord(record), [record]);
   const stages = useMemo(() => modeRecordStages(record) ?? [], [record]);
   if (!reading || stages.length === 0) return null;
   const crossColour = FACE_COLOUR[reading.split.cross];
+  const th = 'px-1 pb-1.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400';
+  const td = 'px-1 py-1.5 font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-300';
   return (
-    <ol aria-label={t('solve.stage.title')} className={`divide-y divide-zinc-100 dark:divide-zinc-800 ${className}`}>
+    <table aria-label={t('solve.stage.title')} className={`w-full table-fixed text-right ${className}`}>
+      <thead>
+        <tr>
+          <th scope="col" className={`${th} w-[28%] text-left`}>{t('solve.stage.title')}</th>
+          <th scope="col" className={th}>{t('solve.time')}</th>
+          <th scope="col" className={th}>{t('solve.stage.recognition')}</th>
+          <th scope="col" className={th}>{t('solve.stage.execution')}</th>
+          <th scope="col" className={th}>{t('solve.moves')}</th>
+          <th scope="col" className={th}>TPS</th>
+        </tr>
+      </thead>
       {stages.map((stage) => (
-        <li key={stage.stage} className={`py-2 ${stage.skipped ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-800 dark:text-zinc-100'}`}>
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="inline-flex items-center gap-1.5 text-sm font-medium">
-              {t(STAGE_LABEL[stage.stage])}
-              {stage.stage === 'cross' && <CubeColourMark colour={crossColour} />}
-              {stage.skipped && (
-                <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-                  {t('solve.stage.skip')}
-                </span>
-              )}
-            </span>
-            <span className="font-mono text-base font-semibold tabular-nums">{formatSolveTime(stage.ms)}</span>
-          </div>
+        <tbody key={stage.stage} className={`border-t border-zinc-100 dark:border-zinc-800 ${stage.skipped ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-800 dark:text-zinc-100'}`}>
+          <tr>
+            <th scope="row" className="px-1 pt-2 pb-1 text-left text-sm font-medium">
+              <span className="inline-flex flex-wrap items-center gap-1.5">
+                {t(STAGE_LABEL[stage.stage])}
+                {stage.stage === 'cross' && <CubeColourMark colour={crossColour} />}
+                {stage.skipped && (
+                  <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                    {t('solve.stage.skip')}
+                  </span>
+                )}
+              </span>
+            </th>
+            <td className="px-1 pt-2 pb-1 font-mono text-sm font-semibold tabular-nums">{formatSolveTime(stage.ms)}</td>
+            <td className={td}>{stage.skipped ? '-' : seconds(stage.recognitionMs)}</td>
+            <td className={td}>{stage.skipped ? '-' : seconds(stage.executionMs)}</td>
+            <td className={td}>{stage.skipped ? '-' : stage.moves}</td>
+            <td className={td}>{stage.skipped || stage.tps === null ? '-' : stage.tps.toFixed(2)}</td>
+          </tr>
           {!stage.skipped && (
-            <>
-              <p className="mt-0.5 flex flex-wrap gap-x-3 font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
-                <span>{t('solve.stage.recognition')} {seconds(stage.recognitionMs)}</span>
-                <span>{t('solve.stage.execution')} {seconds(stage.executionMs)}</span>
-                <span>{t('smartCube.solve.summary', { moves: stage.moves, tps: stage.tps === null ? '-' : stage.tps.toFixed(2) })}</span>
-              </p>
-              <p className="mt-1 font-mono text-xs leading-5 break-words text-zinc-700 dark:text-zinc-300">{stage.notation}</p>
-            </>
+            <tr>
+              <td colSpan={6} className="px-1 pb-2 text-left font-mono text-xs leading-5 break-words text-zinc-600 dark:text-zinc-300">{stage.notation}</td>
+            </tr>
           )}
-        </li>
+        </tbody>
       ))}
-    </ol>
+    </table>
   );
 }

@@ -16,7 +16,7 @@ import { appendUTurn, prefixAuf, splitF2LAuf } from '@/lib/f2l-auf';
 import { buildF2LSetup, seededRandom } from '@/lib/f2l-scramble';
 import { holdStep, type HoldInput, type HoldPhase } from '@/lib/hold-timer';
 import { saveCubeSolve, type CaseTimes } from '@/lib/practice-log';
-import { casePracticePath, practicePageOf, randomPracticePath } from '@/lib/practice-pages';
+import { casePracticePath, practicePageOf, practicePathOf, practiceSessionPath, randomPracticePath } from '@/lib/practice-pages';
 import { practiceScreenOf } from '@/lib/practice-screen';
 import { countMoves, movesPerSecond, solutionMoves } from '@/lib/move-count';
 import { doneCases, nextRoundCase, roundPosition, shuffled } from '@/lib/practice-round';
@@ -144,10 +144,15 @@ ok(screens(['press', 'held', 'release', 'cancel']) === 'timer > case', 'Escape w
 ok(randomPracticePath('pll') === '/pll/random' && randomPracticePath('f2l') === '/f2l/random', 'random practice under its list');
 ok(casePracticePath('oll', 'OLL-21', 'a b') === '/oll/OLL-21/practice?alg=a%20b', 'case practice under its case, the algorithm in the query');
 const page = (path: string) => JSON.stringify(practicePageOf(path));
-ok(page('/oll/random') === JSON.stringify({ kind: 'random', practice: 'oll' }), 'a random practice page');
-ok(page('/f2l/F2L-17/practice/') === JSON.stringify({ kind: 'case', practice: 'f2l', caseId: 'F2L-17' }), 'a case practice page (with the iOS trailing slash)');
-ok(['/pll', '/pll/T', '/solve/cfop', '/pll/random/x', '/pll/T/practice/x', '/zbll/random', '/'].every((path) => practicePageOf(path) === null),
+ok(page('/oll/random') === JSON.stringify({ kind: 'random', practice: 'oll', session: false }), 'a random practice page');
+ok(page('/f2l/F2L-17/practice/') === JSON.stringify({ kind: 'case', practice: 'f2l', caseId: 'F2L-17', session: false }), 'a case practice page (with the iOS trailing slash)');
+ok(page('/pll/random/session/') === JSON.stringify({ kind: 'random', practice: 'pll', session: true }), "a random practice's session page");
+ok(page('/f2l/F2L-17/practice/session') === JSON.stringify({ kind: 'case', practice: 'f2l', caseId: 'F2L-17', session: true }), "a case practice's session page");
+ok(['/pll', '/pll/T', '/solve/cfop', '/pll/random/x', '/pll/T/practice/x', '/zbll/random', '/', '/pll/session', '/pll/T/session', '/pll/random/session/session'].every((path) => practicePageOf(path) === null),
   'other pages are not practice pages');
+ok(practiceSessionPath(practicePageOf('/pll/random/')!) === '/pll/random/session', 'the session page of random practice');
+ok(practiceSessionPath(practicePageOf('/pll/T/practice/session')!) === '/pll/T/practice/session', 'the session page of a case practice');
+ok(practicePathOf(practicePageOf('/oll/OLL-21/practice/session')!) === '/oll/OLL-21/practice', 'back from a session page to its practice');
 
 // --- Each selected case once
 const cases = ['T', 'Aa', 'Ua', 'Z'];

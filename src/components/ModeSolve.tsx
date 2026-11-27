@@ -26,6 +26,7 @@ import { solveScreenOf, timerFaceOf } from '@/lib/solve/solve-screen';
 import type { Penalty, SolveRecord } from '@/lib/solve/solve-record';
 import { remainingGuide } from '@/lib/test-cube-hints';
 import { setTimerFocus } from '@/lib/timer-focus';
+import { useScreenHidden } from './KeptScreen';
 import { SolveRecordsButton } from './SolveRecordsButton';
 import { cubeSolveStatus, DnfButton, ResultHead, ScrambleHead, SolveFrame, TimerHead } from './SolveScreens';
 import { SolveStages } from './SolveStages';
@@ -40,7 +41,8 @@ import { VirtualCube } from './VirtualCube';
 // - Scramble: the scramble, a 3D cube (the scrambled cube in the scramble
 //   orientation; with a smart cube, the cube as it is, turning the next move
 //   part of the way), the smart cube and the new scramble and settings
-//   buttons. The records are behind an icon in the header.
+//   buttons. The records are a page under it, from an icon in the header;
+//   this screen stays as it is behind them (KeptScreen).
 // - Timer: with a smart cube, it comes by itself once the cube is scrambled:
 //   the inspection counts up (when on) until the first turn starts the
 //   timer, and the cube reaching the mode's goal stops it (solved, a cross
@@ -61,6 +63,8 @@ import { VirtualCube } from './VirtualCube';
 export function ModeSolve({ mode }: { mode: SolveMode }) {
   const { t } = useT();
   const mounted = useMounted();
+  // Behind its records or one solve of them (see KeptScreen).
+  const hidden = useScreenHidden();
   const settings = useSolveSettings(mode);
   const inspectionOn = mounted && settings.inspection;
   const cube = useSmartCube();
@@ -82,7 +86,12 @@ export function ModeSolve({ mode }: { mode: SolveMode }) {
   } | null>(null);
   // The solve on the result screen, as saved (penalties set later show from the store).
   const [latest, setLatest] = useState<SolveRecord | null>(null);
-  const result = latest === null ? null : solves.solves.find((s) => s.id === latest.id) ?? latest;
+  // Once saved it shows from the store (penalties set later); deleted from
+  // its page under this one, it is gone from the result too.
+  const stored = latest === null ? undefined : solves.solves.find((s) => s.id === latest.id);
+  const [seen, setSeen] = useState<string | null>(null);
+  if (stored && seen !== stored.id) setSeen(stored.id);
+  const result = latest === null || (!stored && seen === latest.id) ? null : stored ?? latest;
 
   // When the last solve stopped: the Space that stopped it must not also go on to the next.
   const stoppedAt = useRef(-Infinity);
@@ -112,7 +121,7 @@ export function ModeSolve({ mode }: { mode: SolveMode }) {
 
   // With a smart cube: guided scramble, then the cube starts and stops.
   // Off on the result screen, so turning the cube there starts nothing.
-  const byCube = connected && result === null && timer?.by !== 'hand' && inspecting === null;
+  const byCube = connected && result === null && timer?.by !== 'hand' && inspecting === null && !hidden;
   const cubeSolve = useCubeSolve({
     mode,
     cross,
@@ -164,7 +173,7 @@ export function ModeSolve({ mode }: { mode: SolveMode }) {
 
   // The timer screen has the page to itself: the header and the rest step
   // aside (after the hold timer's own effect, so this one has the last word).
-  useEffect(() => { setTimerFocus(on === 'timer'); }, [on, hold.phase]);
+  useEffect(() => { setTimerFocus(on === 'timer' && !hidden); }, [on, hold.phase, hidden]);
   useEffect(() => () => setTimerFocus(false), []);
 
   const cubeRunning = timer?.by === 'cube';
@@ -210,10 +219,6 @@ export function ModeSolve({ mode }: { mode: SolveMode }) {
     if (performance.now() - stoppedAt.current > 300) goNext();
   }, [goNext]);
   useSpacebar(nextBySpace, on === 'result');
-  const onDelete = useCallback((id: string) => {
-    void deleteSolve(mode, id).catch(() => {});
-    setLatest((current) => (current?.id === id ? null : current));
-  }, [mode]);
 
   // One 3D cube for the scramble and timer screens: the scrambled cube
   // without a smart cube; with one, the cube as it is, turning the next
@@ -232,7 +237,7 @@ export function ModeSolve({ mode }: { mode: SolveMode }) {
 
   const status = byCube && scramble ? cubeSolveStatus(screen, cube.state !== null) : null;
 
-  const records = <SolveRecordsButton event={mode} snapshot={solves} onDelete={onDelete} />;
+  const records = !hidden && <SolveRecordsButton mode={mode} />;
 
   if (on === 'result' && result) {
     const moves = modeMoveCount(result);

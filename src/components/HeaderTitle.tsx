@@ -6,8 +6,10 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, type MouseEvent } from 'react';
 import { getPllDefinition } from '@/data/pll-definitions';
 import { useT } from '@/hooks/useT';
-import { practicePageOf } from '@/lib/practice-pages';
+import { useMounted } from '@/hooks/useMounted';
+import { practicePageOf, practicePathOf } from '@/lib/practice-pages';
 import { SOLVE_MODE, SOLVE_MODES } from '@/lib/solve/solve-modes';
+import { solvePageOf, solveRecordsPath } from '@/lib/solve/solve-pages';
 import { F2L_IDS, type F2LId } from '@/types/f2l';
 import { OLL_IDS, type OLLId } from '@/types/oll';
 import type { PllId } from '@/types/pll';
@@ -22,7 +24,8 @@ const isStage = (segment: string | undefined): segment is Stage => !!segment && 
 
 const HOME = 'CFOP Trainer';
 type Translate = ReturnType<typeof useT>['t'];
-type Page = { title: string; up: { href: string; label: string } };
+/** `keepQuery`: the page up is named by the same query (a case practice's algorithm). */
+type Page = { title: string; up: { href: string; label: string; keepQuery?: boolean } };
 
 function caseName(stage: Stage, id: string, t: Translate): string | undefined {
   if (stage === 'pll') return getPllDefinition(id as PllId)?.name;
@@ -33,13 +36,21 @@ function caseName(stage: Stage, id: string, t: Translate): string | undefined {
 }
 
 // The page's title and the page one level up: a case and random practice
-// lead to their list, a case's practice to the case, everything else to
-// the top page. Null on the top page itself (and on /account, which shows
-// it).
+// lead to their list, a case's practice to the case, a practice's session
+// to the practice, a solve's records to the solve and one solve of them to
+// the records, everything else to the top page. Null on the top page itself
+// (and on /account, which shows it).
 function pageFor(pathname: string, t: Translate): Page | null {
   const [first, id] = pathname.split('/').filter(Boolean).map(decodeURIComponent);
   const home = { href: '/', label: HOME };
   const practice = practicePageOf(pathname);
+  if (practice?.session) {
+    const label = practice.kind === 'random' ? t(RANDOM_TITLE[practice.practice]) : t('casePractice.title', { name: caseName(practice.practice, practice.caseId, t) ?? practice.caseId });
+    return { title: t('trainer.noScramble.session'), up: { href: practicePathOf(practice), label, keepQuery: practice.kind === 'case' } };
+  }
+  const solve = solvePageOf(pathname);
+  if (solve?.kind === 'records') return { title: t('solve.records.title'), up: { href: SOLVE_MODE[solve.mode].href, label: SOLVE_MODE[solve.mode].label } };
+  if (solve?.kind === 'record') return { title: t('solve.detail.title'), up: { href: solveRecordsPath(solve.mode), label: t('solve.records.title') } };
   if (practice?.kind === 'random') {
     return { title: t(RANDOM_TITLE[practice.practice]), up: { href: `/${practice.practice}`, label: STAGES[practice.practice] } };
   }
@@ -80,10 +91,19 @@ export function useUpLink(href: string) {
   const router = useRouter();
   return useCallback((event: MouseEvent<HTMLAnchorElement>) => {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
-    if (previousPath !== href) return;
+    if (previousPath !== normalize(href.split('?')[0])) return;
     event.preventDefault();
     router.back();
   }, [href, router]);
+}
+
+/**
+ * Go up to `href` from code (after deleting what the page showed): a step
+ * back when the page just left is that one, else in place of this page.
+ */
+export function goUp(router: ReturnType<typeof useRouter>, href: string) {
+  if (previousPath === normalize(href.split('?')[0])) router.back();
+  else router.replace(href);
 }
 
 function BackIcon() {
@@ -102,7 +122,10 @@ export function HeaderTitle() {
   const pathname = usePathname() ?? '/';
   useEffect(() => { track(pathname); }, [pathname]);
   const page = pageFor(pathname, t);
-  const back = useUpLink(page?.up.href ?? '/');
+  const mounted = useMounted();
+  // The query is known in the browser only.
+  const upHref = page ? `${page.up.href}${page.up.keepQuery && mounted ? window.location.search : ''}` : '/';
+  const back = useUpLink(upHref);
 
   if (!page) {
     return (
@@ -116,7 +139,7 @@ export function HeaderTitle() {
   const label = t('nav.backTo', { page: page.up.label });
   return (
     <div className="flex min-w-0 shrink items-center gap-1">
-      <Link href={page.up.href} onClick={back} aria-label={label} title={label}
+      <Link href={upHref} onClick={back} aria-label={label} title={label}
         className={`${iconButtonClass()} -ml-1.5`}>
         <BackIcon />
       </Link>

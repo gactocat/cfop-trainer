@@ -256,6 +256,31 @@ export function DnfButton({ onDnf }: { onDnf: () => void }) {
 }
 
 /**
+ * A solve's figures in a row: its moves, TPS, inspection and cross colour
+ * (left out when `crossColour` is undefined), the same on the result and on
+ * the solve's page in the records.
+ */
+export function SolveFigures({ record, moves, tps, crossColour }: {
+  record: SolveRecord;
+  moves: number | undefined;
+  tps: number | null;
+  /** Null: not known (a solve timed by hand); undefined: not shown (the last layer). */
+  crossColour?: CubeColour | null;
+}) {
+  const { t } = useT();
+  return (
+    <dl className="flex flex-wrap justify-center gap-x-7 gap-y-2 sm:gap-x-10">
+      <Figure size="sm" label={t('solve.moves')} value={moves === undefined ? '-' : String(moves)} />
+      <Figure size="sm" label="TPS" value={tps === null ? '-' : tps.toFixed(2)} />
+      <Figure size="sm" label={t('solve.inspection')} value={record.inspectionMs === undefined ? '-' : (record.inspectionMs / 1000).toFixed(2)} />
+      {crossColour !== undefined && (
+        <Figure size="sm" label={t('solve.stage.cross')} value={crossColour ? <CubeColourMark colour={crossColour} className="my-1 size-4" /> : '-'} />
+      )}
+    </dl>
+  );
+}
+
+/**
  * The result: the time where the timer was (with its penalty: 8.90+, or DNF
  * and the time measured), its moves, TPS, inspection and cross colour (left
  * out when `crossColour` is undefined), the scramble, Retry (the same
@@ -286,14 +311,7 @@ export function ResultHead({ record, moves, tps, crossColour, onRetry, onNext, o
       )}>
         <TimerDigits>{formatRecordTime(record)}</TimerDigits>
       </DigitsArea>
-      <dl className="flex flex-wrap justify-center gap-x-7 gap-y-2 sm:gap-x-10">
-        <Figure size="sm" label={t('solve.moves')} value={moves === undefined ? '-' : String(moves)} />
-        <Figure size="sm" label="TPS" value={tps === null ? '-' : tps.toFixed(2)} />
-        <Figure size="sm" label={t('solve.inspection')} value={record.inspectionMs === undefined ? '-' : (record.inspectionMs / 1000).toFixed(2)} />
-        {crossColour !== undefined && (
-          <Figure size="sm" label={t('solve.stage.cross')} value={crossColour ? <CubeColourMark colour={crossColour} className="my-1 size-4" /> : '-'} />
-        )}
-      </dl>
+      <SolveFigures record={record} moves={moves} tps={tps} crossColour={crossColour} />
       <p className="max-w-xl text-center font-mono text-xs leading-5 break-words text-zinc-500 dark:text-zinc-400">{record.scramble}</p>
       <div className="flex items-center gap-2">
         <button type="button" onClick={onRetry} className={buttonClass('secondary')}>{t('solve.result.retry')}</button>

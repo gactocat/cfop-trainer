@@ -1,6 +1,4 @@
-import { RandomTrainer } from '@/components/RandomTrainer';
-
-// Random practice of the PLLs ticked in the list.
+// The practice itself is the layout's (it stays behind its session page).
 export default function PllRandomPage() {
-  return <RandomTrainer />;
+  return null;
 }

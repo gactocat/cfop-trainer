@@ -142,8 +142,11 @@ The practice runs from the cube alone on the same three screens: the virtual
 cube large on the case screen, with the recognition counting under it (the
 case is only on the screen, so it stays large until the first turn); small
 under the timer once it runs, with "Back to the case"; kept mounted (one
-WebGL context) on the result. This session's figures are behind an icon in
-the header. A solve is recorded as soon as the goal stops it
+WebGL context) on the result. This session's figures are a page under the
+practice (/pll/random/session, /pll/T/practice/session?alg=<id>), from an
+icon in the header; the practice is the route's layout (`KeptScreen`), which
+also keeps the session's log, so going there and back keeps the case and the
+session. The log is in memory only: leaving the practice ends it. A solve is recorded as soon as the goal stops it
 and Undo (or Escape) takes it back. Next (or Space) brings the next case;
 with "Next case by itself" (`autoAdvance`, off by default) it also comes once
 the cube has been still for 1.5 seconds, so a final AUF or setting the cube

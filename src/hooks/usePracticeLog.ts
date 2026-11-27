@@ -1,11 +1,18 @@
 'use client';
 
 import { useEffect, useState, useSyncExternalStore } from 'react';
+import { usePracticeSession } from '@/components/KeptScreen';
 import { PracticeLog } from '@/lib/practice-log';
 
-/** This practice session's solves on a smart cube; see PracticeLog. */
+/**
+ * This practice session's solves; see PracticeLog. The practice's layout
+ * keeps it (KeptScreen), so its session page shows it and going there and
+ * back keeps it; a trainer outside one keeps its own.
+ */
 export function usePracticeLog() {
-  const [log] = useState(() => new PracticeLog());
+  const session = usePracticeSession();
+  const [own] = useState(() => (session ? null : new PracticeLog()));
+  const log = session?.log ?? own!;
   const snapshot = useSyncExternalStore(log.subscribe, log.getSnapshot, log.getSnapshot);
   useEffect(() => () => log.clearSettle(), [log]);
   return { log, ...snapshot };

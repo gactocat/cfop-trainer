@@ -5,18 +5,18 @@ import { useT } from '@/hooks/useT';
 import type { PracticeResult } from '@/lib/practice-log';
 import { summarizeByCase, summarizeSession } from '@/lib/session-stats';
 import { Figure } from './Figure';
+import { CARD, LABEL } from './ui';
 
 const seconds2 = (value: number | null) => (value === null ? '-' : value.toFixed(2));
 const moves1 = (value: number | null) => (value === null ? '-' : value.toFixed(1));
 
-// This session as a whole (mean time, moves and TPS), and behind "Details",
-// case by case: recognition and solving (mean, with the best below), moves
-// and TPS. `open` shows the details from the start (the session's panel,
-// the end of a round); `heading` is left out where the panel's title says it.
-export function SessionStats({ results, note, open = false, heading = true, className = '' }: {
+// This session as a whole (mean time, moves and TPS), then case by case:
+// recognition and solving (mean, with the best below), moves and TPS, always
+// in sight (the session's page, the end of a round). `heading` is left out
+// where the page's title says it.
+export function SessionStats({ results, note, heading = true, className = '' }: {
   results: readonly PracticeResult[];
   note?: string;
-  open?: boolean;
   heading?: boolean;
   className?: string;
 }) {
@@ -29,8 +29,8 @@ export function SessionStats({ results, note, open = false, heading = true, clas
     <span className="block text-[10px] text-zinc-400 dark:text-zinc-500">{t('trainer.session.best', { value: value.toFixed(2) })}</span>
   );
   return (
-    <aside className={`w-full max-w-md rounded-xl border border-zinc-200 bg-white p-4 text-sm dark:border-zinc-800 dark:bg-zinc-900 xl:w-96 ${className}`}>
-      <h3 className={`flex items-baseline gap-2 text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400 ${heading ? 'justify-between' : 'justify-end'}`}>
+    <section className={`w-full ${CARD} p-4 text-sm ${className}`}>
+      <h3 className={`flex items-baseline gap-2 ${LABEL} ${heading ? 'justify-between' : 'justify-end'}`}>
         {heading && t('trainer.noScramble.session')}
         {totals.count > 0 && <span className="normal-case tracking-normal">{t('trainer.session.count', { count: totals.count })}</span>}
       </h3>
@@ -43,14 +43,8 @@ export function SessionStats({ results, note, open = false, heading = true, clas
             <Figure label={t('trainer.session.meanMoves')} value={moves1(totals.meanMoves)} />
             <Figure label={t('trainer.session.meanTps')} value={seconds2(totals.meanTps)} />
           </dl>
-          <details open={open} className="group mt-3 border-t border-zinc-100 pt-2 dark:border-zinc-800">
-            <summary className="flex cursor-pointer list-none items-center gap-1 text-xs font-medium text-emerald-700 hover:underline dark:text-emerald-300 [&::-webkit-details-marker]:hidden">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                aria-hidden="true" className="size-3.5 transition-transform group-open:rotate-90">
-                <path d="m9 6 6 6-6 6" />
-              </svg>
-              {t('trainer.session.details')}
-            </summary>
+          <div className="mt-4 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+            <h4 className={LABEL}>{t('trainer.session.details')}</h4>
             <table className="mt-2 w-full table-fixed text-right">
               <thead className="text-[10px] text-zinc-500 dark:text-zinc-400">
                 <tr>
@@ -80,10 +74,10 @@ export function SessionStats({ results, note, open = false, heading = true, clas
                 ))}
               </tbody>
             </table>
-          </details>
+          </div>
         </>
       )}
       {note && <p className="mt-3 text-[11px] text-zinc-400 dark:text-zinc-500">{note}</p>}
-    </aside>
+    </section>
   );
 }

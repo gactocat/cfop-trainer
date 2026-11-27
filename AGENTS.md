@@ -43,8 +43,13 @@ CI (`.github/workflows/ci.yml`) runs the same three steps on every PR.
 - `src/app/` — routes. `/` (home), `/pll`, `/pll/[id]`, `/f2l`, `/f2l/[id]`,
   `/oll`, `/oll/[id]`, random practice at `/pll/random` (and OLL, F2L), an
   algorithm's practice at `/pll/[id]/practice?alg=<record id>`
-  (`lib/practice-pages.ts`), `/random` (a redirect), `/account`,
-  `/solve/[mode]` (cfop, cross, f2l, ll), `manifest.ts`. Detail routes use
+  (`lib/practice-pages.ts`), each practice's session under it
+  (`/pll/random/session`), `/random` (a redirect), `/account`,
+  `/solve/[mode]` (cfop, cross, f2l, ll) with its records
+  (`/solve/cfop/records`) and one solve of them
+  (`/solve/cfop/records/detail?id=<record id>`, `lib/solve/solve-pages.ts`),
+  `manifest.ts`. A practice and a solve are their route's layout
+  (`KeptScreen`), so they stay as they are behind those pages. Detail routes use
   `generateStaticParams`. The top page's groups and entries are data in
   `src/data/home-entries.ts`. Extra extensions limit where a route exists
   (`next.config.ts`): `page.dev.tsx` only under `next dev`, `route.web.ts`

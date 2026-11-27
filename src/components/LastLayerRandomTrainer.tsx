@@ -292,7 +292,6 @@ export function LastLayerRandomTrainer<Id extends string>({
         ? t('detail.caseStats', { best: formatSeconds(caseTimes.best), ao5: formatSeconds(caseTimes.ao5), solves: tn('common.solves', caseTimes.count) })
         : undefined}
       progress={position && t('practice.round.progress', position)}
-      sessionNote={single ? undefined : t('trainer.session.notKept')}
       empty={noneSelected && (
         <div className="flex flex-col items-center gap-2 text-center text-zinc-500 dark:text-zinc-400">
           <div className="text-sm font-medium uppercase tracking-wider">{t('trainer.noneSelected')}</div>

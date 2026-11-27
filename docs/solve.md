@@ -25,8 +25,13 @@ screen is on and what the timer shows are worked out in
   inspection). Nothing else. Without a smart cube the 3D cube is the
   scrambled cube, held in the scramble orientation; with one, it is the cube
   as it is, turning the next move part of the way (see the guide below). The
-  records are behind an icon in the app header (as the list pages keep their
-  controls there); it opens them over the page (`SolveRecordsButton`).
+  records are a page under the solve, from an icon in the app header (as the
+  list pages keep their controls there; `SolveRecordsButton`):
+  /solve/cfop/records, and each solve of them a page of its own,
+  /solve/cfop/records/detail?id=<record id> (the id in the query, so the iOS
+  export has the page; `lib/solve/solve-pages.ts`). The solve is the route's
+  layout (`KeptScreen`), so it stays mounted behind those pages: back in the
+  header finds the scramble, the result and the cube as they were left.
 - Timer: the timer alone, the app header and footer stepped aside. With a
   smart cube it comes by itself once the cube is in the scrambled state: the
   inspection counts up (when on), or 0.00 waits; the first turn starts the
@@ -174,7 +179,15 @@ know when it saves one again (a penalty), so new fields need no migration.
 The stats count +2 with its two seconds and DNF as slower than any time: the best single leaves DNFs out,
 and ao5 / ao12 drop the best and the worst (a DNF is the worst), so two DNFs
 make the average a DNF. The best ao5 and ao12 are shown too. Undo on the
-result and Delete in the list remove a record.
+result and Delete on a solve's page remove a record.
+
+A solve's page (`SolveRecordPage`) is built of cards, one above the other,
+so more can be added: the time with its penalty, when, how it was timed,
+the figures the result shows (`SolveFigures`: moves, TPS, inspection, cross
+colour), +2, DNF and Delete; the scramble with the cube it leaves (held as
+for the scramble; a solve timed by hand, which does not keep that, as the
+setting is now); and with a smart cube the stages table the result shows
+(`SolveStages`: time, recognition, execution, moves, TPS and the turns).
 
 Where they are kept (`lib/solve/solve-library.ts`, wired in
 `lib/solve-store.ts`):
@@ -241,7 +254,7 @@ pages are CFOP's (`ModeSolve` with the mode): the same three screens,
 settings (per mode), smart cube guide and test cube. The result lists the
 mode's stages only (Cross; F2L1-4; OLL and PLL) with the cross colour's
 figure for the cross and F2L (not for the last layer, whose cross was
-there before), and the records (behind the header icon) are the mode's.
+there before), and the records (a page under it) are the mode's.
 
 | Mode | Scramble leaves | A smart cube stops at | Stages |
 | --- | --- | --- | --- |

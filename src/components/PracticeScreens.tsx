@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useEffect, type ReactNode } from 'react';
 import type { useHoldTimer } from '@/hooks/useHoldTimer';
 import { useMounted } from '@/hooks/useMounted';
@@ -12,6 +13,7 @@ import type { MessageKey } from '@/i18n/messages';
 import { toneOf } from '@/lib/hold-timer';
 import { SETTLE_MS, type PracticeResult } from '@/lib/practice-log';
 import { isCubeFlavor, type TrainerFlavor } from '@/lib/practice-mode';
+import { practicePageOf, practiceSessionPath } from '@/lib/practice-pages';
 import { practiceScreenOf, type TrainerState } from '@/lib/practice-screen';
 import { displayRotation, holdingFrame } from '@/lib/smart-cube/holding';
 import type { TrainerPractice } from '@/lib/smart-cube/trainer-session';
@@ -19,8 +21,9 @@ import { formatSolveTime } from '@/lib/solve/solve-stats';
 import { setTimerFocus } from '@/lib/timer-focus';
 import { Figure } from './Figure';
 import { useUpLink } from './HeaderTitle';
-import { HeaderPanelButton } from './HeaderPanelButton';
+import { HeaderPageLink } from './HeaderPageLink';
 import { InfoTip } from './InfoTip';
+import { useScreenHidden } from './KeptScreen';
 import { PracticeSettingsButton, type PracticeScope } from './PracticeSettings';
 import { SessionStats } from './SessionStats';
 import { setupStatusKey } from './SmartCubeSetupGuide';
@@ -139,7 +142,7 @@ function RoundDone({ total, results, listHref, onRestart }: {
   return (
     <div className="flex w-full flex-col items-center gap-5 py-4 text-center">
       <h2 className="text-xl font-semibold">{t('practice.round.done', { total })}</h2>
-      <SessionStats results={results} open heading={false} />
+      <SessionStats results={results} heading={false} className="max-w-md" />
       <div className="flex items-center gap-2">
         <Link href={listHref} onClick={up} className={buttonClass('secondary')}>{t('practice.round.toList')}</Link>
         {/* Focused, so Space or Enter deals the next round. */}
@@ -173,8 +176,6 @@ export interface PracticeScreensProps {
   caseStats?: string;
   /** Which case of a round is on screen, e.g. 3/21. */
   progress?: string;
-  /** Under the session's figures (random practice: kept for this session only). */
-  sessionNote?: string;
   /** Random practice with no case ticked: why nothing comes up. */
   empty?: ReactNode;
   /** "Each selected case once" is done. */
@@ -200,11 +201,12 @@ export interface PracticeScreensProps {
 //   without a setup or cube, the case to solve below them.
 // - Result: see PracticeResultHead.
 //
-// The session's figures are behind an icon in the header, beside the (i).
+// The session's figures are a page under the practice (an icon in the
+// header, beside the (i)), the practice kept as it is behind it (KeptScreen).
 export function PracticeScreens(props: PracticeScreensProps) {
   const {
     practice, scope, flavor, state, hold, elapsed, setup, caseLook, virtual, guided, results, settle,
-    solution, caseStats, progress, sessionNote, empty, roundDone, onNext, onUndo, onRetry, onStopByHand, onReset,
+    solution, caseStats, progress, empty, roundDone, onNext, onUndo, onRetry, onStopByHand, onReset,
   } = props;
   const { t } = useT();
   const mounted = useMounted();
@@ -212,25 +214,27 @@ export function PracticeScreens(props: PracticeScreensProps) {
   const cubeState = useSmartCube().state;
   const withCube = isCubeFlavor(flavor);
   const screen = practiceScreenOf({ state, hold: hold.phase });
+  const hidden = useScreenHidden();
 
   // The timer screen has the page to itself: the header and the rest step
   // aside (after the hold timer's own effect, so this one has the last word).
-  useEffect(() => { setTimerFocus(screen === 'timer'); }, [screen, hold.phase]);
+  useEffect(() => { setTimerFocus(screen === 'timer' && !hidden); }, [screen, hold.phase, hidden]);
   useEffect(() => () => setTimerFocus(false), []);
 
-  const header = (
-    <HeaderPanelButton
+  // The session's page, under this one (the algorithm practised goes with it in the query).
+  const page = practicePageOf(usePathname() ?? '');
+  const header = !hidden && page && (
+    <HeaderPageLink
       label={t('trainer.noScramble.session')}
       icon={<SessionIcon />}
+      href={`${practiceSessionPath(page)}${mounted ? window.location.search : ''}`}
       lead={(
         <InfoTip className="shrink-0">
           <span className="block">{t(hintOf(practice, flavor, scope))}</span>
           {scope === 'random' && <span className="block">{t('trainer.hint.selection')}</span>}
         </InfoTip>
       )}
-    >
-      <SessionStats results={results} note={sessionNote} open heading={false} className="mx-auto" />
-    </HeaderPanelButton>
+    />
   );
 
   if (roundDone) {

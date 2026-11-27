@@ -1,16 +1,18 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import { useSolves } from '@/hooks/useSolves';
 import { useT } from '@/hooks/useT';
 import { declineSolveImport, importDeviceSolves, retrySolveSync, type SolvesSnapshot } from '@/lib/solve-store';
 import { solveTps } from '@/lib/solve/cfop-split';
 import { modeMoveCount } from '@/lib/solve/mode-record';
 import type { SolveEvent, SolveRecord } from '@/lib/solve/solve-record';
+import { SOLVE_MODE, type SolveMode } from '@/lib/solve/solve-modes';
+import { solveRecordPath } from '@/lib/solve/solve-pages';
 import { countedMs, formatRecordTime, formatSolveTime, solveStats } from '@/lib/solve/solve-stats';
 import { Figure } from './Figure';
-import { PenaltyButtons } from './SolvePenalty';
-import { SolveStages } from './SolveStages';
-import { buttonClass, CARD, LABEL, LINK } from './ui';
+import { buttonClass, CARD, ChevronIcon, LINK } from './ui';
 
 const PAGE = 50;
 
@@ -37,49 +39,37 @@ export function useMovesSummary(record: SolveRecord): string | null {
   return t('smartCube.solve.summary', { moves, tps: tps === null ? '-' : tps.toFixed(2) });
 }
 
-function SolveRow({ number, record, onDelete }: { number: number; record: SolveRecord; onDelete: () => void }) {
-  const { t, intl } = useT();
+/** When a solve was recorded, short: month, day and time. */
+export function useRecordedAt(record: SolveRecord, style: 'short' | 'long' = 'short'): string {
+  const { intl } = useT();
+  const options: Intl.DateTimeFormatOptions = style === 'short'
+    ? { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }
+    : { dateStyle: 'medium', timeStyle: 'short' };
+  return new Intl.DateTimeFormat(intl, options).format(new Date(record.recordedAt));
+}
+
+// One solve in the list: its number, time (and moves and TPS with a cube),
+// how it was timed and when; the whole row opens its page.
+function SolveRow({ number, record, href }: { number: number; record: SolveRecord; href: string }) {
   const summary = useMovesSummary(record);
-  const when = new Intl.DateTimeFormat(intl, { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(record.recordedAt));
+  const when = useRecordedAt(record);
   return (
     <li>
-      <details className="group">
-        <summary className="flex cursor-pointer list-none items-center gap-3 py-2 [&::-webkit-details-marker]:hidden">
-          <span className="w-8 shrink-0 text-right font-mono text-xs tabular-nums text-zinc-400 dark:text-zinc-500">{number}</span>
-          <span className="min-w-0 flex-1">
-            <span className="block font-mono text-base font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
-              {formatRecordTime(record)}
-              {record.penalty === 'dnf' && <span className="ml-1.5 text-[11px] font-normal text-zinc-500 dark:text-zinc-400">({formatSolveTime(record.ms)})</span>}
-            </span>
-            {summary && <span className="block font-mono text-[11px] text-zinc-500 dark:text-zinc-400">{summary}</span>}
+      <Link href={href} className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-emerald-600 dark:hover:bg-zinc-800/60">
+        <span className="w-8 shrink-0 text-right font-mono text-xs tabular-nums text-zinc-400 dark:text-zinc-500">{number}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-mono text-base font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+            {formatRecordTime(record)}
+            {record.penalty === 'dnf' && <span className="ml-1.5 text-[11px] font-normal text-zinc-500 dark:text-zinc-400">({formatSolveTime(record.ms)})</span>}
           </span>
-          <span className="flex shrink-0 flex-col items-end gap-1">
-            <TimerBadge record={record} />
-            <span className="text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">{when}</span>
-          </span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-            aria-hidden="true" className="size-4 shrink-0 text-zinc-400 transition-transform group-open:rotate-90 dark:text-zinc-500">
-            <path d="m9 6 6 6-6 6" />
-          </svg>
-        </summary>
-        <div className="space-y-3 pb-3 pl-11">
-          <div>
-            <div className={LABEL}>{t('solve.scramble')}</div>
-            <p className="mt-0.5 font-mono text-sm break-words text-zinc-700 dark:text-zinc-300">{record.scramble}</p>
-          </div>
-          <SolveStages record={record} />
-          <div className="flex flex-wrap items-center gap-2">
-            <PenaltyButtons record={record} />
-            <button
-              type="button"
-              onClick={() => { if (window.confirm(t('solve.history.confirmDelete'))) onDelete(); }}
-              className={buttonClass('danger', 'sm')}
-            >
-              {t('common.delete')}
-            </button>
-          </div>
-        </div>
-      </details>
+          {summary && <span className="block font-mono text-[11px] text-zinc-500 dark:text-zinc-400">{summary}</span>}
+        </span>
+        <span className="flex shrink-0 flex-col items-end gap-1">
+          <TimerBadge record={record} />
+          <span className="text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">{when}</span>
+        </span>
+        <ChevronIcon className="size-4 text-zinc-400 dark:text-zinc-500" />
+      </Link>
     </li>
   );
 }
@@ -121,16 +111,13 @@ function ImportOffer({ event, count }: { event: SolveEvent; count: number }) {
   );
 }
 
-// The solves: best single, the latest ao5 and ao12 (with the best of each),
-// counting +2 and DNF as the WCA does, and every solve, newest first, opening
-// to its scramble, stages, penalty buttons and a delete button.
-export function SolveRecords({ event, snapshot, onDelete, className = '' }: {
-  /** The kind of solve listed. */
-  event: SolveEvent;
-  snapshot: SolvesSnapshot;
-  onDelete: (id: string) => void;
-  className?: string;
-}) {
+// A kind of solve's records, a page under its solve: best single, the
+// latest ao5 and ao12 (with the best of each), counting +2 and DNF as the
+// WCA does, and every solve, newest first, each opening its own page
+// (SolveRecordPage).
+export function SolveRecords({ mode, className = '' }: { mode: SolveMode; className?: string }) {
+  const event = SOLVE_MODE[mode].event;
+  const snapshot = useSolves(mode);
   const { t, tn } = useT();
   const { solves, status } = snapshot;
   const stats = useMemo(() => solveStats(solves.map(countedMs)), [solves]);
@@ -138,8 +125,9 @@ export function SolveRecords({ event, snapshot, onDelete, className = '' }: {
   const average = (ms: number | null) => formatSolveTime(ms, { average: true });
   return (
     <section aria-labelledby="solve-records" className={`${CARD} p-4 ${className}`}>
-      <h2 id="solve-records" className="flex items-baseline justify-between gap-2">
-        <span className={LABEL}>{t('solve.records.title')}</span>
+      {/* The page's title in the header says what this is. */}
+      <h2 id="solve-records" className="flex items-baseline justify-end gap-2">
+        <span className="sr-only">{t('solve.records.title')}</span>
         {stats.count > 0 && <span className="text-xs text-zinc-500 dark:text-zinc-400">{tn('common.solves', stats.count)}</span>}
       </h2>
       <dl className="mt-3 grid grid-cols-3 gap-2">
@@ -160,7 +148,7 @@ export function SolveRecords({ event, snapshot, onDelete, className = '' }: {
       ) : (
         <ol className="mt-3 divide-y divide-zinc-100 border-t border-zinc-100 dark:divide-zinc-800 dark:border-zinc-800">
           {solves.slice(0, shown).map((record, i) => (
-            <SolveRow key={record.id} number={solves.length - i} record={record} onDelete={() => onDelete(record.id)} />
+            <SolveRow key={record.id} number={solves.length - i} record={record} href={solveRecordPath(mode, record.id)} />
           ))}
         </ol>
       )}

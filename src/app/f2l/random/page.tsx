@@ -1,6 +1,4 @@
-import { F2LRandomTrainer } from '@/components/F2LRandomTrainer';
-
-// Random practice of the F2L cases ticked in the list.
+// The practice itself is the layout's (it stays behind its session page).
 export default function F2LRandomPage() {
-  return <F2LRandomTrainer />;
+  return null;
 }
