@@ -5,8 +5,9 @@
 // end on the same turn (an X-cross, an OLL or PLL skip) take no time and no
 // moves.
 //
-// The cross is on the bottom face of the user's holding for the solve (the
-// face opposite the chosen top colour), and the last layer is the top face.
+// The cross is on the face of the chosen cross colour (the solver turns the
+// cube over after the scramble to put it at the bottom), and the last layer
+// is the face opposite.
 //
 // States are in the cube's own frame (white U, green F). Rotations of the
 // whole cube are not turns, so they never count. Each stage's turns are read
@@ -22,7 +23,7 @@ export type CfopStage = (typeof CFOP_STAGES)[number];
 
 /** Where each stage ended. */
 export interface CfopSplit {
-  /** Cube-frame face the cross was built on (the bottom of the holding). */
+  /** Cube-frame face the cross was built on: the cross colour's (in older records, the bottom of the holding). */
   cross: Face;
   /**
    * For each stage reached, in order, the index of the turn that completed

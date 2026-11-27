@@ -10,22 +10,25 @@ layer) is one more entry in `src/data/home-entries.ts` and a page under
 The page shows a random-state scramble, the timer, the latest solve and the
 records (this device's, or the account's when signed in). Beside the scramble
 are the smart cube's button (connect, or its battery once connected), a new
-scramble and a gear for the solve settings (holding and inspection). The
+scramble and a gear for the solve settings (scramble orientation, cross
+colour and inspection). The
 timer is hidden while the scramble is shown: it appears for the inspection, a
 held press, a smart cube ready to start, and the solve. Without a cube the
 area below the scramble is still what you press, with one small line saying
 how; with one, the area appears once the cube is ready.
 
-- Holding: each kind of solve has its own top and front colours (CFOP now;
-  F2L and last-layer solves will have theirs), yellow top and blue front
-  until chosen (the smart cube's holding, if set). They are set in the solve
-  settings (the gear beside the scramble); a front colour must sit
-  beside the top one, so the top colour and its opposite are disabled. The
-  scramble is turned holding the cube this way, as the app's practice setups
-  are, rather than white top and green front as at a WCA competition: the
-  solver keeps the cube as they solve and never rotates it before starting.
-  The unfolded cube beside the scramble, the smart cube guide and the stages
-  all follow the holding.
+- Scramble orientation and cross colour: each kind of solve has its own
+  (CFOP now; F2L and last-layer solves will have theirs), set in the solve
+  settings (the gear beside the scramble). The scramble orientation is the
+  top and front colours the cube is held with to turn the scramble, white
+  top and green front until chosen, as at a WCA competition; a front colour
+  must sit beside the top one, so the top colour and its opposite are
+  disabled. The unfolded cube beside the scramble, the smart cube guide and
+  its 3D cube follow it. The cross colour (white until chosen) is the one
+  the stages are read with, on the bottom: the solver turns the cube over
+  after the scramble. The two are apart because the way a scramble is held
+  says nothing about the colour of the cross. The practice's smart cube
+  holding (yellow top, blue front) is another setting and plays no part.
 - Inspection (on by default, in the same settings): as the WCA runs it. Over
   15 s before starting adds +2, over 17 s makes the solve a DNF; 8 and 12
   seconds are shown in small type under the count. Without a smart cube a tap
@@ -40,7 +43,7 @@ how; with one, the area appears once the cube is ready.
 - With a smart cube: the scramble is guided turn by turn, as in practice with
   setup. Turns done dim, the next is underlined, wrong turns show the turns
   that take them back. A 3D cube replaces the unfolded cube: the smart cube as
-  it is, in the solve's holding, turning the next move (or the one that takes
+  it is, in the scramble orientation, turning the next move (or the one that takes
   a wrong turn back) over and over (see smart-cube.md). From three wrong turns in a row, a resync that does not
   fit the guide, or a cube that is not solved when the scramble appears, the
   route to the scrambled state is worked out again from where the cube is (the
@@ -70,9 +73,27 @@ practice reads them (slices included, see Recorded solves in
 are read again from the turns, so solves recorded before slices were read
 show them too.
 
-The cross is the bottom face of the solve's holding (the face opposite the
-top colour); OLL is its top face. Records keep the holding they were solved
-in (records from before keep their smart cube holding and stored stages).
+The cross is on the face of the cross colour; OLL is the face opposite.
+Moves are written as the cube is held to solve: the scramble orientation
+turned over by the fewest whole-cube rotations to put the cross colour at
+the bottom (`turnedDown` in `lib/smart-cube/holding.ts`): none when it is
+there already, x2 from the top (white top, green front with a white cross
+becomes yellow top, blue front), x' from the front, x from the back, z from
+the right and z' from the left. The cube does not report rotations, so a
+rotation made while solving (a y before a pair) is not followed; the moves
+after it are written as if it had not been made, as before.
+
+Records keep the cross colour (`crossColour`), the scramble orientation
+(`scrambleHolding`), the holding they were solved in (`holding`, which
+older versions read their turns in) and where each stage ended (`split`,
+with the cross colour's face, which older versions show). Records from
+before the two settings were apart have one holding for both and stages
+read on its bottom face; they are read again on display with the cross
+colour set now: replayed from the scrambled state (the scramble turned in
+that holding), stages read on that colour and moves written turned over as
+above. A record whose turns do not replay to its stored stages (the cube
+resynced to another state mid-solve) keeps them, as does one from the
+first version whose scramble cannot be read. Nothing is written back.
 
 ## Scrambles
 
@@ -91,8 +112,11 @@ scramble made ahead. Without a worker the same code runs on the page.
 
 A record has the time as measured, scramble, date, how it was timed, any
 penalty and the inspection; a cube solve also its turns (ms from the first),
-holding, move count and where each stage ended. The stats count +2 with its
-two seconds and DNF as slower than any time: the best single leaves DNFs out,
+cross colour, scramble orientation, holding, move count and where each
+stage ended. Records are kept whole (the `record` column of the `solves`
+table is the record as it is), and every version keeps fields it does not
+know when it saves one again (a penalty), so new fields need no migration.
+The stats count +2 with its two seconds and DNF as slower than any time: the best single leaves DNFs out,
 and ao5 / ao12 drop the best and the worst (a DNF is the worst), so two DNFs
 make the average a DNF. The best ao5 and ao12 are shown too. Undo on the
 latest solve and Delete in the list remove a record.
@@ -121,10 +145,15 @@ Where they are kept (`lib/solve/solve-library.ts`, wired in
   signed-in user's solves stay on the device as before, and the records say
   so.
 
-Settings (holding and inspection per kind) are in the practice settings
-(`solves` in `pll-app:practice-settings:v1`), so they follow the account like
-the other settings. Older versions drop the field when they save the
-settings; the solve settings then go back to their defaults.
+Settings (scramble orientation, cross colour and inspection per kind) are in
+the practice settings (`solves` in `pll-app:practice-settings:v1`), so they
+follow the account like the other settings. The scramble orientation is
+kept as `top` and `front`, which versions before the cross colour read as
+their one holding; a holding they saved is read here as the scramble
+orientation, with a white cross. They keep `top`, `front` and `inspection`
+when they save and drop `cross`, which then goes back to white. Versions
+older still drop `solves` altogether; the solve settings then go back to
+their defaults.
 
 ## Checks
 
@@ -134,7 +163,10 @@ node --import ./scripts/register-src-alias.mjs scripts/verify-solve.mts
 
 Scrambles (face turns, no face twice in a row, 15-21 moves, reach the drawn
 state, solve back), routes between states, +2 / DNF in the best and ao5 /
-ao12, the inspection's boundaries, all 24 holdings and stage ends in each
+ao12, the inspection's boundaries, the turn over to the cross colour from
+all 24 holdings, stage ends for every scramble orientation with every cross
+colour, the 27 November record read again (cross on yellow before, every
+stage after), older records that do not replay
 (skips, stopped early), the guide's re-routing, records from older and newer
 versions, and the move between device and account (offline outbox, failed
 saves, the import offer, a server without the table) with in-memory

@@ -4,9 +4,10 @@
 // which a string of random moves does not give.
 //
 // Scrambles are face turns only (no slice, wide turn or rotation), so they
-// read the same in any holding: the user turns them with their usual top and
-// front (yellow and blue by default), and the state the cube ends in follows
-// from that holding (`scrambleState`).
+// read the same in any holding: the user turns them holding the cube as set
+// for the scramble (white top, green front by default, as at a WCA
+// competition), and the state the cube ends in follows from that holding
+// (`scrambleState`).
 
 import { applyTurn, SOLVED, stateEquals, type Amount, type CubeState } from '@/lib/smart-cube/cube-state';
 import { toFrame, userNotation, type CubeHolding, type Frame } from '@/lib/smart-cube/holding';

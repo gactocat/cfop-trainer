@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useSmartCube } from '@/hooks/useSmartCube';
 import { stateEquals, type CubeState } from '@/lib/smart-cube/cube-state';
-import { colourFrame, holdingFrame, type ColourHolding } from '@/lib/smart-cube/holding';
+import { colourFrame, holdingFrame, type ColourHolding, type CubeColour } from '@/lib/smart-cube/holding';
 import {
   cubeSolveResync,
   cubeSolveTurn,
@@ -91,8 +91,8 @@ const serverScreen = () => null;
 export function useCubeSolve({ active, scramble, holding, onStart, onStop }: {
   active: boolean;
   scramble: string | null;
-  /** How the cube is held: the scramble is turned and the stages are read in it. */
-  holding: ColourHolding;
+  /** How the cube is held for the scramble, and the cross colour the stages are read with. */
+  holding: ColourHolding & { cross: CubeColour };
   /** The first turn from the scrambled state: how long after reaching it (the inspection). */
   onStart: (inspectionMs: number) => void;
   /** Solved: the record of the solve, timed on the cube's clock. */
@@ -106,7 +106,7 @@ export function useCubeSolve({ active, scramble, holding, onStart, onStop }: {
   useEffect(() => { callbacks.current = { onStart, onStop }; });
   const on = active && synced && scramble !== null;
   const { top, front } = holding;
-  const frame = useMemo(() => colourFrame({ top, front }) ?? holdingFrame('yellow-blue'), [top, front]);
+  const frame = useMemo(() => colourFrame({ top, front }) ?? holdingFrame('white-green'), [top, front]);
   const colours = useRef(holding);
   useEffect(() => { colours.current = holding; });
 
@@ -135,7 +135,11 @@ export function useCubeSolve({ active, scramble, holding, onStart, onStop }: {
         callbacks.current.onStart(readySince === null ? 0 : performance.now() - readySince);
       }
       if (result.event === 'stop') {
-        callbacks.current.onStop(cubeSolve({ scramble: session.scramble, holding: colours.current, start: session.target, turns: result.session.turns }));
+        const held = colours.current;
+        callbacks.current.onStop(cubeSolve({
+          scramble: session.scramble, scrambleHolding: { top: held.top, front: held.front }, cross: held.cross,
+          start: session.target, turns: result.session.turns,
+        }));
       }
     });
     // The cube's state can change without a turn (it resyncs about once a

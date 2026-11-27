@@ -222,6 +222,47 @@ try {
 }
 console.log(`Verified ${modeReads.length} practice mode readings, flavors and choosing a mode over saved three-mode data.`);
 
+// Solve settings: the scramble's holding and the cross colour, read from
+// what this version and older ones save. Older versions kept one holding
+// for both (`top` and `front`) and keep only the fields they know.
+{
+  const solveReads: { name: string; cfop: unknown; expected: object }[] = [
+    { name: 'nothing saved: WCA scramble, white cross', cfop: undefined, expected: { top: 'white', front: 'green', cross: 'white', inspection: true } },
+    { name: 'an older holding is the scramble\'s, with a white cross', cfop: { top: 'white', front: 'green', inspection: true }, expected: { top: 'white', front: 'green', cross: 'white', inspection: true } },
+    { name: 'the older default holding too', cfop: { top: 'yellow', front: 'blue', inspection: false }, expected: { top: 'yellow', front: 'blue', cross: 'white', inspection: false } },
+    { name: 'this version\'s settings', cfop: { top: 'white', front: 'red', cross: 'yellow', inspection: true }, expected: { top: 'white', front: 'red', cross: 'yellow', inspection: true } },
+    { name: 'an unknown cross colour is dropped', cfop: { top: 'white', front: 'green', cross: 'pink', inspection: true }, expected: { top: 'white', front: 'green', cross: 'white', inspection: true } },
+    { name: 'a front that does not fit drops the holding only', cfop: { top: 'white', front: 'yellow', cross: 'blue' }, expected: { top: 'white', front: 'green', cross: 'blue', inspection: true } },
+  ];
+  for (const { name, cfop, expected } of solveReads) {
+    const values = new Map<string, string>(cfop === undefined ? [] : [[sharedKey, JSON.stringify({ ...defaults, solves: { cfop } })]]);
+    Object.defineProperty(globalThis, 'window', { configurable: true, value: {
+      localStorage: { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value) },
+    } });
+    const store = await freshStore();
+    assert.deepEqual(store.solveSettingsOf(store.getSnapshot(), 'cfop'), expected, `solve settings: ${name}`);
+  }
+  // Choosing a cross colour keeps the scramble's holding; an older version
+  // saving then drops the colour (white again) and keeps the holding.
+  const values = new Map<string, string>([[sharedKey, JSON.stringify({ ...defaults, solves: { cfop: { top: 'yellow', front: 'green', inspection: true } } })]]);
+  Object.defineProperty(globalThis, 'window', { configurable: true, value: {
+    localStorage: { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value) },
+  } });
+  let store = await freshStore();
+  store.setSolveSettings('cfop', store.solveSettingsOf(store.getSnapshot(), 'cfop'), { cross: 'green' });
+  assert.deepEqual(JSON.parse(values.get(sharedKey)!).solves.cfop, { top: 'yellow', front: 'green', cross: 'green', inspection: true }, 'the cross colour is saved beside the holding');
+  store.setSolveSettings('cfop', store.solveSettingsOf(store.getSnapshot(), 'cfop'), { top: 'green' });
+  assert.deepEqual(JSON.parse(values.get(sharedKey)!).solves.cfop, { top: 'green', front: 'white', cross: 'green', inspection: true }, 'a top that no longer fits the front moves the front, not the cross');
+  const saved = JSON.parse(values.get(sharedKey)!);
+  const { top, front, inspection } = saved.solves.cfop;
+  values.set(sharedKey, JSON.stringify({ ...saved, solves: { cfop: { top, front, inspection: !inspection } } }));
+  store = await freshStore();
+  assert.deepEqual(store.solveSettingsOf(store.getSnapshot(), 'cfop'), { top: 'green', front: 'white', cross: 'white', inspection: false }, 'after an older version saves: the holding kept, the cross white');
+  if (originalWindow) Object.defineProperty(globalThis, 'window', originalWindow);
+  else Reflect.deleteProperty(globalThis, 'window');
+  console.log(`Verified ${solveReads.length} solve settings readings, choosing a cross colour and an older version saving.`);
+}
+
 // The head script that sets the theme and language before the first paint.
 const { DISPLAY_INIT_SCRIPT } = await import('@/lib/display-init-script');
 const { DISPLAY_HINT_KEY } = await import('@/lib/display-hint');

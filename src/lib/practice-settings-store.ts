@@ -27,16 +27,28 @@ export interface PracticeSettings {
   alignAuf?: boolean;
   colorTheme?: 'light' | 'dark';
   /**
-   * Solves from a scramble, per kind: how the cube is held and whether there
-   * is inspection. Absent in older versions, which drop it when they save;
-   * each kind then starts again from its defaults.
+   * Solves from a scramble, per kind: how the cube is held for the scramble,
+   * the cross colour and whether there is inspection. Absent in older
+   * versions, which drop it when they save; each kind then starts again
+   * from its defaults.
    */
   solves?: Partial<Record<SolveEvent, Partial<SolveSettings>>>;
 }
 
+/**
+ * `top` and `front` are how the cube is held for the scramble. Versions
+ * before the cross colour had its own setting read them as the one holding
+ * for the scramble and the solve, with the cross on the bottom; they keep
+ * them when they save but drop `cross`, which then goes back to white.
+ */
 export interface SolveSettings extends ColourHolding {
+  /** The colour of the cross, solved at the bottom. */
+  cross: CubeColour;
   inspection: boolean;
 }
+
+/** As the WCA scrambles: white top, green front; and a white cross. */
+export const DEFAULT_SOLVE_SETTINGS: SolveSettings = { top: 'white', front: 'green', cross: 'white', inspection: true };
 
 export const DEFAULT_PRACTICE_SETTINGS: PracticeSettings = {
   aufDisplay: 'cube',
@@ -67,6 +79,7 @@ function validSolves(raw: unknown): Partial<Pick<PracticeSettings, 'solves'>> {
     if (typeof entry !== 'object' || entry === null) continue;
     const kept: Partial<SolveSettings> = {
       ...(isColour(entry.top) && isColour(entry.front) && fitsTop(entry.top, entry.front) ? { top: entry.top, front: entry.front } : {}),
+      ...(isColour(entry.cross) ? { cross: entry.cross } : {}),
       ...(typeof entry.inspection === 'boolean' ? { inspection: entry.inspection } : {}),
     };
     if (Object.keys(kept).length) solves[event] = kept;
@@ -144,14 +157,17 @@ export function setAufDisplay(practice: Practice, display: AufDisplay): void {
 }
 
 /**
- * One kind of solve's settings: its own choices, else the holding given
- * (the smart cube's) and inspection on.
+ * One kind of solve's settings: its own choices, else white top and green
+ * front for the scramble, a white cross and inspection on. A holding saved
+ * before the cross colour had its own setting is the scramble's.
  */
-export function solveSettingsOf(settings: Pick<PracticeSettings, 'solves'>, event: SolveEvent, holding: ColourHolding): SolveSettings {
+export function solveSettingsOf(settings: Pick<PracticeSettings, 'solves'>, event: SolveEvent): SolveSettings {
   const own = settings.solves?.[event];
+  const d = DEFAULT_SOLVE_SETTINGS;
   return {
-    ...(own?.top && own.front ? { top: own.top, front: own.front } : holding),
-    inspection: own?.inspection ?? true,
+    ...(own?.top && own.front ? { top: own.top, front: own.front } : { top: d.top, front: d.front }),
+    cross: own?.cross ?? d.cross,
+    inspection: own?.inspection ?? d.inspection,
   };
 }
 

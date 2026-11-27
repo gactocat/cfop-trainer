@@ -9,10 +9,12 @@
 import assert from 'node:assert/strict';
 import { applyFaceTurns, applyTurn, SOLVED, stateEquals, type CubeState, type Face } from '@/lib/smart-cube/cube-state';
 import {
-  colourFrame, CUBE_COLOURS, FACE_COLOUR, fitsTop, holdingColours, holdingFrame, type CubeHolding, type Frame,
+  colourFace, colourFrame, CUBE_COLOURS, FACE_COLOUR, fitsTop, frameColours, holdingColours, holdingFrame, turnedDown,
+  type ColourHolding, type CubeColour, type CubeHolding, type Frame,
 } from '@/lib/smart-cube/holding';
 import { solveSettingsOf } from '@/lib/practice-settings-store';
 import { planSetup } from '@/lib/smart-cube/setup-guide';
+import { mergeTurns } from '@/lib/smart-cube/solve-record';
 import {
   cubeSolveResync,
   cubeSolveTurn,
@@ -30,7 +32,7 @@ import {
   applyOutbox, createSolveLibrary, isMissingOnServer,
   type AccountSolves, type DeviceSolves, type ImportDecision, type Outbox, type SyncMemory,
 } from '@/lib/solve/solve-library';
-import { bottomFace, cubeSolve, handSolve, parseSolveRecord, recordFrame, recordMoveCount, withPenalty, type SolveRecord } from '@/lib/solve/solve-record';
+import { cubeSolve, handSolve, parseSolveRecord, readRecord, recordFrame, recordMoveCount, withPenalty, type SolveRecord } from '@/lib/solve/solve-record';
 import { testCubeTurns } from '@/lib/smart-cube/test-cube';
 import { averageOf, bestAverageOf, countedMs, DNF, formatRecordTime, formatSolveTime, solveStats } from '@/lib/solve/solve-stats';
 import { initTwoPhase, isSolvable, randomCubeState, solveTwoPhase } from '@/lib/solver/two-phase';
@@ -189,11 +191,39 @@ for (const holding of ['yellow-blue', 'yellow-green', 'white-green'] as const) {
   eq(FACE_COLOUR[colourFrame({ top: 'yellow', front: 'blue' })!.R], 'red', 'yellow top, blue front has red on the right too');
 }
 {
-  const smart = holdingColours('yellow-blue');
-  eq(solveSettingsOf({}, 'cfop', smart), { top: 'yellow', front: 'blue', inspection: true }, 'unset: the smart cube\'s holding and inspection on');
-  eq(solveSettingsOf({ solves: { cfop: { top: 'white', front: 'red', inspection: false } } }, 'cfop', smart),
-    { top: 'white', front: 'red', inspection: false }, 'set for CFOP');
-  eq(solveSettingsOf({ solves: { cfop: { inspection: false } } }, 'cfop', smart), { top: 'yellow', front: 'blue', inspection: false }, 'only the inspection set');
+  eq(solveSettingsOf({}, 'cfop'), { top: 'white', front: 'green', cross: 'white', inspection: true },
+    'unset: white top and green front for the scramble, a white cross, inspection on');
+  eq(solveSettingsOf({ solves: { cfop: { top: 'white', front: 'red', cross: 'yellow', inspection: false } } }, 'cfop'),
+    { top: 'white', front: 'red', cross: 'yellow', inspection: false }, 'set for CFOP');
+  eq(solveSettingsOf({ solves: { cfop: { inspection: false } } }, 'cfop'), { top: 'white', front: 'green', cross: 'white', inspection: false }, 'only the inspection set');
+  // Saved before the cross colour had its own setting (or by such a version
+  // since): the one holding is the scramble's, and the cross is white.
+  eq(solveSettingsOf({ solves: { cfop: { top: 'yellow', front: 'blue', inspection: true } } }, 'cfop'),
+    { top: 'yellow', front: 'blue', cross: 'white', inspection: true }, 'an older holding is the scramble\'s, with a white cross');
+  eq(solveSettingsOf({ solves: { cfop: { cross: 'green' } } }, 'cfop'), { top: 'white', front: 'green', cross: 'green', inspection: true }, 'only the cross colour set');
+}
+{
+  // Turned over by the fewest rotations to put the cross colour at the bottom.
+  const wca = colourFrame({ top: 'white', front: 'green' })!;
+  const down = (cross: CubeColour) => turnedDown(wca, cross);
+  eq([down('white').rotation, frameColours(down('white').frame)], ['x2', { top: 'yellow', front: 'blue' }],
+    'white top, green front, white cross: x2 to yellow top, blue front');
+  eq([down('yellow').rotation, down('yellow').frame], ['', wca], 'a yellow cross is at the bottom already');
+  eq(['green', 'blue', 'red', 'orange'].map((c) => down(c as CubeColour).rotation), ["x'", 'x', 'z', "z'"],
+    'from the front x\', from the back x, from the right z, from the left z\'');
+  eq(turnedDown(holdingFrame('yellow-blue'), 'white').rotation, '', 'yellow top, blue front, white cross: no rotation');
+  for (const top of CUBE_COLOURS) {
+    for (const front of CUBE_COLOURS) {
+      const frame = colourFrame({ top, front });
+      if (!frame) continue;
+      for (const cross of CUBE_COLOURS) {
+        const turned = turnedDown(frame, cross);
+        ok(turned.frame.D === colourFace(cross), `${top} top, ${front} front, ${cross} cross: the cross at the bottom`);
+        ok(turned.rotation === '' ? FACE_COLOUR[frame.D] === cross : turned.rotation.split(' ').length === 1,
+          `${top} top, ${front} front, ${cross} cross: one rotation at most (${turned.rotation || 'none'})`);
+      }
+    }
+  }
 }
 
 // --- CFOP stages on a smart cube
@@ -248,7 +278,7 @@ function solveOf(parts: string[], holding: CubeHolding | Frame) {
   eq(cfopMoveCount(solve.timed, split), 37, 'the solve\'s moves add up the stages');
 
   const record = cubeSolve({
-    scramble: 'R U', holding: { top: 'yellow', front: 'blue' }, start: solve.start,
+    scramble: 'R U', scrambleHolding: { top: 'yellow', front: 'blue' }, cross: 'white', start: solve.start,
     turns: solve.turns.map((t, i) => ({ ...t, cubeTime: 5_000 + i * 100, state: solve.states[i] })),
   });
   ok(record.timer === 'cube' && record.ms === 3_900 && record.moveCount === 37 && record.turns![0].t === 0, 'a cube solve is timed first turn to last');
@@ -270,29 +300,109 @@ function solveOf(parts: string[], holding: CubeHolding | Frame) {
   const oneStages = cfopStages(oneTurn.timed, oneSplit, holdingFrame('yellow-blue'));
   ok(!oneStages[0].skipped && oneStages.slice(1, 5).every((s) => s.skipped && s.moves === 0), 'F2L 1-4 skipped after an X-cross of all pairs');
 }
+/**
+ * A CFOP solve as a solver makes it: the scramble turned holding the cube
+ * one way, then the cube turned over to put the cross colour at the bottom
+ * and solved stage by stage (`parts`, in that holding's notation).
+ */
+function cfopSolve(scrambleHolding: ColourHolding, cross: CubeColour, parts = [CROSS, ...PAIRS, OLL, PLL]) {
+  const scrambleFrame = colourFrame(scrambleHolding)!;
+  const solving = turnedDown(scrambleFrame, cross).frame;
+  const solve = solveOf(parts, solving);
+  // The scramble that leads there, written as it is turned.
+  const scramble = movesInHolding(mergeTurns(quarterTurns(invert(parts.join(' ')), solving)), scrambleFrame);
+  const record = cubeSolve({
+    scramble, scrambleHolding, cross, start: solve.start,
+    turns: solve.turns.map((t, i) => ({ ...t, cubeTime: 2_000 + i * 100, state: solve.states[i] })),
+  });
+  return { ...solve, scramble, solving, record };
+}
+const ENDS = [2, 5, 8, 11, 14, 23, 39];
+const PARTS = [CROSS, ...PAIRS, OLL, PLL];
 {
-  // Every holding: the same solve turned in it ends each stage on the same
-  // turn, with the cross on the bottom face of that holding.
+  // Every scramble orientation with every cross colour: the stages end where
+  // the solver made them, with the cross on its colour, and read in the
+  // holding the solve was made in.
   for (const top of CUBE_COLOURS) {
     for (const front of CUBE_COLOURS) {
-      const frame = colourFrame({ top, front });
-      if (!frame) continue;
-      const solve = solveOf([CROSS, ...PAIRS, OLL, PLL], frame);
-      const split = splitCfop(solve.start, solve.states, bottomFace(frame));
-      eq(FACE_COLOUR[split.cross], FACE_COLOUR[frame.D], `${top} top, ${front} front: the cross is on the bottom`);
-      eq(split.ends, [2, 5, 8, 11, 14, 23, 39], `${top} top, ${front} front: each stage ends on its last turn`);
+      if (!fitsTop(top, front)) continue;
+      for (const cross of CUBE_COLOURS) {
+        const name = `${top} top, ${front} front, ${cross} cross`;
+        const { record, scramble, solving, start } = cfopSolve({ top, front }, cross);
+        ok(stateEquals(scrambleState(scramble, colourFrame({ top, front })!), start), `${name}: the scramble leads to the solve's start`);
+        eq(record.split!.cross, colourFace(cross), `${name}: the cross is on its colour`);
+        eq(record.split!.ends, ENDS, `${name}: each stage ends on its last turn`);
+        ok(record.crossColour === cross && record.scrambleHolding!.top === top && record.scrambleHolding!.front === front,
+          `${name}: the record keeps the cross colour and the scramble orientation`);
+        eq(frameColours(recordFrame(record)), frameColours(solving), `${name}: and the holding it was solved in`);
+        const reading = readRecord(record, 'white')!;
+        const stages = cfopStages(record.turns!, reading.split, reading.frame);
+        eq(stages.map((s) => s.notation), PARTS, `${name}: each stage's moves read as made`);
+        ok(stages.every((s) => !s.skipped), `${name}: no stage skipped`);
+        eq(recordMoveCount(record, 'yellow'), 37, `${name}: moves`);
+      }
     }
   }
-  // Read on another face, the same solve has no cross until it is solved.
-  const yellowTop = solveOf([CROSS, ...PAIRS, OLL, PLL], 'yellow-blue');
-  ok(splitCfop(yellowTop.start, yellowTop.states, 'D').ends[0] >= 30, 'read on the top face, the cross comes only near the end');
-  const record = cubeSolve({
-    scramble: 'R U', holding: { top: 'white', front: 'red' }, start: solveOf([CROSS], colourFrame({ top: 'white', front: 'red' })!).start,
-    turns: [],
-  });
-  ok(record.split!.cross === 'D' && FACE_COLOUR[recordFrame(record).U] === 'white', 'a record keeps its holding; the cross is the yellow bottom');
+  // The cases asked for by name.
+  const named: [ColourHolding, CubeColour, string][] = [
+    [{ top: 'white', front: 'green' }, 'white', 'yellow-blue'],
+    [{ top: 'yellow', front: 'blue' }, 'white', 'yellow-blue'],
+    [{ top: 'white', front: 'green' }, 'yellow', 'white-green'],
+    [{ top: 'yellow', front: 'green' }, 'white', 'yellow-green'],
+  ];
+  for (const [scrambleHolding, cross, solvedIn] of named) {
+    const { record } = cfopSolve(scrambleHolding, cross);
+    const name = `${scrambleHolding.top} top, ${scrambleHolding.front} front, ${cross} cross`;
+    ok(FACE_COLOUR[record.split!.cross] === cross && record.split!.ends.join() === ENDS.join(), `${name}: the stages split`);
+    eq(recordFrame(record), holdingFrame(solvedIn as CubeHolding), `${name}: solved holding ${solvedIn}`);
+  }
+  // An older version reads a new record's stored stages in its holding: the same table.
+  const { record } = cfopSolve({ top: 'white', front: 'green' }, 'white');
+  const asOlder = cfopStages(record.turns!, record.split!, recordFrame(record));
+  eq(asOlder.map((s) => s.notation), PARTS, 'an older version shows a new record\'s stages as made');
+  eq(FACE_COLOUR[record.split!.cross], 'white', 'with its white cross');
+  const read = parseSolveRecord(JSON.parse(JSON.stringify(record)))!;
+  ok(read.crossColour === 'white' && read.scrambleHolding!.top === 'white' && readRecord(read, 'yellow')!.split.ends.join() === ENDS.join(),
+    'read back, a record keeps its cross colour, whatever is set now');
+  eq(readRecord(handSolve('R U', 10_000), 'white'), null, 'a hand solve has no stages');
   eq(recordFrame({ holding: 'yellow-green' }), holdingFrame('yellow-green'), 'records from the first version keep their smart cube holding');
   eq(recordFrame({}), holdingFrame('yellow-blue'), 'a record without a holding reads as yellow top, blue front');
+}
+{
+  // The solve reported on 27 November: scrambled white top, green front as
+  // the WCA does, then turned over (x2) and solved from a white cross. The
+  // stages were read on the bottom of the scramble's holding, yellow, so the
+  // cross ended with the solve and every other stage was a skip.
+  const wca: ColourHolding = { top: 'white', front: 'green' };
+  const { record, start, states } = cfopSolve(wca, 'white');
+  const before = splitCfop(start, states, colourFace(holdingColours('yellow-blue').top));
+  eq(before.ends, [39, 39, 39, 39, 39, 39, 39], 'read on yellow: the cross ends with the solve, the rest skipped');
+  const stored: SolveRecord = { ...record, holding: wca, split: before };
+  delete stored.crossColour;
+  delete stored.scrambleHolding;
+  const asStored = cfopStages(stored.turns!, stored.split!, recordFrame(stored));
+  ok(asStored[0].moves === 37 && asStored.slice(1).every((s) => s.skipped), 'as it was shown: Cross with every move, then skips');
+  // Read again with a white cross (the setting's default).
+  const again = readRecord(stored, 'white')!;
+  eq(again.split, { cross: 'U', ends: ENDS }, 'read again: the white cross and each stage where it ended');
+  eq(again.frame, holdingFrame('yellow-blue'), 'its moves read turned over from the scramble: yellow top, blue front');
+  const stages = cfopStages(stored.turns!, again.split, again.frame);
+  eq(stages.map((s) => s.notation), PARTS, 'each stage\'s moves as made');
+  ok(stages.every((s) => !s.skipped), 'no stage skipped');
+  eq(recordMoveCount(stored, 'white'), 37, 'its moves counted with those stages');
+  ok(readRecord(stored, 'white') === again, 'read once per record and colour');
+  eq(readRecord(stored, 'yellow')!.split.ends, before.ends, 'read with a yellow cross, as it was');
+  // A record from before with the cross on its bottom reads the same as stored.
+  const yellowBlue = cfopSolve({ top: 'yellow', front: 'blue' }, 'white').record;
+  const older: SolveRecord = { ...yellowBlue, holding: { top: 'yellow', front: 'blue' } };
+  delete older.crossColour;
+  delete older.scrambleHolding;
+  eq(readRecord(older, 'white'), { split: yellowBlue.split!, frame: holdingFrame('yellow-blue') }, 'an older yellow top, blue front record reads as before');
+  // Turns that do not replay to the stages stored (the cube resynced mid-solve): the stored stages stand.
+  const resynced: SolveRecord = { ...stored, turns: stored.turns!.filter((_, i) => i !== 20) };
+  eq(readRecord(resynced, 'white'), { split: before, frame: holdingFrame('white-green') }, 'a record that does not replay keeps its stored stages');
+  const unreadable: SolveRecord = { ...stored, scramble: 'Q W E' };
+  eq(readRecord(unreadable, 'white')!.split, before, 'a scramble that cannot be read keeps its stored stages');
 }
 {
   // A PLL with slices, reported as a cube does (a slice's two faces 10 ms
@@ -311,11 +421,11 @@ function solveOf(parts: string[], holding: CubeHolding | Frame) {
   eq([stages[6].notation, stages[6].moves], [UA, 7], 'the PLL stage reads as Ua, 7 moves');
   eq(cfopMoveCount(turns, split), 2 + 12 + 8 + 7, 'the solve counts each slice once');
   const record = cubeSolve({
-    scramble: 'R U', holding: { top: 'yellow', front: 'blue' }, start,
+    scramble: 'R U', scrambleHolding: { top: 'yellow', front: 'blue' }, cross: 'white', start,
     turns: turns.map((x, i) => ({ face: x.face, amount: x.amount, cubeTime: 1_000 + x.t, state: states[i] })),
   });
-  eq([record.moveCount, recordMoveCount(record), recordMoveCount({ ...record, moveCount: 34 })], [29, 29, 29], 'records count slices once, older ones read again');
-  eq(recordMoveCount(handSolve('R U', 10_000)), undefined, 'a hand solve has no moves');
+  eq([record.moveCount, recordMoveCount(record, 'white'), recordMoveCount({ ...record, moveCount: 34 }, 'white')], [29, 29, 29], 'records count slices once, older ones read again');
+  eq(recordMoveCount(handSolve('R U', 10_000), 'white'), undefined, 'a hand solve has no moves');
 }
 {
   // Stopped before the end: only the stages reached.

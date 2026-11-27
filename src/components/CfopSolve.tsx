@@ -8,7 +8,7 @@ import { useMounted } from '@/hooks/useMounted';
 import { useKeepAwake, useNativeTimer } from '@/hooks/useNativeTimer';
 import { useScramble } from '@/hooks/useScramble';
 import { useSmartCube, useSmartCubeSettings } from '@/hooks/useSmartCube';
-import { useSolveSettings } from '@/hooks/useSolveSettings';
+import { useCrossColour, useSolveSettings } from '@/hooks/useSolveSettings';
 import { useSolves } from '@/hooks/useSolves';
 import { useSpacebar } from '@/hooks/useSpacebar';
 import { useT } from '@/hooks/useT';
@@ -188,7 +188,8 @@ function Figure({ label, value, big = false }: { label: string; value: string; b
 function LatestSolve({ record, onUndo, className }: { record: SolveRecord; onUndo: () => void; className: string }) {
   const { t } = useT();
   const connected = useSmartCube().status === 'connected';
-  const moves = useMemo(() => recordMoveCount(record), [record]);
+  const cross = useCrossColour('cfop');
+  const moves = useMemo(() => recordMoveCount(record, cross), [record, cross]);
   const cube = moves !== undefined;
   const tps = cube ? solveTps(moves, record.ms) : null;
   return (
@@ -227,8 +228,9 @@ function LatestSolve({ record, onUndo, className }: { record: SolveRecord; onUnd
 
 const MemoRecords = memo(SolveRecords);
 
-// A CFOP solve from a random-state scramble, held as set for CFOP (top and
-// front colours). Without a smart cube: with inspection, a tap starts it;
+// A CFOP solve from a random-state scramble, turned holding the cube as set
+// for CFOP (top and front colours), then solved with the cross colour set at
+// the bottom. Without a smart cube: with inspection, a tap starts it;
 // then hold the timer to get ready, let go to start, press anywhere to stop.
 // With one: the scramble is guided turn by turn, beside a 3D cube that is
 // the smart cube as it is and turns the next move over and over (in place of

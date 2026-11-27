@@ -47,6 +47,9 @@ export interface ColourHolding {
   front: CubeColour;
 }
 
+/** The cube's own face with this colour (white U, green F). */
+export const colourFace = (colour: CubeColour): Face => COLOUR_FACE[colour];
+
 export const oppositeColour = (colour: CubeColour): CubeColour => FACE_COLOUR[OPPOSITE_FACE[COLOUR_FACE[colour]]];
 
 /** A front colour can be any colour but the top one and its opposite. */
@@ -54,9 +57,11 @@ export const fitsTop = (top: CubeColour, front: CubeColour) => front !== top && 
 
 /** The named holding as colours, e.g. yellow-blue is yellow top, blue front. */
 export function holdingColours(holding: CubeHolding): ColourHolding {
-  const frame = HOLDING_FRAMES[holding];
-  return { top: FACE_COLOUR[frame.U], front: FACE_COLOUR[frame.F] };
+  return frameColours(HOLDING_FRAMES[holding]);
 }
+
+/** A frame's top and front colours. */
+export const frameColours = (frame: Frame): ColourHolding => ({ top: FACE_COLOUR[frame.U], front: FACE_COLOUR[frame.F] });
 
 // The 24 ways to hold the cube, each reached from the cube's own frame by
 // rotations. Built on first use (rotateFrame's table is defined below).
@@ -109,6 +114,22 @@ function rotationsByLength(): readonly Rotation[] {
 export function rotationBetween(from: Frame, to: Frame): string {
   const rotation = rotationsByLength().find((r) => sameFrame(r.reduce((f, [axis, times]) => rotateFrame(f, axis, times), from), to)) ?? [];
   return rotation.map(([axis, times]) => `${axis}${ROTATION_SUFFIX[times]}`).join(' ');
+}
+
+/**
+ * The cube turned over from `from` so that the `down` colour is at the
+ * bottom, by the fewest whole-cube rotations: none when it is there already,
+ * x2 from the top, x' from the front, x from the back, z from the right and
+ * z' from the left. White top, green front with a white cross turns x2 to
+ * yellow top, blue front.
+ */
+export function turnedDown(from: Frame, down: CubeColour): { frame: Frame; rotation: string } {
+  const face = COLOUR_FACE[down];
+  for (const rotation of rotationsByLength()) {
+    const frame = rotation.reduce((f, [axis, times]) => rotateFrame(f, axis, times), from);
+    if (frame.D === face) return { frame, rotation: rotation.map(([axis, times]) => `${axis}${ROTATION_SUFFIX[times]}`).join(' ') };
+  }
+  return { frame: from, rotation: '' };
 }
 
 /** The rotation that shows the cube held in `frame`, from its own (white U, green F; cubing.js's default view). */

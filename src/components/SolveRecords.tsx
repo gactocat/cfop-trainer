@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useCrossColour } from '@/hooks/useSolveSettings';
 import { useT } from '@/hooks/useT';
 import { declineSolveImport, importDeviceSolves, retrySolveSync, type SolvesSnapshot } from '@/lib/solve-store';
 import { solveTps } from '@/lib/solve/cfop-split';
@@ -39,7 +40,8 @@ export function TimerBadge({ record }: { record: SolveRecord }) {
 /** Moves and TPS of a cube solve, e.g. "54 moves · 4.38 TPS"; null for a hand-timed one. */
 export function useMovesSummary(record: SolveRecord): string | null {
   const { t } = useT();
-  const moves = useMemo(() => recordMoveCount(record), [record]);
+  const cross = useCrossColour(record.event);
+  const moves = useMemo(() => recordMoveCount(record, cross), [record, cross]);
   if (moves === undefined) return null;
   const tps = solveTps(moves, record.ms);
   return t('smartCube.solve.summary', { moves, tps: tps === null ? '-' : tps.toFixed(2) });
