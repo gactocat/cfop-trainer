@@ -262,7 +262,7 @@ References: [password authentication](https://supabase.com/docs/guides/auth/pass
 
 ## Solves table (not applied yet)
 
-Timed solves from a scramble (`/solve/cfop`) are kept per row in
+Timed solves from a scramble (`/solve/cfop`, `/solve/cross`, `/solve/f2l`, `/solve/ll`) are kept per row in
 `public.solves`, outside `account_data`, so older app versions are not
 affected. Until this migration runs, signed-in users keep their solves on the
 device, as before (the app treats a missing table as "not ready").

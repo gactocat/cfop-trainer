@@ -6,13 +6,14 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, type MouseEvent } from 'react';
 import { getPllDefinition } from '@/data/pll-definitions';
 import { useT } from '@/hooks/useT';
+import { SOLVE_MODE, SOLVE_MODES } from '@/lib/solve/solve-modes';
 import { F2L_IDS, type F2LId } from '@/types/f2l';
 import { OLL_IDS, type OLLId } from '@/types/oll';
 import type { PllId } from '@/types/pll';
 
 const STAGES = { f2l: 'F2L', oll: 'OLL', pll: 'PLL' } as const;
-/** Solves from a scramble, under /solve. */
-const SOLVES: Record<string, string> = { cfop: 'CFOP' };
+/** Solves from a scramble, under /solve: each kind's label (CFOP, Cross, F2L, LL). */
+const SOLVES: Record<string, string> = Object.fromEntries(SOLVE_MODES.map((mode) => [SOLVE_MODE[mode].slug, SOLVE_MODE[mode].label]));
 type Stage = keyof typeof STAGES;
 const isStage = (segment: string | undefined): segment is Stage => !!segment && segment in STAGES;
 

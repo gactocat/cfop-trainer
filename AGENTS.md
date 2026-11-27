@@ -41,7 +41,7 @@ CI (`.github/workflows/ci.yml`) runs the same three steps on every PR.
 ## Layout
 
 - `src/app/` — routes. `/` (home), `/pll`, `/pll/[id]`, `/f2l`, `/f2l/[id]`,
-  `/random`, `/account`, `/solve/cfop`, `manifest.ts`. Detail routes use
+  `/random`, `/account`, `/solve/[mode]` (cfop, cross, f2l, ll), `manifest.ts`. Detail routes use
   `generateStaticParams`. The top page's groups and entries are data in
   `src/data/home-entries.ts`. Extra extensions limit where a route exists
   (`next.config.ts`): `page.dev.tsx` only under `next dev`, `route.web.ts`

@@ -195,15 +195,17 @@ export function DnfButton({ onDnf }: { onDnf: () => void }) {
 
 /**
  * The result: the time where the timer was (with its penalty: 8.90+, or DNF
- * and the time measured), its moves, TPS, inspection and cross colour, the
- * scramble, Retry (the same scramble again) and Next (a new one, or Space).
- * +2, DNF and Undo sit quietly in the corner.
+ * and the time measured), its moves, TPS, inspection and cross colour (left
+ * out when `crossColour` is undefined), the scramble, Retry (the same
+ * scramble again) and Next (a new one, or Space). +2, DNF and Undo sit
+ * quietly in the corner.
  */
 export function ResultHead({ record, moves, tps, crossColour, onRetry, onNext, onUndo }: {
   record: SolveRecord;
   moves: number | undefined;
   tps: number | null;
-  crossColour: CubeColour | null;
+  /** Null: not known (a solve timed by hand); undefined: not shown (the last layer). */
+  crossColour?: CubeColour | null;
   onRetry: () => void;
   onNext: () => void;
   onUndo: () => void;
@@ -227,7 +229,9 @@ export function ResultHead({ record, moves, tps, crossColour, onRetry, onNext, o
         <Figure size="sm" label={t('solve.moves')} value={moves === undefined ? '-' : String(moves)} />
         <Figure size="sm" label="TPS" value={tps === null ? '-' : tps.toFixed(2)} />
         <Figure size="sm" label={t('solve.inspection')} value={record.inspectionMs === undefined ? '-' : (record.inspectionMs / 1000).toFixed(2)} />
-        <Figure size="sm" label={t('solve.stage.cross')} value={crossColour ? <CubeColourMark colour={crossColour} className="my-1 size-4" /> : '-'} />
+        {crossColour !== undefined && (
+          <Figure size="sm" label={t('solve.stage.cross')} value={crossColour ? <CubeColourMark colour={crossColour} className="my-1 size-4" /> : '-'} />
+        )}
       </dl>
       <p className="max-w-xl text-center font-mono text-xs leading-5 break-words text-zinc-500 dark:text-zinc-400">{record.scramble}</p>
       <div className="flex items-center gap-2">

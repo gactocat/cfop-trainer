@@ -6,6 +6,7 @@ import { useMounted } from '@/hooks/useMounted';
 import { useT } from '@/hooks/useT';
 import { HEADER_ACTIONS_ID } from '@/lib/header-slots';
 import type { SolvesSnapshot } from '@/lib/solve-store';
+import type { SolveEvent } from '@/lib/solve/solve-record';
 import { FullScreenModal } from './FullScreenModal';
 import { SolveRecords } from './SolveRecords';
 
@@ -19,10 +20,10 @@ function RecordsIcon() {
   );
 }
 
-// A solve page's records, out of the way of the solve: an icon in the app
-// header (as the list pages keep their controls there) opens them over the
-// page, with the best, ao5, ao12 and every solve (SolveRecords).
-export function SolveRecordsButton({ snapshot, onDelete }: { snapshot: SolvesSnapshot; onDelete: (id: string) => void }) {
+// A solve page's records (its kind's), out of the way of the solve: an icon
+// in the app header (as the list pages keep their controls there) opens
+// them over the page, with the best, ao5, ao12 and every solve (SolveRecords).
+export function SolveRecordsButton({ event, snapshot, onDelete }: { event: SolveEvent; snapshot: SolvesSnapshot; onDelete: (id: string) => void }) {
   const { t } = useT();
   const mounted = useMounted();
   const [open, setOpen] = useState(false);
@@ -41,7 +42,7 @@ export function SolveRecordsButton({ snapshot, onDelete }: { snapshot: SolvesSna
       )}
       <FullScreenModal open={open} onClose={() => setOpen(false)} title={t('solve.records.title')} overlay>
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <SolveRecords snapshot={snapshot} onDelete={onDelete} className="mx-auto w-full max-w-2xl" />
+          <SolveRecords event={event} snapshot={snapshot} onDelete={onDelete} className="mx-auto w-full max-w-2xl" />
         </div>
       </FullScreenModal>
     </>

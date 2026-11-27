@@ -4,8 +4,9 @@ import { useMemo } from 'react';
 import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
 import { FACE_COLOUR } from '@/lib/smart-cube/holding';
-import { cfopStages, type CfopStage } from '@/lib/solve/cfop-split';
-import { readRecord, type SolveRecord } from '@/lib/solve/solve-record';
+import type { CfopStage } from '@/lib/solve/cfop-split';
+import { modeRecordStages, readModeRecord } from '@/lib/solve/mode-record';
+import type { SolveRecord } from '@/lib/solve/solve-record';
 import { formatSolveTime } from '@/lib/solve/solve-stats';
 import { CubeColourMark } from './CubeColourMark';
 
@@ -22,7 +23,8 @@ const STAGE_LABEL: Record<CfopStage, MessageKey> = {
 /** Recognition and execution cut to the hundredth, as the stage's time is, so they add up as shown. */
 const seconds = (ms: number) => formatSolveTime(ms);
 
-// A cube solve stage by stage (the cross, each F2L pair, OLL and PLL): its
+// A cube solve stage by stage, the stages of its kind (CFOP: the cross, each
+// F2L pair, OLL and PLL; a part on its own: its own stages): its
 // time, then in small type recognition (from the stage before to its first
 // turn) and execution, moves and TPS, and its moves in the user's notation,
 // held as for the solve (the cross at the bottom). Beside Cross, the colour
@@ -30,11 +32,8 @@ const seconds = (ms: number) => formatSolveTime(ms);
 // before are marked as skipped. The same on a result and in the records.
 export function SolveStages({ record, className = '' }: { record: SolveRecord; className?: string }) {
   const { t } = useT();
-  const reading = useMemo(() => readRecord(record), [record]);
-  const stages = useMemo(
-    () => (reading && record.turns ? cfopStages(record.turns, reading.split, reading.frame) : []),
-    [record, reading],
-  );
+  const reading = useMemo(() => readModeRecord(record), [record]);
+  const stages = useMemo(() => modeRecordStages(record) ?? [], [record]);
   if (!reading || stages.length === 0) return null;
   const crossColour = FACE_COLOUR[reading.split.cross];
   return (

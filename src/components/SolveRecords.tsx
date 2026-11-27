@@ -4,7 +4,8 @@ import { useMemo, useState } from 'react';
 import { useT } from '@/hooks/useT';
 import { declineSolveImport, importDeviceSolves, retrySolveSync, type SolvesSnapshot } from '@/lib/solve-store';
 import { solveTps } from '@/lib/solve/cfop-split';
-import { recordMoveCount, type SolveRecord } from '@/lib/solve/solve-record';
+import { modeMoveCount } from '@/lib/solve/mode-record';
+import type { SolveEvent, SolveRecord } from '@/lib/solve/solve-record';
 import { countedMs, formatRecordTime, formatSolveTime, solveStats } from '@/lib/solve/solve-stats';
 import { Figure } from './Figure';
 import { PenaltyButtons } from './SolvePenalty';
@@ -31,7 +32,7 @@ export function TimerBadge({ record }: { record: SolveRecord }) {
 /** Moves and TPS of a cube solve, e.g. "54 moves · 4.38 TPS"; null for a hand-timed one. */
 export function useMovesSummary(record: SolveRecord): string | null {
   const { t } = useT();
-  const moves = useMemo(() => recordMoveCount(record), [record]);
+  const moves = useMemo(() => modeMoveCount(record), [record]);
   if (moves === undefined) return null;
   const tps = solveTps(moves, record.ms);
   return t('smartCube.solve.summary', { moves, tps: tps === null ? '-' : tps.toFixed(2) });
@@ -86,7 +87,7 @@ function SolveRow({ number, record, onDelete }: { number: number; record: SolveR
 
 // Where the solves are kept (this device or the account). Saving to the
 // account says nothing: it runs in the background and retries by itself.
-function SyncNote({ snapshot }: { snapshot: SolvesSnapshot }) {
+function SyncNote({ event, snapshot }: { event: SolveEvent; snapshot: SolvesSnapshot }) {
   const { t } = useT();
   const link = 'font-medium text-emerald-700 underline hover:text-emerald-900 dark:text-emerald-300 dark:hover:text-emerald-100';
   const { where, status } = snapshot;
@@ -98,24 +99,24 @@ function SyncNote({ snapshot }: { snapshot: SolvesSnapshot }) {
       {status === 'error' ? (
         <p role="alert" className="text-amber-800 dark:text-amber-200">
           {t('solve.records.loadFailed')}{' '}
-          <button type="button" onClick={() => retrySolveSync('cfop')} className={link}>{t('solve.records.reload')}</button>
+          <button type="button" onClick={() => retrySolveSync(event)} className={link}>{t('solve.records.reload')}</button>
         </p>
       ) : <p>{t(note)}</p>}
     </div>
   );
 }
 
-function ImportOffer({ count }: { count: number }) {
+function ImportOffer({ event, count }: { event: SolveEvent; count: number }) {
   const { t } = useT();
   return (
     <div className="mt-3 rounded-lg border border-zinc-200 p-3 text-xs dark:border-zinc-800">
       <p className="text-zinc-700 dark:text-zinc-200">{t('solve.records.offer', { count })}</p>
       <div className="mt-2 flex flex-wrap gap-2">
-        <button type="button" onClick={() => void importDeviceSolves('cfop')}
+        <button type="button" onClick={() => void importDeviceSolves(event)}
           className="rounded-md bg-emerald-600 px-3 py-1.5 font-semibold text-white hover:bg-emerald-700">
           {t('solve.records.import')}
         </button>
-        <button type="button" onClick={() => declineSolveImport('cfop')}
+        <button type="button" onClick={() => declineSolveImport(event)}
           className="rounded-md border border-zinc-300 px-3 py-1.5 font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
           {t('solve.records.skipImport')}
         </button>
@@ -127,7 +128,9 @@ function ImportOffer({ count }: { count: number }) {
 // The solves: best single, the latest ao5 and ao12 (with the best of each),
 // counting +2 and DNF as the WCA does, and every solve, newest first, opening
 // to its scramble, stages, penalty buttons and a delete button.
-export function SolveRecords({ snapshot, onDelete, className = '' }: {
+export function SolveRecords({ event, snapshot, onDelete, className = '' }: {
+  /** The kind of solve listed. */
+  event: SolveEvent;
   snapshot: SolvesSnapshot;
   onDelete: (id: string) => void;
   className?: string;
@@ -153,7 +156,7 @@ export function SolveRecords({ snapshot, onDelete, className = '' }: {
           {t('solve.records.bestAverages', { ao5: average(stats.bestAo5), ao12: average(stats.bestAo12) })}
         </p>
       )}
-      {snapshot.offer > 0 && <ImportOffer count={snapshot.offer} />}
+      {snapshot.offer > 0 && <ImportOffer event={event} count={snapshot.offer} />}
       {status === 'loading' ? (
         <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">{t('common.loading')}</p>
       ) : solves.length === 0 ? (
@@ -174,7 +177,7 @@ export function SolveRecords({ snapshot, onDelete, className = '' }: {
           {t('solve.records.more', { count: Math.min(PAGE, solves.length - shown) })}
         </button>
       )}
-      <SyncNote snapshot={snapshot} />
+      <SyncNote event={event} snapshot={snapshot} />
     </section>
   );
 }

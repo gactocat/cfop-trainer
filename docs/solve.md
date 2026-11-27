@@ -1,14 +1,21 @@
 # Solves from a scramble
 
 The top page groups its entries: Algorithms (F2L, OLL, PLL) and Solve. Solve
-has one entry, CFOP (`/solve/cfop`); another kind of solve (the cross, F2L or
-the last layer on its own, see Modes) is one more entry in
-`src/data/home-entries.ts` and a page under `/solve/`.
+has CFOP (`/solve/cfop`), featured on a wide card of its own, and under it,
+smaller, the cross, F2L and the last layer on their own (`/solve/cross`,
+`/solve/f2l`, `/solve/ll`, see Modes). The entries are
+`SOLVE_MODE_ENTRIES` in `src/data/home-entries.ts`; each drawing lights its
+part of the cube: all of it for CFOP, a cross with its side stickers lined
+up with the centres for the cross, the first two layers for F2L, the last
+layer for LL. One page, `src/app/solve/[mode]/page.tsx`, serves every kind
+(prerendered for each, the iOS export included); its header title is the
+kind's label (CFOP, Cross, F2L, LL).
 
 ## CFOP
 
 A solve goes through three screens, one at a time, on the same page
-(`components/SolveScreens.tsx`, wired by `components/CfopSolve.tsx`; which
+(`components/SolveScreens.tsx`, wired by `components/ModeSolve.tsx` for every
+kind of solve, see Modes; which
 screen is on and what the timer shows are worked out in
 `lib/solve/solve-screen.ts`). They are built to serve every kind of solve.
 
@@ -229,8 +236,12 @@ auth schema and roles.
 
 Besides CFOP, the cross, F2L and the last layer can each be solved on their
 own. Each goes as a CFOP solve does: the scramble makes the cube as it would
-be just before that part, and the solve ends when that part is done. The
-library is in place; the pages are not yet.
+be just before that part, and the solve ends when that part is done. Their
+pages are CFOP's (`ModeSolve` with the mode): the same three screens,
+settings (per mode), smart cube guide and test cube. The result lists the
+mode's stages only (Cross; F2L1-4; OLL and PLL) with the cross colour's
+figure for the cross and F2L (not for the last layer, whose cross was
+there before), and the records (behind the header icon) are the mode's.
 
 | Mode | Scramble leaves | A smart cube stops at | Stages |
 | --- | --- | --- | --- |
@@ -250,10 +261,9 @@ without the solver): `SOLVE_MODES` is `['cfop', 'cross', 'f2l', 'll']` and
 `.description`, both locales), `stages` (a run of `CFOP_STAGES`),
 `solvedBefore`, `goal` and `setsCross` (f2l and ll leave a cross of a set
 colour, white unless chosen: `DEFAULT_MODE_CROSS`). `modeOfSlug(slug)`
-reads a page's slug. `SOLVE_MODE_ENTRIES` in `src/data/home-entries.ts` has
-an entry per mode in the top page's shape, for the solve group once the
-pages exist; the cross's drawing (`art: 'cross'`) is not drawn yet, and the
-last layer uses PLL's (the top layer lit). Settings are per mode as they
+reads a page's slug. `SOLVE_MODE_ENTRIES` in `src/data/home-entries.ts` is
+the top page's solve group (CFOP `featured`); the cross is drawn as a cross
+(`art: 'cross'`) and the last layer uses PLL's drawing (the top layer lit). Settings are per mode as they
 are per kind: `solveSettingsOf(settings, mode)` and `setSolveSettings(mode,
 ...)`.
 
@@ -307,9 +317,9 @@ first two layers around the cross of `cross` (the colour the scramble left;
 white unless given). A smart cube session takes it:
 `startCubeSolve(scramble, frame, state, modeGoal(mode, cross))`; without
 it the session stops solved as before. `restartCubeSolve(session, state)`
-guides the same scramble again from where the cube is, keeping the goal
-(`useCubeSolve` calls `startCubeSolve` with three arguments to restart; a
-mode page passes the goal or uses this).
+guides the same scramble again from where the cube is, keeping the goal.
+`useCubeSolve({ mode, cross, ... })` starts each attempt with the mode's goal,
+restarts with `restartCubeSolve` and records with `modeCubeSolve`.
 
 The cross ends at the first turn after which a cross of any colour is
 solved, colour neutral. A cross made on the way to another can end it

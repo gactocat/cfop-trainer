@@ -18,9 +18,12 @@ import { FACE_COLOUR } from '@/lib/smart-cube/holding';
 import { deleteSolve, saveSolve } from '@/lib/solve-store';
 import { solveTps } from '@/lib/solve/cfop-split';
 import { inspectionPenalty } from '@/lib/solve/inspection';
+import { modeHandSolve, modeMoveCount, readModeRecord } from '@/lib/solve/mode-record';
+import { scrambleCrossFace } from '@/lib/solve/mode-scramble';
 import { scrambleState } from '@/lib/solve/scramble';
+import { DEFAULT_MODE_CROSS, SOLVE_MODE, type SolveMode } from '@/lib/solve/solve-modes';
 import { solveScreenOf, timerFaceOf } from '@/lib/solve/solve-screen';
-import { handSolve, readRecord, recordMoveCount, type Penalty, type SolveRecord } from '@/lib/solve/solve-record';
+import type { Penalty, SolveRecord } from '@/lib/solve/solve-record';
 import { remainingGuide } from '@/lib/test-cube-hints';
 import { setTimerFocus } from '@/lib/timer-focus';
 import { SolveRecordsButton } from './SolveRecordsButton';
@@ -29,7 +32,10 @@ import { SolveStages } from './SolveStages';
 import { CubeProblem, SolveToolbar } from './SolveToolbar';
 import { VirtualCube } from './VirtualCube';
 
-// A CFOP solve from a random-state scramble, on three screens in turn:
+// A solve from a random-state scramble, of any kind (solve-modes.ts): a
+// whole CFOP solve, or the cross, F2L or the last layer on its own, whose
+// scramble leaves the parts before it solved and whose solve ends when its
+// part is done. The same three screens in turn for each:
 //
 // - Scramble: the scramble, a 3D cube (the scrambled cube in the scramble
 //   orientation; with a smart cube, the cube as it is, turning the next move
@@ -37,27 +43,33 @@ import { VirtualCube } from './VirtualCube';
 //   buttons. The records are behind an icon in the header.
 // - Timer: with a smart cube, it comes by itself once the cube is scrambled:
 //   the inspection counts up (when on) until the first turn starts the
-//   timer, and solving the cube stops it; the cube shows small, with a quiet
+//   timer, and the cube reaching the mode's goal stops it (solved, a cross
+//   of any colour, the first two layers); the cube shows small, with a quiet
 //   DNF. Without one, a press held on the scramble screen brings it up: red
 //   0.00, green once letting go starts, then the timer runs until a press
 //   anywhere (or Space). With inspection on, a tap starts the inspection
 //   first and the press is held from there. Starting after 15 s of
 //   inspection adds +2, after 17 s DNF.
 // - Result: the time where the timer was, its moves, TPS, inspection and
-//   cross colour, the scramble, Retry (the same scramble) and Next; with a
-//   cube, each stage. +2, DNF and Undo stay in reach.
+//   cross colour (not for the last layer, whose cross was there before), the
+//   scramble, Retry (the same scramble) and Next; with a cube, the mode's
+//   stages. +2, DNF and Undo stay in reach.
 //
-// Solves are kept on the device, or in the account when signed in, as soon
-// as they stop.
-export function CfopSolve() {
+// Each kind keeps its own settings and records (its `event`). Solves are
+// kept on the device, or in the account when signed in, as soon as they
+// stop.
+export function ModeSolve({ mode }: { mode: SolveMode }) {
   const { t } = useT();
   const mounted = useMounted();
-  const settings = useSolveSettings('cfop');
+  const settings = useSolveSettings(mode);
   const inspectionOn = mounted && settings.inspection;
   const cube = useSmartCube();
   const connected = mounted && cube.status === 'connected';
-  const { scramble, failed, next } = useScramble();
-  const solves = useSolves('cfop');
+  // F2L and the last layer: the scramble leaves a white cross where the scramble orientation puts it.
+  const cross = DEFAULT_MODE_CROSS;
+  const face = SOLVE_MODE[mode].setsCross ? scrambleCrossFace({ top: settings.top, front: settings.front }, cross) ?? 'U' : undefined;
+  const { scramble, failed, next } = useScramble({ mode, face });
+  const solves = useSolves(mode);
   // The inspection before a solve without the cube (performance.now() it began).
   const [inspecting, setInspecting] = useState<number | null>(null);
   // The attempt being timed, by the on-screen timer or by the cube.
@@ -95,13 +107,15 @@ export function CfopSolve() {
   };
   // Stopped on screen: a cube solve stopped this way is timed on screen too.
   const stopByHand = (penalty?: Penalty) => {
-    if (timer) record(handSolve(timer.scramble, performance.now() - timer.since, { penalty: penalty ?? timer.penalty, inspectionMs: timer.inspectionMs }));
+    if (timer) record(modeHandSolve(mode, timer.scramble, performance.now() - timer.since, { penalty: penalty ?? timer.penalty, inspectionMs: timer.inspectionMs }));
   };
 
   // With a smart cube: guided scramble, then the cube starts and stops.
   // Off on the result screen, so turning the cube there starts nothing.
   const byCube = connected && result === null && timer?.by !== 'hand' && inspecting === null;
   const cubeSolve = useCubeSolve({
+    mode,
+    cross,
     active: byCube,
     scramble,
     holding: settings,
@@ -121,7 +135,7 @@ export function CfopSolve() {
     if (timer) stopByHand('dnf');
     else if (scramble) {
       const since = cubeInspectionSince ?? inspecting;
-      record(handSolve(scramble, 0, { penalty: 'dnf', ...(since !== null ? { inspectionMs: performance.now() - since } : {}) }));
+      record(modeHandSolve(mode, scramble, 0, { penalty: 'dnf', ...(since !== null ? { inspectionMs: performance.now() - since } : {}) }));
     }
   };
 
@@ -187,7 +201,7 @@ export function CfopSolve() {
     next();
   }, [next]);
   const undo = () => {
-    if (latest) void deleteSolve('cfop', latest.id).catch(() => {});
+    if (latest) void deleteSolve(mode, latest.id).catch(() => {});
     setLatest(null);
   };
   // The result shows within the keydown that stopped the timer, so its Space
@@ -197,9 +211,9 @@ export function CfopSolve() {
   }, [goNext]);
   useSpacebar(nextBySpace, on === 'result');
   const onDelete = useCallback((id: string) => {
-    void deleteSolve('cfop', id).catch(() => {});
+    void deleteSolve(mode, id).catch(() => {});
     setLatest((current) => (current?.id === id ? null : current));
-  }, []);
+  }, [mode]);
 
   // One 3D cube for the scramble and timer screens: the scrambled cube
   // without a smart cube; with one, the cube as it is, turning the next
@@ -216,11 +230,11 @@ export function CfopSolve() {
   const tokens = rerouted ? screen!.tokens : scramble?.split(' ') ?? [];
   const done = !byCube || !screen ? null : screen.phase === 'ready' ? tokens.length : screen.routeKind === null ? null : screen.doneTokens;
 
-  const records = <SolveRecordsButton snapshot={solves} onDelete={onDelete} />;
+  const records = <SolveRecordsButton event={mode} snapshot={solves} onDelete={onDelete} />;
 
   if (on === 'result' && result) {
-    const moves = recordMoveCount(result);
-    const reading = readRecord(result);
+    const moves = modeMoveCount(result);
+    const reading = readModeRecord(result);
     return (
       <>
         {records}
@@ -233,7 +247,7 @@ export function CfopSolve() {
               record={result}
               moves={moves}
               tps={moves === undefined ? null : solveTps(moves, result.ms)}
-              crossColour={reading ? FACE_COLOUR[reading.split.cross] : null}
+              crossColour={mode === 'll' ? undefined : reading ? FACE_COLOUR[reading.split.cross] : null}
               onRetry={retry}
               onNext={goNext}
               onUndo={undo}

@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useSmartCube } from '@/hooks/useSmartCube';
 import { stateEquals, type CubeState } from '@/lib/smart-cube/cube-state';
-import { colourFrame, holdingFrame, type ColourHolding } from '@/lib/smart-cube/holding';
+import { colourFrame, holdingFrame, type ColourHolding, type CubeColour } from '@/lib/smart-cube/holding';
 import {
   cubeSolveResync,
   cubeSolveTurn,
   cubeSolveView,
   needsRoute,
+  restartCubeSolve,
   startCubeSolve,
   withRoute,
   type CubeSolveSession,
@@ -17,7 +18,10 @@ import {
 import { getSnapshot as getCubeSnapshot, subscribe as subscribeCube, subscribeTurns } from '@/lib/smart-cube-store';
 import { findRoute } from '@/lib/solve/scramble-client';
 import { movesInHolding } from '@/lib/solve/scramble';
-import { cubeSolve, type SolveRecord } from '@/lib/solve/solve-record';
+import { modeCubeSolve } from '@/lib/solve/mode-record';
+import { modeGoal } from '@/lib/solve/solve-goal';
+import type { SolveMode } from '@/lib/solve/solve-modes';
+import type { SolveRecord } from '@/lib/solve/solve-record';
 
 export interface CubeSolveScreen extends CubeSolveView {
   /** No legal route from the cube's state (it was misread, or a piece is twisted). */
@@ -85,17 +89,22 @@ const serverScreen = () => null;
 /**
  * A solve from `scramble` on a connected smart cube: guide the scramble turn
  * by turn (working out a new route when the cube is elsewhere), start on the
- * first turn from the scrambled state and stop when solved. Null while no cube
+ * first turn from the scrambled state and stop when solved (or, for a part
+ * of CFOP on its own, when that part is done). Null while no cube
  * is connected, its state is unknown or there is no scramble yet.
  */
-export function useCubeSolve({ active, scramble, holding, onStart, onStop }: {
+export function useCubeSolve({ mode, cross, active, scramble, holding, onStart, onStop }: {
+  /** The kind of solve: when it stops and how it is recorded (solve-modes.ts). */
+  mode: SolveMode;
+  /** F2L and the last layer: the colour the scramble leaves the cross in. CFOP and the cross read it from the solve. */
+  cross: CubeColour;
   active: boolean;
   scramble: string | null;
-  /** How the cube is held for the scramble. The cross colour is read from the solve. */
+  /** How the cube is held for the scramble. */
   holding: ColourHolding;
   /** The first turn from the scrambled state: how long after reaching it (the inspection). */
   onStart: (inspectionMs: number) => void;
-  /** Solved: the record of the solve, timed on the cube's clock. */
+  /** The mode's part done (solved, for CFOP): the record of the solve, timed on the cube's clock. */
   onStop: (record: SolveRecord) => void;
 }): { screen: CubeSolveScreen | null; restart: () => void } {
   const cube = useSmartCube();
@@ -110,11 +119,20 @@ export function useCubeSolve({ active, scramble, holding, onStart, onStop }: {
   const colours = useRef(holding);
   useEffect(() => { colours.current = holding; });
 
-  // A new attempt for each scramble, holding and connection.
+  // What stops the timer: solved, or the mode's part done.
+  const goal = useMemo(() => modeGoal(mode, cross), [mode, cross]);
+  const modeRef = useRef(mode);
+  const crossRef = useRef(cross);
+  useEffect(() => {
+    modeRef.current = mode;
+    crossRef.current = cross;
+  });
+
+  // A new attempt for each scramble, holding, goal and connection.
   useEffect(() => {
     const state = getCubeSnapshot().state;
-    holder.set(on && scramble && state ? startCubeSolve(scramble, frame, state) : null);
-  }, [holder, on, scramble, frame]);
+    holder.set(on && scramble && state ? startCubeSolve(scramble, frame, state, goal) : null);
+  }, [holder, on, scramble, frame, goal]);
 
   useEffect(() => {
     if (!on) return;
@@ -124,7 +142,7 @@ export function useCubeSolve({ active, scramble, holding, onStart, onStop }: {
       const result = cubeSolveTurn(session, turn);
       // Not while a dialog covers the page: guide back to the scramble instead.
       if (result.event === 'start' && document.querySelector('[data-app-overlay]')) {
-        holder.set(startCubeSolve(session.scramble, session.holding, turn.state));
+        holder.set(restartCubeSolve(session, turn.state));
         return;
       }
       const readySince = holder.readySince;
@@ -136,8 +154,8 @@ export function useCubeSolve({ active, scramble, holding, onStart, onStop }: {
       }
       if (result.event === 'stop') {
         const held = colours.current;
-        callbacks.current.onStop(cubeSolve({
-          scramble: session.scramble, scrambleHolding: { top: held.top, front: held.front },
+        callbacks.current.onStop(modeCubeSolve(modeRef.current, {
+          scramble: session.scramble, scrambleHolding: { top: held.top, front: held.front }, cross: crossRef.current,
           start: session.target, turns: result.session.turns,
         }));
       }
@@ -164,7 +182,7 @@ export function useCubeSolve({ active, scramble, holding, onStart, onStop }: {
     restart: () => {
       const session = holder.session;
       const state = getCubeSnapshot().state;
-      if (session && state) holder.set(startCubeSolve(session.scramble, session.holding, state));
+      if (session && state) holder.set(restartCubeSolve(session, state));
     },
   };
 }
