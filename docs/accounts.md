@@ -18,8 +18,9 @@ As of September 20, 2026:
 - Email sign-up and email confirmation are enabled, with an 8-character minimum
   password. The Site URL and redirect allowlist match the production/local URLs
   documented below.
-- Custom SMTP is not configured. The built-in sender only supports Supabase
-  team member addresses; configure SMTP before inviting other users.
+- Custom SMTP is enabled: Supabase sends authentication emails through Resend
+  from `CFOP Trainer <noreply@auth.cfop.app>`. See
+  [Email delivery](#email-delivery).
 - On November 26, 2026 the project was paused for inactivity and resumed by
   hand. Since then Vercel Cron keeps it active; see
   [Keep the Free project from pausing](#keep-the-free-project-from-pausing).
@@ -109,24 +110,39 @@ in the settings on the top page (the header's back button leads there).
 See [password authentication](https://supabase.com/docs/guides/auth/passwords)
 and [redirect URL configuration](https://supabase.com/docs/guides/auth/redirect-urls).
 
-## Set up email delivery
+## Email delivery
 
-For an initial test with your own Supabase organization member email address,
-you can use the built-in sender. It is restricted to project team addresses and
-has a very low sending limit, so repeated confirmation/reset tests may be
-rate-limited. Do not disable email confirmation to work around this.
+Confirmation and password-reset emails go out through the custom SMTP set in
+Supabase Authentication's email settings, sent by Resend:
 
-Before opening registration to other people, configure custom SMTP in Supabase
-Authentication. Enter the provider's host, port, username, password, sender email
-and sender name. SMTP credentials belong in Supabase, not in the browser or
-Vercel's public variables. See [Supabase's SMTP guide](https://supabase.com/docs/guides/auth/auth-smtp).
+| Setting | Value |
+| --- | --- |
+| Host | `smtp.resend.com` |
+| Port | `465` (TLS) |
+| Sender email | `noreply@auth.cfop.app` |
+| Sender name | `CFOP Trainer` |
 
-One supported option is Resend. Follow its
-[Supabase SMTP setup](https://resend.com/docs/send-with-supabase-smtp): verify a
-sending domain you own, create an API key, and copy its SMTP settings into
-Supabase. The sending domain is separate from the app's `vercel.app` address;
-you cannot verify Vercel's shared domain as your own. Other SMTP providers can
-also be used.
+The SMTP credentials (a Resend API key that can only send from
+`auth.cfop.app`) are kept in Supabase only, never in the repository, the
+browser or Vercel's public variables.
+
+`cfop.app` uses Vercel DNS (`ns1.vercel-dns.com`, `ns2.vercel-dns.com`), where
+Resend's records for the sending domain `auth.cfop.app` are set:
+
+| Name | Records |
+| --- | --- |
+| `resend._domainkey.auth.cfop.app` | TXT: Resend's DKIM key |
+| `send.auth.cfop.app` | TXT: SPF `v=spf1 include:amazonses.com ~all`; MX: `feedback-smtp.ap-northeast-1.amazonses.com` (Amazon SES, Tokyo), the return path |
+| `_dmarc.auth.cfop.app` | TXT: DMARC `v=DMARC1; p=none;` |
+
+Supabase allows 30 authentication emails per hour, and Resend's Free plan 100
+a day. Keep email confirmation enabled. Without custom SMTP (a new project,
+for example), Supabase's built-in sender only reaches the project's team
+members at a very low rate. See
+[Supabase's SMTP guide](https://supabase.com/docs/guides/auth/auth-smtp) and
+[Resend's Supabase setup](https://resend.com/docs/send-with-supabase-smtp);
+[release preparation](release.md#email-delivery-configured-and-verified)
+records how delivery was verified.
 
 ## Connect the local app
 
@@ -347,4 +363,4 @@ Run `node scripts/verify-account-deletion.mts` for local authentication, isolati
 CORS and failure-path checks. Live verification uses disposable confirmed test
 accounts without sending email; never run deletion checks against real users.
 
-See [release preparation](release.md) for the remaining SMTP and distribution steps.
+See [release preparation](release.md) for the remaining distribution steps.
