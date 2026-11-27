@@ -57,8 +57,8 @@ into the project, an environment variable exposed to the app, or Git.
   and successful delivery/opening of a web password-reset email.
 
 The automated email-link tests used a simulator, not a physical iPhone.
-Physical-device testing of email links, import/export, rotation, background
-transitions and offline operation is still useful before wider distribution.
+Physical-device testing of email links, rotation, background transitions and
+offline operation is still useful before wider distribution.
 
 ## Submission status
 

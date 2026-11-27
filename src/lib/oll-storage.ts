@@ -2,12 +2,10 @@ import { readStoredValue } from '@/lib/persistence';
 import { createLocalStore } from '@/lib/local-store';
 import { OLL_PRESET_ALGORITHMS } from '@/data/oll-preset-algorithms';
 import { OLL_IDS, type OLLAlgorithmRecord, type OLLId } from '@/types/oll';
-import { AUFS, type Auf } from '@/types/pll';
+import { AUFS } from '@/types/pll';
 import { splitAuf } from '@/lib/auf-from-algorithm';
-import { ImportError } from '@/lib/import-error';
 
 const STORAGE_KEY = 'pll-app:oll-algorithms:v1';
-const EXPORT_VERSION = 1;
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -104,81 +102,4 @@ export function seedDefaultsIfMissing(): void {
     });
   }
   mutate(() => seeded);
-}
-
-interface ExportEntry {
-  ollId: OLLId;
-  auf: Auf;
-  algorithm: string;
-  isStarred: boolean;
-}
-
-interface ExportFile {
-  type: 'oll';
-  version: number;
-  exportedAt: string;
-  algorithms: ExportEntry[];
-}
-
-// Serialize the current algorithms to a JSON string. Only the algorithm body,
-// AUF and star flag are included — practice times are intentionally omitted.
-export function exportOLLAlgorithms(): string {
-  const algorithms: ExportEntry[] = getSnapshot().map((r) => ({
-    ollId: r.ollId,
-    auf: r.auf,
-    algorithm: r.algorithm,
-    isStarred: r.isStarred,
-  }));
-  const file: ExportFile = {
-    type: 'oll',
-    version: EXPORT_VERSION,
-    exportedAt: nowIso(),
-    algorithms,
-  };
-  return JSON.stringify(file, null, 2);
-}
-
-// Parse an exported JSON string and replace all OLL algorithms with it.
-// Throws on malformed JSON or wrong `type`. Invalid individual entries are
-// skipped. Returns the number of imported records.
-export function importOLLAlgorithms(json: string): { imported: number } {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(json);
-  } catch {
-    throw new ImportError('invalid-json');
-  }
-  if (typeof parsed !== 'object' || parsed === null) {
-    throw new ImportError('unrecognized');
-  }
-  const file = parsed as Partial<ExportFile>;
-  if (file.type !== 'oll') {
-    throw new ImportError('wrong-kind');
-  }
-  if (!Array.isArray(file.algorithms)) {
-    throw new ImportError('unrecognized');
-  }
-  const validIds = new Set<string>(OLL_IDS);
-  const validAufs = new Set<string>(AUFS);
-  const now = nowIso();
-  const next: OLLAlgorithmRecord[] = [];
-  for (const raw of file.algorithms) {
-    if (typeof raw !== 'object' || raw === null) continue;
-    const e = raw as Partial<ExportEntry>;
-    if (typeof e.ollId !== 'string' || !validIds.has(e.ollId)) continue;
-    if (typeof e.auf !== 'string' || !validAufs.has(e.auf)) continue;
-    if (typeof e.algorithm !== 'string' || e.algorithm.trim() === '') continue;
-    next.push({
-      id: newId(),
-      ollId: e.ollId as OLLId,
-      auf: e.auf as Auf,
-      algorithm: e.algorithm,
-      times: [],
-      isStarred: e.isStarred === true,
-      createdAt: now,
-      updatedAt: now,
-    });
-  }
-  mutate(() => next);
-  return { imported: next.length };
 }

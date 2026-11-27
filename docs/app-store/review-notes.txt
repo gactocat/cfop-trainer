@@ -4,6 +4,6 @@ Optional account access: Settings on the top page > Account (tap the back button
 
 To delete an account: Settings > Account > Delete account, enter the current password, then confirm permanent deletion. This deletes the authentication account and associated server data. Please use a separate account for deletion testing if you need to retain the supplied review account.
 
-The settings on the top page switch between English and Japanese and between light and dark. Settings > Data provides algorithm import/export.
+The settings on the top page switch between English and Japanese and between light and dark.
 
 Support and privacy policy links are accessible from Account without signing in. This is an independent cube training app.

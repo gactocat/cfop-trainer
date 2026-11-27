@@ -1,4 +1,4 @@
-export type AppDialog = 'account' | 'data' | 'smartCube' | null;
+export type AppDialog = 'account' | 'smartCube' | null;
 let current: AppDialog = null;
 const listeners = new Set<() => void>();
 

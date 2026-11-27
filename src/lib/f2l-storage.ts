@@ -2,14 +2,12 @@ import { readStoredValue } from '@/lib/persistence';
 import { createLocalStore } from '@/lib/local-store';
 import { ALL_F2LS } from '@/data/f2l-definitions';
 import { splitF2LAuf } from '@/lib/f2l-auf';
-import { ImportError } from '@/lib/import-error';
 import type { F2LAlgorithmRecord, F2LId } from '@/types/f2l';
 import type { Auf } from '@/types/pll';
 
 const VALID_AUFS: Auf[] = ['U0', 'U', 'U2', "U'"];
 
 const STORAGE_KEY = 'pll-app:f2l-algorithms:v1';
-const EXPORT_VERSION = 1;
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -117,81 +115,4 @@ export function seedDefaultsIfMissing(): void {
     };
   });
   mutate(() => seeded);
-}
-
-interface F2LExportEntry {
-  f2lId: F2LId;
-  auf: Auf;
-  algorithm: string;
-  isStarred: boolean;
-}
-
-interface F2LExportFile {
-  type: 'f2l';
-  version: number;
-  exportedAt: string;
-  algorithms: F2LExportEntry[];
-}
-
-// Serialize the current F2L algorithms to a JSON string. Practice times are
-// intentionally omitted; only algorithm body, AUF and star flag are kept.
-export function exportF2LAlgorithms(): string {
-  const algorithms: F2LExportEntry[] = getSnapshot().map((r) => ({
-    f2lId: r.f2lId,
-    auf: r.auf,
-    algorithm: r.algorithm,
-    isStarred: r.isStarred,
-  }));
-  const file: F2LExportFile = {
-    type: 'f2l',
-    version: EXPORT_VERSION,
-    exportedAt: nowIso(),
-    algorithms,
-  };
-  return JSON.stringify(file, null, 2);
-}
-
-// Parse an exported JSON string and replace all F2L algorithms with it.
-// Throws on malformed JSON or wrong `type`. Invalid individual entries are
-// skipped. Returns the number of imported records.
-export function importF2LAlgorithms(json: string): { imported: number } {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(json);
-  } catch {
-    throw new ImportError('invalid-json');
-  }
-  if (typeof parsed !== 'object' || parsed === null) {
-    throw new ImportError('unrecognized');
-  }
-  const file = parsed as Partial<F2LExportFile>;
-  if (file.type !== 'f2l') {
-    throw new ImportError('wrong-kind');
-  }
-  if (!Array.isArray(file.algorithms)) {
-    throw new ImportError('unrecognized');
-  }
-  const validIds = new Set<string>(ALL_F2LS.map((d) => d.id));
-  const validAufs = new Set<string>(VALID_AUFS);
-  const now = nowIso();
-  const next: F2LAlgorithmRecord[] = [];
-  for (const raw of file.algorithms) {
-    if (typeof raw !== 'object' || raw === null) continue;
-    const e = raw as Partial<F2LExportEntry>;
-    if (typeof e.f2lId !== 'string' || !validIds.has(e.f2lId)) continue;
-    if (typeof e.auf !== 'string' || !validAufs.has(e.auf)) continue;
-    if (typeof e.algorithm !== 'string' || e.algorithm.trim() === '') continue;
-    next.push({
-      id: newId(),
-      f2lId: e.f2lId as F2LId,
-      auf: e.auf as Auf,
-      algorithm: e.algorithm,
-      times: [],
-      isStarred: e.isStarred === true,
-      createdAt: now,
-      updatedAt: now,
-    });
-  }
-  mutate(() => next);
-  return { imported: next.length };
 }

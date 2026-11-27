@@ -58,8 +58,6 @@ plugin and asset changes, including Swift Package resolution files.
   Offline accounts remain read-only. Native auth tokens use Keychain storage.
 - Web and app guest records are separate. Import guest data on first login to
   move it to an account; use the same account on the other device.
-- Export opens the iOS share sheet, including Save to Files. Temporary exports
-  are removed after the share sheet closes. Import uses the system file picker.
 - While a timer runs, automatic screen locking is disabled. Backgrounding the
   app stops the timer and leaves the result for manual recording or discarding.
 - Safe-area insets protect the header, full-screen trainer and dialogs.
@@ -101,9 +99,9 @@ Before TestFlight or App Store submission:
   for email identifiers and account content. The included privacy manifest
   declares required-reason API use; it does not replace those disclosures.
 - Prepare store screenshots, description, age rating and review access.
-- Verify file import/export, 3D rendering, timer interruptions, rotations and
-  offline behavior on supported physical devices. TestFlight/device distribution
-  and App Store review have not been performed by the local build workflow.
+- Verify 3D rendering, timer interruptions, rotations and offline behavior on
+  supported physical devices. TestFlight/device distribution and App Store
+  review have not been performed by the local build workflow.
 - Increment the marketing version and build number, Archive for a generic
   iOS device, then validate and distribute through Xcode Organizer.
 
