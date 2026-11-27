@@ -10,7 +10,7 @@
 
 import { tokenizeAlg, invertAlg } from '@/lib/invert-alg';
 import { applyTurn, type Amount, type CubeState, type Face } from '@/lib/smart-cube/cube-state';
-import { rotateFrame, toFrame, userNotation, type CubeHolding, type Frame } from '@/lib/smart-cube/holding';
+import { rotateFrame, rotationBetween, toFrame, userNotation, type CubeHolding, type Frame } from '@/lib/smart-cube/holding';
 
 export interface SetupStep {
   /** Cube-frame quarter turns this step needs, per face (opposite faces for slices). */
@@ -19,6 +19,19 @@ export interface SetupStep {
   frame: Frame;
   /** Index of the scramble token the step belongs to. */
   token: number;
+  /**
+   * The step as the scramble writes it ("R2", "l'", "M", "U U"), with any
+   * rotation or cancelled turns before it ("y R"), made from `leadFrame`.
+   */
+  moves: string;
+  /** User frame before `moves`. */
+  leadFrame: Frame;
+  /**
+   * A wide turn or slice on its own: each quarter turn of cube face `face`
+   * also turns the user frame by `dir` about `axis`, and `move` ("r", "M")
+   * names it.
+   */
+  axisTurn?: { face: Face; axis: 'x' | 'y' | 'z'; dir: 1 | -1; move: string };
 }
 
 export interface SetupPlan {
@@ -27,6 +40,8 @@ export interface SetupPlan {
   steps: SetupStep[];
   /** Number of steps finished once token i is complete. */
   tokenEnds: number[];
+  /** Rotations (or cancelled turns) after the last step, as written. */
+  trailing: string;
   /** User frame after the whole scramble. */
   finalFrame: Frame;
 }
@@ -61,19 +76,35 @@ export function planSetup(scramble: string, holding: CubeHolding | Frame): Setup
   const steps: SetupStep[] = [];
   const tokenEnds: number[] = [];
   let frame = toFrame(holding);
+  // Rotations (and turns that cancelled out) waiting for the next step, as written.
+  const pending: { lead: { frame: Frame; moves: string[] } | null } = { lead: null };
+  const take = (move: string) => {
+    const lead = pending.lead ?? { frame, moves: [] };
+    pending.lead = null;
+    // Rotations alone ("y2 y2 z") are shown as the one they add up to ("z").
+    const rotations = lead.moves.every((m) => /^[xyz]/.test(m));
+    const before = rotations ? [rotationBetween(lead.frame, frame)].filter(Boolean) : lead.moves;
+    return { moves: [...before, move].join(' '), leadFrame: lead.frame };
+  };
 
   // Consecutive turns of one cube face merge into one step, and cancel when
   // they add up to nothing: "R' z' U" turns the cube's U face both ways.
-  const pushTurn = (face: Face, n: number, index: number) => {
+  const pushTurn = (face: Face, n: number, index: number, move: string, axisTurn?: SetupStep['axisTurn']) => {
     const prev = steps[steps.length - 1];
     const prevFaces = prev ? (Object.keys(prev.turns) as Face[]) : [];
     if (prev && prevFaces.length === 1 && prevFaces[0] === face) {
       const merged = mod4(prev.turns[face]! + n);
-      if (merged === 0) steps.pop();
-      else steps[steps.length - 1] = { ...prev, turns: { [face]: merged as Amount }, token: index };
+      const moves = [prev.moves, ...(pending.lead?.moves ?? []), move].join(' ');
+      pending.lead = null;
+      if (merged === 0) {
+        steps.pop();
+        pending.lead = { frame: prev.leadFrame, moves: [moves] };
+      } else {
+        steps[steps.length - 1] = { ...prev, turns: { [face]: merged as Amount }, token: index, moves, axisTurn: undefined };
+      }
       return;
     }
-    steps.push({ turns: { [face]: n as Amount }, frame, token: index });
+    steps.push({ turns: { [face]: n as Amount }, frame, token: index, ...take(move), ...(axisTurn ? { axisTurn } : {}) });
   };
 
   const expand = (token: string, index: number): boolean => {
@@ -97,10 +128,10 @@ export function planSetup(scramble: string, holding: CubeHolding | Frame): Setup
     if (m[2] && !'urfdlb'.includes(base)) return false;
     if (n === 0) return true;
     if ('URFDLB'.includes(base)) {
-      pushTurn(frame[base as Face], n, index);
+      pushTurn(frame[base as Face], n, index, token);
     } else if (base in WIDE) {
       const w = WIDE[base];
-      pushTurn(frame[w.face], n, index);
+      pushTurn(frame[w.face], n, index, token, { face: frame[w.face], axis: w.axis, dir: w.dir, move: base });
       frame = rotateFrame(frame, w.axis, w.dir * n);
     } else if (base in SLICE) {
       const s = SLICE[base];
@@ -108,9 +139,13 @@ export function planSetup(scramble: string, holding: CubeHolding | Frame): Setup
         turns: { [frame[s.face]]: n as Amount, [frame[OPPOSITE[s.face]]]: mod4(-n) as Amount },
         frame,
         token: index,
+        ...take(token),
+        axisTurn: { face: frame[s.face], axis: s.axis, dir: s.dir, move: base },
       });
       frame = rotateFrame(frame, s.axis, s.dir * n);
     } else {
+      pending.lead ??= { frame, moves: [] };
+      pending.lead.moves.push(token);
       frame = rotateFrame(frame, base as 'x' | 'y' | 'z', n);
     }
     return true;
@@ -124,7 +159,9 @@ export function planSetup(scramble: string, holding: CubeHolding | Frame): Setup
   for (let i = tokenEnds.length - 1; i >= 0; i--) {
     tokenEnds[i] = Math.min(tokenEnds[i], i + 1 < tokenEnds.length ? tokenEnds[i + 1] : steps.length);
   }
-  return { tokens, steps, tokenEnds, finalFrame: frame };
+  const end = pending.lead;
+  const trailing = !end ? '' : end.moves.every((m) => /^[xyz]/.test(m)) ? rotationBetween(end.frame, frame) : end.moves.join(' ');
+  return { tokens, steps, tokenEnds, trailing, finalFrame: frame };
 }
 
 /** The state after performing the whole plan from `state`. */

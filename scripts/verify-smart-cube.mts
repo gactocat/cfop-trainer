@@ -3,7 +3,7 @@
 // node --import ./scripts/register-src-alias.mjs scripts/verify-smart-cube.mts
 import assert from 'node:assert/strict';
 import { cube3x3x3 } from 'cubing/puzzles';
-import type { KPattern } from 'cubing/kpuzzle';
+import { KTransformation, type KPattern } from 'cubing/kpuzzle';
 import { ALL_F2LS } from '@/data/f2l-definitions';
 import { F2L_PRESET_ALGORITHMS } from '@/data/f2l-preset-algorithms';
 import { F2L_SCRAMBLE_POOL } from '@/data/f2l-scramble-pool';
@@ -18,8 +18,9 @@ import {
 } from '@/lib/smart-cube/cube-state';
 import { GanGen4Cipher, createCommandMessage, isValidGanGen4Packet, macFromCompanyData, parseMac, toKociembaFacelets, type GanCubeEvent } from '@/lib/smart-cube/gan-gen4';
 import { MAC_FORMAT_ERROR, startGanGen4Session, type GanTrafficRecord } from '@/lib/smart-cube/gan-gen4-session';
-import { CUBE_HOLDINGS, lastLayerFace, userNotation, holdingFrame, type CubeHolding } from '@/lib/smart-cube/holding';
-import { advanceGuide, applyPlan, guideView, planSetup, GUIDE_START, type SetupPlan } from '@/lib/smart-cube/setup-guide';
+import { CUBE_HOLDINGS, colourFrame, frameRotation, lastLayerFace, userNotation, holdingFrame, type CubeHolding, type Frame } from '@/lib/smart-cube/holding';
+import { advanceGuide, applyPlan, guideView, planSetup, GUIDE_START, type GuideProgress, type SetupPlan } from '@/lib/smart-cube/setup-guide';
+import { cubingTransformationData, nextGuideMove } from '@/lib/smart-cube/guide-cube';
 import { manualStart, sessionMove, startSession, type TrainerSession } from '@/lib/smart-cube/trainer-session';
 import { smartCubeUnsupported } from '@/lib/smart-cube/support';
 import { faceletsDecision } from '@/lib/smart-cube/state-sync';
@@ -143,6 +144,115 @@ for (const holding of CUBE_HOLDINGS) {
 checks += compared;
 console.log(`  ${compared} preset checks agree with cubing.js (${reached} reach the goal).`);
 
+// --- the 3D guide cube: the cube's state handed to cubing.js, the rotation
+// for each way of holding it, and the next move it shows.
+// The trainers' own setups (below) are walked the same way.
+let walkGuide: (alg: string, holding: CubeHolding | Frame, label: string) => void = () => {};
+{
+  const kOf = (state: CubeState) => new KTransformation(kpuzzle, cubingTransformationData(state));
+  // Centre stickers look the same however a centre is turned, so its twist is not compared.
+  const same = (a: KTransformation, b: KTransformation) => {
+    const [x, y] = [a.transformationData, b.transformationData];
+    return JSON.stringify([x.EDGES, x.CORNERS, x.CENTERS.permutation]) === JSON.stringify([y.EDGES, y.CORNERS, y.CENTERS.permutation]);
+  };
+  const random = (n: number, seed: number) => {
+    let x = seed;
+    const next = () => (x = (x * 1103515245 + 12345) % 2147483648) / 2147483648;
+    return Array.from({ length: n }, () => `${'URFDLB'[Math.floor(next() * 6)]}${['', '2', "'"][Math.floor(next() * 3)]}`).join(' ');
+  };
+  for (let i = 0; i < 200; i++) {
+    const alg = random(25, i + 1);
+    ok(same(kOf(applyFaceTurns(SOLVED, alg)), kpuzzle.algToTransformation(alg)), `the cube's state after ${alg} is cubing.js's`);
+  }
+  // Each of the 24 frames: the rotation brings the cube face frame[P] to P.
+  const CENTRE_ORDER: Face[] = ['U', 'L', 'F', 'R', 'B', 'D'];
+  const frames = new Map<string, Frame>();
+  for (const top of ['white', 'yellow', 'green', 'blue', 'red', 'orange'] as const) {
+    for (const front of ['white', 'yellow', 'green', 'blue', 'red', 'orange'] as const) {
+      const frame = colourFrame({ top, front });
+      if (frame) frames.set(`${top}-${front}`, frame);
+    }
+  }
+  eq(frames.size, 24, 'every top and front colour that fit make 24 frames');
+  for (const [name, frame] of frames) {
+    const centres = kSolved.applyAlg(frameRotation(frame)).patternData.CENTERS.pieces;
+    eq(CENTRE_ORDER.map((p, i) => CENTRE_ORDER[centres[i]] === frame[p]).every(Boolean), true, `rotation for ${name} (${frameRotation(frame)})`);
+  }
+  for (const h of CUBE_HOLDINGS) eq(frameRotation(holdingFrame(h)), PREFIX[h], `frame rotation for ${h} is the display rotation`);
+
+  // Shown in the frame it is made in, the next move turns the cube shown now
+  // into the cube shown for the move after it: through every preset setup,
+  // with its rotations, wide turns and slices, in each holding.
+  const shown = (state: CubeState, frame: Frame) => kOf(state).applyAlg(frameRotation(frame));
+  const at = (step: number): GuideProgress => ({ step, acc: {}, wrong: [] });
+  let stepsShown = 0;
+  const walk = (alg: string, holding: CubeHolding | Frame, label: string) => {
+    const plan = planSetup(alg, holding);
+    assert.ok(plan, `${label}: plan`);
+    let state = SOLVED;
+    for (let k = 0; k < plan.steps.length; k++) {
+      const move = nextGuideMove(plan, at(k));
+      const after = applyPlan(SOLVED, plan, k + 1);
+      const frameAfter = k + 1 < plan.steps.length ? plan.steps[k + 1].leadFrame : plan.finalFrame;
+      assert.ok(same(shown(state, move.frame).applyAlg(move.alg), shown(after, frameAfter)), `${label}: step ${k + 1} (${move.alg})`);
+      stepsShown++;
+      checks++;
+      state = after;
+    }
+  };
+  for (const holding of [...CUBE_HOLDINGS, frames.get('green-red')!]) {
+    walk("(U2 l' D' l)5 U'", holding, 'a group of wide turns');
+    walk("R' z' U R y (R U R')2 x' M2 d", holding, 'rotations, cancelled turns, groups and slices');
+    walk("y2 y2 z U' R2 U R' B U R U' R' U' B' R' U R U R' U' z' U2 y", holding, 'rotations that add up');
+    const h = typeof holding === 'string' ? holding : 'green top, red front';
+    for (const def of ALL_F2LS) for (const p of F2L_PRESET_ALGORITHMS[def.id]) walk(invertAlg(rotationNeutral(p)), holding, `${def.id} ${p} (${h})`);
+    for (const def of ALL_OLLS) for (const p of OLL_PRESET_ALGORITHMS[def.id]) walk(invertAlg(p), holding, `${def.id} ${p} (${h})`);
+    for (const [id, presets] of Object.entries(PRESET_ALGORITHMS)) for (const p of presets) walk(invertAlg(p), holding, `PLL ${id} ${p} (${h})`);
+  }
+  console.log(`  ${stepsShown} next moves shown on the 3D cube lead to the cube shown after them (presets).`);
+  walkGuide = walk;
+
+  const plan = (alg: string) => planSetup(alg, 'white-green')!;
+  eq(nextGuideMove(plan("R U R'"), at(0)), { frame: holdingFrame('white-green'), alg: 'R' }, 'the first move');
+  eq(nextGuideMove(plan("R y R U"), at(1)).alg, 'y R', 'a rotation shows with the move after it');
+  eq(nextGuideMove(plan("R y R U"), at(1)).frame, holdingFrame('white-green'), 'from the frame before the rotation');
+  eq(nextGuideMove(plan("R U' y'"), at(1)).alg, "U' y'", 'the last move shows the rotation after it');
+  eq(nextGuideMove(plan("y2 y2 z U' R"), at(0)).alg, "z U'", 'rotations before a move show as the one they add up to');
+  eq(nextGuideMove(plan("R y y"), at(0)).alg, 'R y2', 'and after the last');
+  eq(nextGuideMove(plan("R y y'"), at(0)).alg, 'R', 'none when they cancel');
+  eq(nextGuideMove(plan('M2 U'), at(0)).alg, 'M2', 'a slice shows as itself');
+  eq(nextGuideMove(plan('U U R'), at(0)).alg, 'U U', 'turns merged into one step show together');
+  eq(nextGuideMove(plan("(R U)2 F"), at(1)).alg, 'U', 'a group shows its next move');
+  eq(nextGuideMove(plan("(U2 l' D' l)5 U'"), at(1)).alg, "l'", 'a wide turn in a group shows as itself');
+  eq(nextGuideMove(plan("R' z' U R"), at(0)).alg, "R' z' U R", 'turns that cancel show with the step after them');
+  eq(nextGuideMove(plan("R U R'"), at(3)).alg, '', 'nothing after the last');
+  // Part of a slice or wide turn: shown held as the cube is, the rest still to turn.
+  for (const [alg, face, amount, rest] of [['M2 U', 'R', 1, 'M'], ["M' U", 'R', 3, ''], ['r2 U', 'L', 1, 'r'], ['S2', 'F', 3, 'S'], ['E2 R', 'U', 1, 'E']] as const) {
+    const p2 = plan(alg);
+    const opposite = { R: 'L', L: 'R', U: 'D', D: 'U', F: 'B', B: 'F' } as const;
+    let progress = advanceGuide(p2, GUIDE_START, face, amount);
+    let state = applyTurn(SOLVED, face, amount);
+    if (alg[0] !== 'r') {
+      progress = advanceGuide(p2, progress, opposite[face], amount === 1 ? 3 : 1);
+      state = applyTurn(state, opposite[face], amount === 1 ? 3 : 1);
+    }
+    const move = nextGuideMove(p2, progress);
+    if (!rest) { ok(progress.step === 1, `${alg}: one quarter is the whole step`); continue; }
+    eq(move.alg, rest, `${alg}: the rest after one quarter`);
+    const after = applyPlan(SOLVED, p2, 1);
+    ok(same(shown(state, move.frame).applyAlg(move.alg), shown(after, p2.steps[1]?.leadFrame ?? p2.finalFrame)), `${alg}: and it leads to the cube after the step`);
+  }
+  const r2 = plan('R2 U');
+  eq(nextGuideMove(r2, advanceGuide(r2, GUIDE_START, 'R', 1)).alg, 'R', 'the rest of a half turn');
+  const wrong = advanceGuide(r2, GUIDE_START, 'F', 1);
+  eq(nextGuideMove(r2, wrong).alg, "F'", 'a wrong turn shows taking it back');
+  const twoWrong = advanceGuide(r2, wrong, 'U', 3);
+  eq(nextGuideMove(r2, twoWrong).alg, 'U', 'the last wrong turn first');
+  const yb = planSetup("R U", 'yellow-blue')!;
+  eq(nextGuideMove(yb, advanceGuide(yb, GUIDE_START, 'L', 1)).alg, "L'", 'in the user\'s notation for the holding');
+  ok(same(shown(applyTurn(SOLVED, 'L', 1), nextGuideMove(yb, advanceGuide(yb, GUIDE_START, 'L', 1)).frame).applyAlg("L'"), shown(SOLVED, holdingFrame('yellow-blue'))), 'taking it back on the 3D cube returns to the cube before it');
+}
+
 // --- setup guide
 const plan = planSetup("R U2 M' r", 'white-green')!;
 const feed = (p: SetupPlan, moves: [Face, Amount][]) => moves.reduce((g, [f, n]) => advanceGuide(p, g, f, n), GUIDE_START);
@@ -226,6 +336,7 @@ const { splitAuf } = await import('@/lib/auf-from-algorithm');
 const { prefixAuf } = await import('@/lib/f2l-auf');
 const { AUFS } = await import('@/types/pll');
 function attempt(practice: 'f2l' | 'oll' | 'pll', holding: CubeHolding, scramble: string, solution: string, label: string) {
+  walkGuide(scramble, holding, `${label}: the 3D guide`);
   const setupPlan = planSetup(scramble, holding);
   const solvePlan = planSetup(solution, holding);
   assert.ok(setupPlan && solvePlan, `${label}: plans`);

@@ -28,6 +28,7 @@ import { PenaltyButtons, RecordTime } from './SolvePenalty';
 import { SolveRecords, TimerBadge } from './SolveRecords';
 import { SolveSettingsButton } from './SolveSettings';
 import { SolveStages } from './SolveStages';
+import { VirtualCube } from './VirtualCube';
 import { PROBLEM, STATUS } from './SmartCubePanel';
 import { useOfferTestCubeMoves } from '@/hooks/useTestCube';
 import { invertAlg } from '@/lib/invert-alg';
@@ -228,9 +229,11 @@ const MemoRecords = memo(SolveRecords);
 // A CFOP solve from a random-state scramble, held as set for CFOP (top and
 // front colours). Without a smart cube: with inspection, a tap starts it;
 // then hold the timer to get ready, let go to start, press anywhere to stop.
-// With one: the scramble is guided turn by turn, the cube in the scrambled
-// state starts the inspection, its first turn starts the timer and solving
-// stops it, and the solve is split into its stages. Starting after 15 s of
+// With one: the scramble is guided turn by turn, beside a 3D cube that is
+// the smart cube as it is and turns the next move over and over (in place of
+// the unfolded cube); the cube in the scrambled state starts the inspection,
+// its first turn starts the timer and solving stops it, and the solve is
+// split into its stages. Starting after 15 s of
 // inspection adds +2, after 17 s DNF; either can be changed afterwards.
 // Solves are kept on the device, or in the account when signed in.
 export function CfopSolve() {
@@ -406,7 +409,15 @@ export function CfopSolve() {
               )}
               {byCube && scramble && <CubeStatus screen={screen} synced={cube.state !== null} />}
             </div>
-            {scramble && <ScrambleNet scramble={scramble} frame={settings.frame} className="w-32 shrink-0 sm:mt-2 sm:w-40" />}
+            {scramble && byCube && cube.state ? (
+              <VirtualCube
+                practice={null}
+                holding={null}
+                // Left as it is while the cube is solved: the card is out of sight.
+                guide={screen && !cubeRunning ? { state: cube.state, move: screen.nextMove } : null}
+                className="size-44 shrink-0 overflow-hidden rounded-xl sm:size-52"
+              />
+            ) : scramble && <ScrambleNet scramble={scramble} frame={settings.frame} className="w-32 shrink-0 sm:mt-2 sm:w-40" />}
           </div>
         </section>
 

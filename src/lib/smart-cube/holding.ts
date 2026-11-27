@@ -92,6 +92,28 @@ export function rotateFrame(frame: Frame, axis: 'x' | 'y' | 'z', times: number):
   return cur;
 }
 
+const IDENTITY: Frame = { U: 'U', R: 'R', F: 'F', D: 'D', L: 'L', B: 'B' };
+const ROTATION_SUFFIX = ['', '', '2', "'"];
+const sameFrame = (a: Frame, b: Frame) => a.U === b.U && a.F === b.F;
+type Rotation = readonly (readonly ['x' | 'y' | 'z', number])[];
+let shortest: readonly Rotation[] | null = null;
+// Every rotation, shortest first: none, one, or a turn about x or z then one about y.
+function rotationsByLength(): readonly Rotation[] {
+  const turns = (axis: 'x' | 'y' | 'z') => [1, 2, 3].map((times) => [axis, times] as const);
+  shortest ??= [[], ...[...turns('x'), ...turns('y'), ...turns('z')].map((r) => [r]),
+    ...[...turns('x'), ...turns('z')].flatMap((r) => turns('y').map((y) => [r, y]))];
+  return shortest;
+}
+
+/** The shortest whole-cube rotation from holding the cube in `from` to holding it in `to`, e.g. "z" or "x2 y". */
+export function rotationBetween(from: Frame, to: Frame): string {
+  const rotation = rotationsByLength().find((r) => sameFrame(r.reduce((f, [axis, times]) => rotateFrame(f, axis, times), from), to)) ?? [];
+  return rotation.map(([axis, times]) => `${axis}${ROTATION_SUFFIX[times]}`).join(' ');
+}
+
+/** The rotation that shows the cube held in `frame`, from its own (white U, green F; cubing.js's default view). */
+export const frameRotation = (frame: Frame): string => rotationBetween(IDENTITY, frame);
+
 /** The user-frame face currently showing cube face `face`. */
 export function userFace(frame: Frame, face: Face): Face {
   return (Object.keys(frame) as Face[]).find((pos) => frame[pos] === face)!;

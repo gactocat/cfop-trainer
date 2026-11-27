@@ -10,6 +10,7 @@
 
 import { SOLVED, stateEquals, type CubeState, type Face } from '@/lib/smart-cube/cube-state';
 import { toFrame, userNotation, type CubeHolding, type Frame } from '@/lib/smart-cube/holding';
+import { nextGuideMove, type NextMove } from '@/lib/smart-cube/guide-cube';
 import { mergeTurns } from '@/lib/smart-cube/solve-record';
 import {
   advanceGuide,
@@ -187,6 +188,8 @@ export interface CubeSolveView extends GuideView {
   routeKind: SolveRoute['kind'] | null;
   /** Solving turns so far. */
   turnCount: number;
+  /** The next move of the route, shown on the 3D cube; none while waiting for a route. */
+  nextMove: NextMove;
 }
 
 export function cubeSolveView(session: CubeSolveSession): CubeSolveView {
@@ -198,5 +201,6 @@ export function cubeSolveView(session: CubeSolveSession): CubeSolveView {
     routeKind: route?.kind ?? null,
     turnCount: session.turns.length,
     ...guide,
+    nextMove: route && session.phase === 'scramble' ? nextGuideMove(route.plan, session.progress) : { frame: session.holding, alg: '' },
   };
 }

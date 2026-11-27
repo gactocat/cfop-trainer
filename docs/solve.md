@@ -39,7 +39,9 @@ how; with one, the area appears once the cube is ready.
   steps aside while inspecting, held or running.
 - With a smart cube: the scramble is guided turn by turn, as in practice with
   setup. Turns done dim, the next is underlined, wrong turns show the turns
-  that take them back. From three wrong turns in a row, a resync that does not
+  that take them back. A 3D cube replaces the unfolded cube: the smart cube as
+  it is, in the solve's holding, turning the next move (or the one that takes
+  a wrong turn back) over and over (see smart-cube.md). From three wrong turns in a row, a resync that does not
   fit the guide, or a cube that is not solved when the scramble appears, the
   route to the scrambled state is worked out again from where the cube is (the
   shorter of the solver's route and taking the wrong turns back). The cube in

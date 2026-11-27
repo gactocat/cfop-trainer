@@ -41,12 +41,24 @@ and PLL:
 With setup and a cube connected when the practice starts (`smart-setup` in
 `lib/practice-mode.ts`), the practice uses the same calm screen as no scramble
 (`SmartSetupStage`, sharing `CubeStage` with `NoScrambleStage`): the guide
-beside a cube that shows the setup done so far and then the solving turns,
-the frame's colour for the state, a recognition timer from ready to the first
+beside a 3D cube, the frame's colour for the state, a recognition timer from ready to the first
 turn, and the solve recorded as it stops, with Undo, Next and the automatic
 next case as below (`useSmartSetupPractice`). Space still starts and stops the
 timer by hand. Without a connected cube, with setup shows the setup to apply
 by hand and no setup is the tap timer, as before.
+
+The 3D cube beside a setup (and beside a CFOP scramble, in place of the
+unfolded cube) is the cube as it is: the smart cube's tracked state, held as
+the guide has it at that point, so a wrong turn shows as made. On it, the
+next move turns over and over (the move, a rest, back): the next step as the
+setup writes it ("R2", "l'", "M", a group's next move), with any rotation
+before it shortened to the one it adds up to ("y2 y2 z" shows as "z"), and
+for the last step the rotations after it; the second half of a half turn,
+slice or wide turn begun; or, after wrong turns, taking back the last one.
+Once the setup is done the cube shows the case and the solving turns, as
+before. `guide-cube.ts` hands the state to cubing.js (its piece order differs;
+twists count the same way) and picks the move; `VirtualCube` sets it as the
+player's starting state and loops the move.
 
 Both cube-driven practices keep this session's solves in one log
 (`lib/practice-log.ts`) and show them per case, most recently solved first:
@@ -190,6 +202,7 @@ unchanged, so older app versions are unaffected.
   turns relative to its centres, so r = L x, M = R L' x' and so on, and
   rotations only change the frame.
 - `trainer-session.ts`: the need-base, setup, ready, running, done state machine.
+- `guide-cube.ts`: the 3D guide cube: the state for cubing.js and the next move.
 - `virtual-session.ts`: the no-scramble attempt (`useNoScrambleTrainer`,
   `NoScrambleStage`, `VirtualCube`).
 - `support.ts`: why a cube cannot connect here, from the user agent (the iOS
@@ -209,6 +222,8 @@ node --import ./scripts/register-src-alias.mjs scripts/verify-gan-gen4.mts [capt
 ```
 
 The first compares every F2L, OLL and PLL preset in all three holdings with
-cubing.js. The second replays a recorded session (from `/dev/gan-i4`, which
+cubing.js, and checks the 3D guide against it: every next move it shows,
+through every preset and trainer setup, turns the cube shown into the cube
+shown after it. The second replays a recorded session (from `/dev/gan-i4`, which
 remains a development-only page) and checks that the state tracked from the
 turns matches every FACELETS event.

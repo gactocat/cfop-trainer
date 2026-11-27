@@ -1,10 +1,10 @@
 'use client';
 
-import { useSmartCubeSettings } from '@/hooks/useSmartCube';
+import { useSmartCube, useSmartCubeSettings } from '@/hooks/useSmartCube';
 import type { SmartTrainerView } from '@/hooks/useSmartCubeTrainer';
 import { useT } from '@/hooks/useT';
 import type { PracticeLogSnapshot } from '@/lib/practice-log';
-import { displayRotation } from '@/lib/smart-cube/holding';
+import { displayRotation, holdingFrame } from '@/lib/smart-cube/holding';
 import type { TrainerPractice } from '@/lib/smart-cube/trainer-session';
 import { ConnectPrompt, CubeStage, RecognitionTimer, SolveTimer, StageResult, type StageRing } from './CubeStage';
 import { SessionStats } from './SessionStats';
@@ -22,9 +22,10 @@ function ringOf(state: TrainerState, view: SmartTrainerView | null): StageRing {
 // With setup on a connected smart cube: the same calm screen as no-scramble
 // practice, but the case is made on the cube itself. Beside the cube, the
 // setup is guided turn by turn; once it is done the recognition timer runs
-// until the first turn, then the solving timer until the goal. The cube in
-// the frame shows what the cube should look like: the setup done so far, then
-// the solving turns.
+// until the first turn, then the solving timer until the goal. While the
+// setup is made, the cube in the frame is the smart cube as it is, held as
+// the setup has it, turning the next move over and over (or taking back a
+// wrong turn); then the case, and the solving turns.
 export function SmartSetupStage({ practice, state, view, connected, log, elapsed, selectedNote, progress, onStop, onNext, onUndo }: {
   practice: TrainerPractice;
   state: TrainerState;
@@ -41,6 +42,7 @@ export function SmartSetupStage({ practice, state, view, connected, log, elapsed
 }) {
   const { t } = useT();
   const { holding } = useSmartCubeSettings();
+  const cubeState = useSmartCube().state;
   const latest = state === 'stopped' ? log.results[0] : undefined;
   const done = view ? view.plan.tokens.slice(0, view.doneTokens).join(' ') : '';
   return (
@@ -54,6 +56,9 @@ export function SmartSetupStage({ practice, state, view, connected, log, elapsed
           setupAlg={`${displayRotation(holding)} ${done}`.trim()}
           moves={view.moves}
           resetKey={0}
+          guide={cubeState && (view.phase === 'setup' || view.phase === 'need-base')
+            ? { state: cubeState, move: view.phase === 'setup' ? view.nextMove : { frame: holdingFrame(holding), alg: '' } }
+            : null}
           className="w-full h-full"
         />
       )}

@@ -5,6 +5,7 @@ import { useSmartCube, useSmartCubeSettings } from '@/hooks/useSmartCube';
 import { canWriteData } from '@/lib/persistence';
 import { lastLayerFace, userNotation, type CubeHolding } from '@/lib/smart-cube/holding';
 import { buildSmartSolve, type SmartSolveMode } from '@/lib/smart-cube/solve-record';
+import { nextGuideMove, type NextMove } from '@/lib/smart-cube/guide-cube';
 import { guideView, planSetup, type SetupPlan, type GuideProgress } from '@/lib/smart-cube/setup-guide';
 import {
   manualStart,
@@ -32,6 +33,8 @@ export interface SmartTrainerView {
   remaining: string;
   /** Turns that take back wrong ones, in the user's notation. */
   undo: string;
+  /** The next move of the setup, shown on the 3D cube. */
+  nextMove: NextMove;
   /** Ready to first turn, ms on the cube clock. */
   recognitionMs: number | null;
   /** Host time (performance.now()) the setup was finished: recognition runs from here to the first turn. */
@@ -92,6 +95,7 @@ class SessionHolder {
       readySince: this.readySince,
       moves: session.solveTurns.map((turn) => userNotation(session.plan.finalFrame, turn.face, turn.amount)),
       ...guideView(session.plan, session.progress),
+      nextMove: nextGuideMove(session.plan, session.progress),
       solve: session.phase === 'done' && session.elapsedMs !== null && session.solveTurns.length > 0
         ? {
           practice: session.practice,
