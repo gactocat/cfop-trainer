@@ -65,8 +65,9 @@ CI (`.github/workflows/ci.yml`) runs the same three steps on every PR.
   smartcube-web-bluetooth (MIT, license kept beside it), a session shared by
   the Web Bluetooth transport and the iOS app's transport
   (`@capacitor-community/bluetooth-le`, loaded only in the app), cubie model,
-  holdings, setup guide and the trainer state machine, all pure except the
-  transports. `smart-cube-store.ts` holds the connection;
+  holdings, setup guide, the trainer state machine and the reading of
+  reported turns as moves (`slice-moves.ts`: R and L' together are M), all
+  pure except the transports. `smart-cube-store.ts` holds the connection;
   `smart-cube-settings-store.ts` keeps holding, MACs and the app's last cube
   in localStorage only
   (never the account); `smart-solve-store.ts` keeps cube-timed solves in

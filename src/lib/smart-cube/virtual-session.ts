@@ -7,7 +7,8 @@
 
 import { applyTurn, SOLVED, type CubeState, type Face, type LastLayerFace } from '@/lib/smart-cube/cube-state';
 import { applyPlan, planSetup, type SetupPlan } from '@/lib/smart-cube/setup-guide';
-import { lastLayerFace, userNotation, type CubeHolding } from '@/lib/smart-cube/holding';
+import { lastLayerFace, type CubeHolding } from '@/lib/smart-cube/holding';
+import { liveMoves } from '@/lib/smart-cube/slice-moves';
 import { isPracticeGoal, type SolveTurn, type TrainerPractice } from '@/lib/smart-cube/trainer-session';
 
 export type VirtualPhase = 'ready' | 'running' | 'done';
@@ -21,8 +22,8 @@ export interface VirtualSession {
   caseState: CubeState;
   /** The virtual cube now. */
   state: CubeState;
-  /** Turns applied since the case was shown, for the display. */
-  turns: { face: Face; amount: 1 | 3 }[];
+  /** Turns applied since the case was shown (cube clock), for the display. */
+  turns: { face: Face; amount: 1 | 3; cubeTime: number }[];
   phase: VirtualPhase;
   /** Host time the case was shown. */
   shownAt: number;
@@ -62,7 +63,7 @@ export function resetVirtual(session: VirtualSession, shownAt: number): VirtualS
 export function virtualMove(session: VirtualSession, turn: VirtualTurn): { session: VirtualSession; event: 'start' | 'stop' | null } {
   if (session.phase === 'done') return { session, event: null };
   const state = applyTurn(session.state, turn.face, turn.amount);
-  const turns = [...session.turns, { face: turn.face, amount: turn.amount }];
+  const turns = [...session.turns, { face: turn.face, amount: turn.amount, cubeTime: turn.cubeTime }];
   const solveTurn: SolveTurn = { face: turn.face, amount: turn.amount, cubeTime: turn.cubeTime };
   const goal = isPracticeGoal(session.practice, state, session.ll);
   if (session.phase === 'ready') {
@@ -91,9 +92,9 @@ export function manualStopVirtual(session: VirtualSession): VirtualSession {
   return session.phase === 'done' ? session : { ...session, phase: 'done' };
 }
 
-/** Turns made on the virtual cube, in the user's notation. */
+/** Turns made on the virtual cube, in the user's notation, a slice as one move. */
 export function virtualNotation(session: VirtualSession): string[] {
-  return session.turns.map((t) => userNotation(session.plan.finalFrame, t.face, t.amount));
+  return liveMoves(session.turns, session.plan.finalFrame);
 }
 
 /** Turning one face the same way this many times in a row starts the case again. */

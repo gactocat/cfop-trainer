@@ -73,7 +73,7 @@ export function VirtualCube({ practice, holding, setupAlg = '', moves = [], rese
     return practice === 'f2l' ? f2lStickeringMask(ll) : ollStickeringMask(ll);
   }, [practice, holding]);
   const [player, setPlayer] = useState<PlayerElement | null>(null);
-  const applied = useRef<{ key: number; setup: string; count: number } | null>(null);
+  const applied = useRef<{ key: number; setup: string; moves: readonly string[] } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -113,16 +113,23 @@ export function VirtualCube({ practice, holding, setupAlg = '', moves = [], rese
   useEffect(() => {
     if (!player || guide) return;
     const last = applied.current;
-    if (!last || last.key !== resetKey || last.setup !== setupAlg || moves.length < last.count) {
-      // Jump: the setup includes the moves already made, nothing left to play.
+    const fresh = !last || last.key !== resetKey || last.setup !== setupAlg;
+    let kept = 0;
+    while (!fresh && kept < last.moves.length && kept < moves.length && last.moves[kept] === moves[kept]) kept++;
+    if (fresh || kept < last.moves.length) {
+      // Jump to the moves kept; those after them are played. A move shown can
+      // change: a quarter turn becomes the slice it began once the other face
+      // turns, and then the slice is played from where the quarter started.
+      const shown = fresh || moves.length <= kept ? moves.length : kept;
       player.experimentalModel.setupTransformation.set(null);
       player.setAttribute('tempo-scale', '1');
-      player.setAttribute('experimental-setup-alg', [setupAlg, ...moves].join(' ').trim());
+      player.setAttribute('experimental-setup-alg', [setupAlg, ...moves.slice(0, shown)].join(' ').trim());
       player.setAttribute('alg', '');
+      for (const move of moves.slice(shown)) player.experimentalAddMove(move);
     } else {
-      for (const move of moves.slice(last.count)) player.experimentalAddMove(move);
+      for (const move of moves.slice(kept)) player.experimentalAddMove(move);
     }
-    applied.current = { key: resetKey, setup: setupAlg, count: moves.length };
+    applied.current = { key: resetKey, setup: setupAlg, moves };
   }, [player, guide, setupAlg, moves, resetKey]);
 
   // The guide: the cube's state, turned to how it is held, and its next move

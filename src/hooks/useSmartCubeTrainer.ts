@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useSmartCube, useSmartCubeSettings } from '@/hooks/useSmartCube';
 import { canWriteData } from '@/lib/persistence';
-import { lastLayerFace, userNotation, type CubeHolding } from '@/lib/smart-cube/holding';
+import { lastLayerFace, type CubeHolding } from '@/lib/smart-cube/holding';
 import { buildSmartSolve, type SmartSolveMode } from '@/lib/smart-cube/solve-record';
 import { nextGuideMove, type NextMove } from '@/lib/smart-cube/guide-cube';
 import { guideView, planSetup, type SetupPlan, type GuideProgress } from '@/lib/smart-cube/setup-guide';
+import { liveMoves } from '@/lib/smart-cube/slice-moves';
 import {
   manualStart,
   manualStop,
@@ -39,7 +40,7 @@ export interface SmartTrainerView {
   recognitionMs: number | null;
   /** Host time (performance.now()) the setup was finished: recognition runs from here to the first turn. */
   readySince: number | null;
-  /** Solving turns so far, in the user's notation. */
+  /** Solving turns so far, in the user's notation, a slice as one move. */
   moves: string[];
   /** The attempt the cube timed from first turn to goal, once stopped. */
   solve: SmartSolve | null;
@@ -93,7 +94,7 @@ class SessionHolder {
       progress: session.progress,
       recognitionMs: session.recognitionMs,
       readySince: this.readySince,
-      moves: session.solveTurns.map((turn) => userNotation(session.plan.finalFrame, turn.face, turn.amount)),
+      moves: liveMoves(session.solveTurns, session.plan.finalFrame),
       ...guideView(session.plan, session.progress),
       nextMove: nextGuideMove(session.plan, session.progress),
       solve: session.phase === 'done' && session.elapsedMs !== null && session.solveTurns.length > 0

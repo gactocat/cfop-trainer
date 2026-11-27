@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useT } from '@/hooks/useT';
 import { declineSolveImport, importDeviceSolves, retrySolveSync, type SolvesSnapshot } from '@/lib/solve-store';
 import { solveTps } from '@/lib/solve/cfop-split';
-import type { SolveRecord } from '@/lib/solve/solve-record';
+import { recordMoveCount, type SolveRecord } from '@/lib/solve/solve-record';
 import { countedMs, formatRecordTime, formatSolveTime, solveStats } from '@/lib/solve/solve-stats';
 import { PenaltyButtons } from './SolvePenalty';
 import { SolveStages } from './SolveStages';
@@ -39,9 +39,10 @@ export function TimerBadge({ record }: { record: SolveRecord }) {
 /** Moves and TPS of a cube solve, e.g. "54 moves · 4.38 TPS"; null for a hand-timed one. */
 export function useMovesSummary(record: SolveRecord): string | null {
   const { t } = useT();
-  if (record.moveCount === undefined) return null;
-  const tps = solveTps(record.moveCount, record.ms);
-  return t('smartCube.solve.summary', { moves: record.moveCount, tps: tps === null ? '-' : tps.toFixed(2) });
+  const moves = useMemo(() => recordMoveCount(record), [record]);
+  if (moves === undefined) return null;
+  const tps = solveTps(moves, record.ms);
+  return t('smartCube.solve.summary', { moves, tps: tps === null ? '-' : tps.toFixed(2) });
 }
 
 function SolveRow({ number, record, onDelete }: { number: number; record: SolveRecord; onDelete: () => void }) {

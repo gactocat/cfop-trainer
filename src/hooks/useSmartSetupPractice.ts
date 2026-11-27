@@ -5,7 +5,7 @@ import { useKeepAwake } from '@/hooks/useNativeTimer';
 import { useSmartCube } from '@/hooks/useSmartCube';
 import { useSmartCubeTrainer, type SmartSolve, type SmartTrainerView } from '@/hooks/useSmartCubeTrainer';
 import type { PracticeCase, PracticeLog } from '@/lib/practice-log';
-import { mergeTurns, turnsPerSecond } from '@/lib/smart-cube/solve-record';
+import { timedMoveCount, turnsPerSecond } from '@/lib/smart-cube/solve-record';
 import type { TrainerPractice } from '@/lib/smart-cube/trainer-session';
 
 type TrainerState = 'idle' | 'running' | 'stopped';
@@ -50,7 +50,7 @@ export function useSmartSetupPractice({
     const info = callbacks.current.describe();
     if (info && seconds > 0) {
       const undo = callbacks.current.record(info.caseId, seconds, solve);
-      const moveCount = solve ? mergeTurns(solve.turns).length : null;
+      const moveCount = solve ? timedMoveCount(solve) : null;
       log.add({
         ...info,
         seconds,

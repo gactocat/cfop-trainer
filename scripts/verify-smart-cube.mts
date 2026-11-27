@@ -18,15 +18,17 @@ import {
 } from '@/lib/smart-cube/cube-state';
 import { GanGen4Cipher, createCommandMessage, isValidGanGen4Packet, macFromCompanyData, parseMac, toKociembaFacelets, type GanCubeEvent } from '@/lib/smart-cube/gan-gen4';
 import { MAC_FORMAT_ERROR, startGanGen4Session, type GanTrafficRecord } from '@/lib/smart-cube/gan-gen4-session';
-import { CUBE_HOLDINGS, colourFrame, frameRotation, lastLayerFace, userNotation, holdingFrame, type CubeHolding, type Frame } from '@/lib/smart-cube/holding';
-import { advanceGuide, applyPlan, guideView, planSetup, GUIDE_START, type GuideProgress, type SetupPlan } from '@/lib/smart-cube/setup-guide';
+import { CUBE_HOLDINGS, colourFrame, frameRotation, lastLayerFace, rotateFrame, userNotation, holdingFrame, type CubeHolding, type Frame } from '@/lib/smart-cube/holding';
+import { advanceGuide, applyPlan, guideView, isGuideComplete, planSetup, GUIDE_START, type GuideProgress, type SetupPlan } from '@/lib/smart-cube/setup-guide';
 import { cubingTransformationData, nextGuideMove } from '@/lib/smart-cube/guide-cube';
 import { manualStart, sessionMove, startSession, type TrainerSession } from '@/lib/smart-cube/trainer-session';
 import { smartCubeUnsupported } from '@/lib/smart-cube/support';
 import { faceletsDecision } from '@/lib/smart-cube/state-sync';
-import { TEST_CUBE_KEYS, TestCube, moveForKey, testCubeTurns } from '@/lib/smart-cube/test-cube';
+import { TEST_CUBE_KEYS, TestCube, moveForKey, stepTurns, testCubeTurns, type TestCubeTurn } from '@/lib/smart-cube/test-cube';
 import { guideTurns, remainingGuide } from '@/lib/test-cube-hints';
-import { buildSmartSolve, mergeTurns, solveNotation, turnsPerSecond } from '@/lib/smart-cube/solve-record';
+import { buildSmartSolve, mergeTurns, solveNotation, timedMoveCount, turnsPerSecond } from '@/lib/smart-cube/solve-record';
+import { liveMoves, readMoveCount, readNotation, readTurns, SLICE_WINDOW_MS, type ReportedTurn } from '@/lib/smart-cube/slice-moves';
+import { countMoves } from '@/lib/move-count';
 import { isResetGesture, manualStartVirtual, resetVirtual, startVirtual, virtualMove, virtualNotation, type VirtualSession } from '@/lib/smart-cube/virtual-session';
 import { displayRotation } from '@/lib/smart-cube/holding';
 import { F2L_STICKERING_MASK, f2lStickeringMask } from '@/lib/f2l-stickering-mask';
@@ -300,7 +302,7 @@ const record = buildSmartSolve({
   turns: session.solveTurns, recognitionMs: session.recognitionMs, executionMs: session.elapsedMs!,
 });
 eq([record.moveCount, record.tps, record.turns.map((x) => x.t), record.startCubeTime], [3, 3.75, [0, 400, 800], 1300], 'record counts, TPS and relative times');
-eq(solveNotation(record.turns, record.holding), "R U' R'", 'the record reads in the holding it was made with');
+eq(solveNotation(record), "R U' R'", 'the record reads in the holding it was made with');
 
 // Wrong turns, then re-solving F2L by other means, restarts the setup.
 session = startSession('f2l', 'D', f2lPlan, SOLVED);
@@ -415,10 +417,101 @@ console.log(`  ${attempts} trainer attempts reach ready and stop in every holdin
 // --- solve records
 eq(mergeTurns([{ face: 'R', amount: 1 }, { face: 'R', amount: 1 }]), [{ face: 'R', amount: 2 }], 'R R is R2');
 eq(mergeTurns([{ face: 'R', amount: 1 }, { face: 'R', amount: 3 }, { face: 'U', amount: 1 }]), [{ face: 'U', amount: 1 }], "R R' cancels");
-eq(mergeTurns([{ face: 'R', amount: 1 }, { face: 'L', amount: 3 }]).length, 2, 'a slice counts as two outer turns');
-eq(solveNotation([{ face: 'D', amount: 1 }, { face: 'D', amount: 1 }, { face: 'B', amount: 3 }], 'yellow-blue'), "U2 F'", 'notation follows the holding');
-eq(solveNotation([{ face: 'D', amount: 3 }], 'white-green'), "D'", 'white-green keeps cube faces');
+const at = (spec: [Face, number, number][]): ReportedTurn[] => spec.map(([face, amount, t]) => ({ face, amount, t }));
+eq(solveNotation({ holding: 'yellow-blue', scramble: '', turns: at([['D', 1, 0], ['D', 1, 100], ['B', 3, 300]]) }), "U2 F'", 'notation follows the holding');
+eq(solveNotation({ holding: 'white-green', scramble: '', turns: at([['D', 3, 0]]) }), "D'", 'white-green keeps cube faces');
+eq(solveNotation({ holding: 'yellow-blue', scramble: "y R U R' y'", turns: at([['R', 1, 0]]) }), 'R', 'a setup that turns the cube back leaves the holding');
+eq(solveNotation({ holding: 'white-green', scramble: 'y', turns: at([['F', 1, 0]]) }), "L", 'a setup that leaves the cube turned reads the solve as held after it');
 eq([turnsPerSecond(12, 2000), turnsPerSecond(5, 0)], [6, 0], 'TPS, and zero for no time');
+
+// --- slices: two opposite faces turning the same way at once are M, E or S
+{
+  const yb = holdingFrame('yellow-blue');
+  const wg = holdingFrame('white-green');
+  const read = (spec: [Face, number, number][], frame: Frame = yb) => readNotation(at(spec), frame);
+  eq(read([['R', 1, 0], ['L', 3, 8]]), 'M', "R and L' together are M");
+  eq(read([['L', 3, 0], ['R', 1, 5]]), 'M', 'in either order');
+  eq(read([['R', 3, 0], ['L', 1, 5]]), "M'", "R' and L are M'");
+  // An M2 on an i4 from yellow on top: each quarter's two faces together, the
+  // leading face changing, which read face by face is "L R2 L".
+  const m2 = at([['L', 1, 0], ['R', 3, 9], ['R', 3, 105], ['L', 1, 112]]);
+  eq(readTurns(m2, yb, { windowMs: -1 }).moves.map((m) => m.move).join(' '), 'L R2 L', 'without slices an M2 reads as L R2 L');
+  eq(readNotation(m2, yb), 'M2', 'with them it is M2');
+  eq(read([['R', 1, 0], ['L', 3, 8], ['R', 1, 100], ['L', 3, 108]]), 'M2', 'M M is M2');
+  eq(read([['R', 1, 0], ['L', 3, 8], ['R', 3, 300], ['L', 1, 308]]), '', "M M' is nothing");
+  eq(read([['R', 1, 0], ['L', 3, SLICE_WINDOW_MS]]), 'M', 'the faces may be the window apart');
+  eq(read([['R', 1, 0], ['L', 3, SLICE_WINDOW_MS + 1]]), "R L'", 'turns further apart are two turns');
+  eq(read([['R', 1, 0], ['L', 1, 5]]), 'R L', 'faces turning toward each other are no slice');
+  eq(read([['R', 1, 0], ['U', 1, 3], ['L', 3, 6]], wg), "R U L'", 'nor across a turn on another axis');
+  eq(read([['R', 1, 0], ['R', 1, 40], ['L', 3, 50]]), 'R M', 'the closest faces pair, the other is a turn of its own');
+  eq(read([['U', 1, 0], ['D', 3, 6]], wg), 'E', "U and D' are E");
+  eq(read([['F', 3, 0], ['B', 1, 6]], wg), 'S', "F' and B are S");
+  // After a slice the centres sit elsewhere: the turns after it are read as held.
+  eq(read([['R', 1, 0], ['L', 3, 8], ['B', 1, 200]], wg), 'M U', 'after M, the face where U was (B) is U');
+  eq(readTurns(at([['R', 1, 0], ['L', 3, 8], ['B', 1, 200]]), wg, { windowMs: -1 }).moves.map((m) => m.move).join(' '), "R L' B", 'not read as slices, the same turns were R L\' B');
+  eq(readTurns(at([['R', 1, 0], ['L', 3, 8]]), wg).frame, rotateFrame(wg, 'x', -1), 'M leaves the frame turned by x\'');
+
+  // Algorithms with slices, made in every holding the way a cube reports them
+  // (a slice's faces 10 ms apart, other turns 150 ms apart), read back as written.
+  const reportsOf = (alg: string, frame: Frame) => {
+    let t = 0;
+    return testCubeTurns(alg, frame)!.turns.map(([face, amount, together], i): ReportedTurn => ({ face, amount, t: i === 0 ? 0 : (t += together ? 10 : 150) }));
+  };
+  const SLICE_ALGS = [
+    "M2 U M U2 M' U M2", "M2 U' M U2 M' U' M2", "M2 U M2 U2 M2 U M2", "M' U M2 U M2 U M' U2 M2",
+    "M' U M U2 M' U M", "R U R' U' M' U R U' R'", "E R E' R'", "S U S' U'", "F R U R' U' S R U R' U' F' S'",
+  ];
+  for (const holding of CUBE_HOLDINGS) {
+    const frame = holdingFrame(holding);
+    for (const alg of SLICE_ALGS) {
+      const reports = reportsOf(alg, frame);
+      eq(readNotation(reports, frame), alg, `${holding}: "${alg}" reads back as written`);
+      eq(readMoveCount(reports, frame), countMoves(alg), `${holding}: "${alg}" counts as many moves as the algorithm`);
+    }
+  }
+  eq(countMoves("M2 U M U2 M' U M2"), readMoveCount(reportsOf("M2 U M U2 M' U M2", yb), yb), 'Ua is 7 moves with or without a cube');
+
+  // The live view: each quarter its own move, a lone quarter becoming its slice once the other face comes.
+  const live = (spec: [Face, number, number][]) => liveMoves(spec.map(([face, amount, cubeTime]) => ({ face, amount, cubeTime })), yb);
+  eq(live([['R', 1, 1000]]), ['R'], 'a quarter alone shows as itself');
+  eq(live([['R', 1, 1000], ['L', 3, 1008]]), ['M'], 'then as the slice');
+  eq(live([['L', 1, 0], ['R', 3, 9], ['R', 3, 105], ['L', 1, 112], ['U', 1, 300]]), ["M'", "M'", 'U'], 'an M2 shows as two quarters, then U as held');
+  eq(live([['R', 1, 0], ['R', 1, 100]]), ['R', 'R'], 'a half turn shows as its quarters');
+
+  // A solve the trainer timed and its record count a slice as one move.
+  const ua = reportsOf("M2 U M U2 M' U M2", yb);
+  const timed = ua.map(({ face, amount, t }) => ({ face, amount: amount as 1 | 3, cubeTime: 5000 + t }));
+  eq(timedMoveCount({ holding: 'yellow-blue', scramble: "M2 U' M U2 M' U' M2", turns: timed }), 7, 'a timed Ua is 7 moves');
+  const uaRecord = buildSmartSolve({
+    id: 'ua', recordedAt: '2026-11-27T00:00:00.000Z', practice: 'pll', caseId: 'Ua', holding: 'yellow-blue', scramble: "M2 U' M U2 M' U' M2",
+    turns: timed, recognitionMs: 500, executionMs: timed[timed.length - 1].cubeTime - timed[0].cubeTime,
+  });
+  eq([uaRecord.moveCount, solveNotation(uaRecord)], [7, "M2 U M U2 M' U M2"], 'and its record reads as Ua');
+  // A record kept before slices were read (moveCount 12) shows the slices too: the screens read its turns again.
+  const older = { ...uaRecord, moveCount: 12 };
+  eq(solveNotation(older), "M2 U M U2 M' U M2", 'an older record reads with slices');
+
+  // The test cube makes a slice as a cube reports it: M2 from yellow on top is L R' then R' L, close together.
+  eq(stepTurns({ R: 2, L: 2 }), [['L', 1], ['R', 3, true], ['R', 3], ['L', 1, true]], 'the test cube turns M2 as an i4 reports it');
+  eq(stepTurns({ R: 1, L: 3 }), [['R', 1], ['L', 3, true]], 'and M as R then L\' with it');
+  eq(stepTurns({ R: 2 }), [['R', 1], ['R', 1]], 'a half turn as two quarters');
+  eq(stepTurns({ L: 3 }), [['L', 3]], 'the rest of a slice begun as one face');
+
+  // The guide follows a slice however its faces arrive, so M in a setup moves it on.
+  const plan = planSetup("M2 U M'", 'yellow-blue')!;
+  const advance = (progress: GuideProgress, spec: [Face, Amount][]) => spec.reduce((g, [face, amount]) => advanceGuide(plan, g, face, amount), progress);
+  for (const order of [[['L', 1], ['R', 3], ['R', 3], ['L', 1]], [['R', 1], ['L', 3], ['R', 1], ['L', 3]], [['R', 1], ['R', 1], ['L', 1], ['L', 1]]] as [Face, Amount][][]) {
+    eq(advance(GUIDE_START, order).step, 1, `M2 as ${order.map(([f, a]) => f + (a === 3 ? "'" : '')).join(' ')} finishes its step`);
+  }
+  eq(guideView(plan, advance(GUIDE_START, [['L', 1], ['R', 3]])).remaining, "M'", "after M' as the first half of M2, the guide asks for M' again");
+  eq(guideView(plan, advance(GUIDE_START, [['L', 1]])).remaining, 'R2 L', 'with only one face of it, for the faces left');
+  const wide = planSetup('r2 U', 'white-green')!;
+  eq(guideView(wide, advanceGuide(wide, GUIDE_START, 'L', 1)).remaining, 'r', 'after one r of r2, r');
+  const afterM2 = advance(GUIDE_START, [['L', 1], ['R', 3], ['R', 3], ['L', 1]]);
+  const afterU = advance(afterM2, [['U', 1]]);
+  eq(afterU.step, 2, 'then U, as the cube reports it after M2 from yellow on top');
+  ok(isGuideComplete(plan, advance(afterU, [['L', 1], ['R', 3]])), "and M' with its faces either way round");
+}
 eq(manualStart(startSession('pll', 'D', planSetup(TPERM, 'yellow-blue')!, SOLVED)).solveTurns, [], 'a hand-started attempt keeps no turns');
 
 // --- no scramble
@@ -643,7 +736,7 @@ for (const holding of CUBE_HOLDINGS) {
       let session = startSession('oll', lastLayerFace(holding), plan, SOLVED);
       let state = SOLVED;
       let time = 0;
-      const make = ([face, amount]: readonly [Face, 1 | 3]) => {
+      const make = ([face, amount]: TestCubeTurn) => {
         state = applyTurn(state, face, amount);
         session = sessionMove(session, { face, amount, cubeTime: (time += 100), state }).session;
       };

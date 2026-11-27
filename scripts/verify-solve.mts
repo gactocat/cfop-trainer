@@ -30,7 +30,8 @@ import {
   applyOutbox, createSolveLibrary, isMissingOnServer,
   type AccountSolves, type DeviceSolves, type ImportDecision, type Outbox, type SyncMemory,
 } from '@/lib/solve/solve-library';
-import { bottomFace, cubeSolve, handSolve, parseSolveRecord, recordFrame, withPenalty, type SolveRecord } from '@/lib/solve/solve-record';
+import { bottomFace, cubeSolve, handSolve, parseSolveRecord, recordFrame, recordMoveCount, withPenalty, type SolveRecord } from '@/lib/solve/solve-record';
+import { testCubeTurns } from '@/lib/smart-cube/test-cube';
 import { averageOf, bestAverageOf, countedMs, DNF, formatRecordTime, formatSolveTime, solveStats } from '@/lib/solve/solve-stats';
 import { initTwoPhase, isSolvable, randomCubeState, solveTwoPhase } from '@/lib/solver/two-phase';
 
@@ -238,11 +239,12 @@ function solveOf(parts: string[], holding: CubeHolding | Frame) {
   eq(split.cross, 'U', 'yellow top: the cross is white, the cube\'s U face');
   eq(split.ends, [2, 5, 8, 11, 14, 23, 39], 'each stage ends on its last turn');
   ok(cfopLevel(solve.states[1], 'U') === 0, 'half the cross is no cross');
-  const stages = cfopStages(solve.timed, split);
+  const stages = cfopStages(solve.timed, split, holdingFrame('yellow-blue'));
   eq(stages.map((s) => s.moves), [2, 3, 3, 3, 3, 8, 15], 'moves per stage (a half turn is one move)');
   eq(stages.map((s) => s.ms), [200, 300, 300, 300, 300, 900, 1600], 'time per stage');
   eq(stages.map((s) => s.tps), [10, 10, 10, 10, 10, 8.89, 9.38], 'TPS per stage');
   ok(stages.every((s) => !s.skipped), 'no stage skipped');
+  eq(stages.map((s) => s.notation), [CROSS, ...PAIRS, OLL, PLL], 'each stage\'s moves read as made, in the holding');
   eq(cfopMoveCount(solve.timed, split), 37, 'the solve\'s moves add up the stages');
 
   const record = cubeSolve({
@@ -257,15 +259,15 @@ function solveOf(parts: string[], holding: CubeHolding | Frame) {
 {
   // A PLL skip, an OLL skip, and the cross with all four pairs on one turn.
   const pllSkip = solveOf([CROSS, ...PAIRS, OLL], 'yellow-blue');
-  const pllStages = cfopStages(pllSkip.timed, splitCfop(pllSkip.start, pllSkip.states, 'U'));
+  const pllStages = cfopStages(pllSkip.timed, splitCfop(pllSkip.start, pllSkip.states, 'U'), holdingFrame('yellow-blue'));
   ok(pllStages[6].skipped && pllStages[6].moves === 0 && pllStages[6].ms === 0 && !pllStages[5].skipped, 'PLL skip: no time, no moves');
   const ollSkip = solveOf([CROSS, ...PAIRS, PLL], 'yellow-blue');
-  const ollStages = cfopStages(ollSkip.timed, splitCfop(ollSkip.start, ollSkip.states, 'U'));
+  const ollStages = cfopStages(ollSkip.timed, splitCfop(ollSkip.start, ollSkip.states, 'U'), holdingFrame('yellow-blue'));
   ok(ollStages[5].skipped && ollStages[5].moves === 0 && !ollStages[6].skipped && ollStages[6].moves === 15, 'OLL skip: no time, no moves');
   const oneTurn = solveOf(['D', OLL, PLL], 'yellow-blue');
   const oneSplit = splitCfop(oneTurn.start, oneTurn.states, 'U');
   eq(oneSplit.ends.slice(0, 5), [0, 0, 0, 0, 0], 'the cross and the pairs end on the same turn');
-  const oneStages = cfopStages(oneTurn.timed, oneSplit);
+  const oneStages = cfopStages(oneTurn.timed, oneSplit, holdingFrame('yellow-blue'));
   ok(!oneStages[0].skipped && oneStages.slice(1, 5).every((s) => s.skipped && s.moves === 0), 'F2L 1-4 skipped after an X-cross of all pairs');
 }
 {
@@ -291,6 +293,29 @@ function solveOf(parts: string[], holding: CubeHolding | Frame) {
   ok(record.split!.cross === 'D' && FACE_COLOUR[recordFrame(record).U] === 'white', 'a record keeps its holding; the cross is the yellow bottom');
   eq(recordFrame({ holding: 'yellow-green' }), holdingFrame('yellow-green'), 'records from the first version keep their smart cube holding');
   eq(recordFrame({}), holdingFrame('yellow-blue'), 'a record without a holding reads as yellow top, blue front');
+}
+{
+  // A PLL with slices, reported as a cube does (a slice's two faces 10 ms
+  // apart): the stage reads as Ua, a slice is one move, and the record and
+  // the screens count the same.
+  const UA = "M2 U M U2 M' U M2";
+  const solution = [CROSS, ...PAIRS, OLL, UA].join(' ');
+  const frame = holdingFrame('yellow-blue');
+  const start = applyMoves(SOLVED, quarterTurns(invert(solution), frame));
+  let t = 0;
+  const turns = testCubeTurns(solution, frame)!.turns.map(([face, amount, together], i) => ({ face, amount, t: i === 0 ? 0 : (t += together ? 10 : 100) }));
+  const states = play(start, turns);
+  ok(stateEquals(states[states.length - 1], SOLVED), 'the Ua solve ends solved');
+  const split = splitCfop(start, states, 'U');
+  const stages = cfopStages(turns, split, frame);
+  eq([stages[6].notation, stages[6].moves], [UA, 7], 'the PLL stage reads as Ua, 7 moves');
+  eq(cfopMoveCount(turns, split), 2 + 12 + 8 + 7, 'the solve counts each slice once');
+  const record = cubeSolve({
+    scramble: 'R U', holding: { top: 'yellow', front: 'blue' }, start,
+    turns: turns.map((x, i) => ({ face: x.face, amount: x.amount, cubeTime: 1_000 + x.t, state: states[i] })),
+  });
+  eq([record.moveCount, recordMoveCount(record), recordMoveCount({ ...record, moveCount: 34 })], [29, 29, 29], 'records count slices once, older ones read again');
+  eq(recordMoveCount(handSolve('R U', 10_000)), undefined, 'a hand solve has no moves');
 }
 {
   // Stopped before the end: only the stages reached.

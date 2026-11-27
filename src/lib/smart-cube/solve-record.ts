@@ -2,7 +2,9 @@
 // and the helpers that turn its raw cube turns into what the UI shows.
 
 import type { Amount, Face } from '@/lib/smart-cube/cube-state';
-import { holdingFrame, userNotation, type CubeHolding } from '@/lib/smart-cube/holding';
+import { holdingFrame, type CubeHolding, type Frame } from '@/lib/smart-cube/holding';
+import { planSetup } from '@/lib/smart-cube/setup-guide';
+import { readTurns, type ReportedTurn, type TurnReading } from '@/lib/smart-cube/slice-moves';
 import type { TrainerPractice } from '@/lib/smart-cube/trainer-session';
 
 /** A reported quarter turn in the cube's frame; `t` is ms since the first solving turn (cube clock). */
@@ -29,7 +31,11 @@ export interface SmartSolveRecord {
   recognitionMs: number | null;
   /** First to last solving turn: the time recorded for the solve. */
   executionMs: number;
-  /** Moves after merging consecutive turns of one face (R R -> R2, R R' -> nothing). */
+  /**
+   * Moves as read (slice-moves.ts): consecutive turns of one face merged
+   * (R R -> R2, R R' -> nothing), a slice one move. Records from before
+   * slices were read count a slice as two; the screens count again from `turns`.
+   */
   moveCount: number;
   /** moveCount per second of execution, two decimals. */
   tps: number;
@@ -55,10 +61,23 @@ export function mergeTurns(turns: readonly { face: Face; amount: number }[]): { 
   return out as { face: Face; amount: Amount }[];
 }
 
-/** The solve as moves in the user's notation for the holding, e.g. "R U R' U'". */
-export function solveNotation(turns: readonly { face: Face; amount: number }[], holding: CubeHolding): string {
-  const frame = holdingFrame(holding);
-  return mergeTurns(turns).map((m) => userNotation(frame, m.face, m.amount)).join(' ');
+/** The frame the solving turns were made in: the holding, turned by any rotation the setup leaves. */
+export function solveFrame(holding: CubeHolding, scramble: string): Frame {
+  return planSetup(scramble, holding)?.finalFrame ?? holdingFrame(holding);
+}
+
+/** A solve's turns read as moves (slices included) in the frame it was solved in. */
+export function readSolve(solve: { holding: CubeHolding; scramble: string; turns: readonly ReportedTurn[] }): TurnReading {
+  return readTurns(solve.turns, solveFrame(solve.holding, solve.scramble));
+}
+
+/** The solve as moves in the user's notation, e.g. "R U R' U'" or "M2 U M U2 M' U M2". */
+export const solveNotation = (solve: { holding: CubeHolding; scramble: string; turns: readonly ReportedTurn[] }): string =>
+  readSolve(solve).moves.map((m) => m.move).join(' ');
+
+/** Moves of a solve a trainer has just timed (its turns on the cube's own clock), counted as `moveCount` is. */
+export function timedMoveCount(solve: { holding: CubeHolding; scramble: string; turns: readonly { face: Face; amount: 1 | 3; cubeTime: number }[] }): number {
+  return readSolve({ ...solve, turns: solve.turns.map((t) => ({ face: t.face, amount: t.amount, t: t.cubeTime })) }).moves.length;
 }
 
 export function turnsPerSecond(moveCount: number, executionMs: number): number {
@@ -80,7 +99,8 @@ export function buildSmartSolve(input: {
   mode?: SmartSolveMode;
 }): SmartSolveRecord {
   const start = input.turns[0]?.cubeTime ?? 0;
-  const moveCount = mergeTurns(input.turns).length;
+  const turns = input.turns.map((t) => ({ face: t.face, amount: t.amount, t: t.cubeTime - start }));
+  const moveCount = readSolve({ ...input, turns }).moves.length;
   return {
     id: input.id,
     version: 1,
@@ -90,7 +110,7 @@ export function buildSmartSolve(input: {
     holding: input.holding,
     scramble: input.scramble,
     startCubeTime: start,
-    turns: input.turns.map((t) => ({ face: t.face, amount: t.amount, t: t.cubeTime - start })),
+    turns,
     recognitionMs: input.recognitionMs,
     executionMs: input.executionMs,
     moveCount,

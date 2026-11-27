@@ -5,7 +5,7 @@
 
 import type { Face } from '@/lib/smart-cube/cube-state';
 import { holdingFrame, type Frame } from '@/lib/smart-cube/holding';
-import { TEST_CUBE_MAC, TEST_CUBE_NAME, TestCube, testCubeTurns } from '@/lib/smart-cube/test-cube';
+import { TEST_CUBE_MAC, TEST_CUBE_NAME, TestCube, testCubeTurns, type TestCubeTurn } from '@/lib/smart-cube/test-cube';
 import { connectVirtual, getSnapshot as getCubeSnapshot } from '@/lib/smart-cube-store';
 import type { TestCubeHint } from '@/lib/test-cube-hints';
 import { getSnapshot as getSettings } from '@/lib/smart-cube-settings-store';
@@ -24,6 +24,8 @@ export interface TestCubeSnapshot {
 
 /** The half of a half turn waits this long at most, as a hand turns it. */
 const HALF_TURN_MS = 60;
+/** A slice's second face comes this long after its first, as a real cube reports them. */
+const SLICE_LAG_MS = 12;
 
 let cube: TestCube | null = null;
 let grip: Frame | null = null;
@@ -102,7 +104,7 @@ export function runTestCubeHint(hint: TestCubeHint, gapMs: number): boolean {
   return true;
 }
 
-function runTurns(turns: readonly (readonly [Face, 1 | 3])[], frameAfter: Frame, gapMs: number) {
+function runTurns(turns: readonly TestCubeTurn[], frameAfter: Frame, gapMs: number) {
   stopRun();
   setGrip(frameAfter);
   let i = 0;
@@ -119,7 +121,7 @@ function runTurns(turns: readonly (readonly [Face, 1 | 3])[], frameAfter: Frame,
     update({ run: { done: i, total: turns.length } });
     const next = turns[i];
     const halfTurn = next && next[0] === face && next[1] === amount && turns[i - 2]?.[0] !== face;
-    runTimer = setTimeout(step, halfTurn ? Math.min(gapMs, HALF_TURN_MS) : gapMs);
+    runTimer = setTimeout(step, next?.[2] ? SLICE_LAG_MS : halfTurn ? Math.min(gapMs, HALF_TURN_MS) : gapMs);
   };
   step();
 }

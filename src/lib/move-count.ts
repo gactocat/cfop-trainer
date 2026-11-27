@@ -1,9 +1,9 @@
 import { tokenizeAlg } from '@/lib/invert-alg';
 import type { Auf } from '@/types/pll';
 
-// Moves in an algorithm as a smart cube counts them: each face or wide turn
-// is one (a half turn too), a slice turn is two (the cube sees both outer
-// faces turn), and rotations are none. Groups count their moves times their
+// Moves in an algorithm as a smart cube's turns are counted
+// (smart-cube/slice-moves.ts): each face, wide or slice turn is one (a half
+// turn too), and rotations are none. Groups count their moves times their
 // repeat count: "(R U R' U')2" is 8.
 export function countMoves(algorithm: string): number {
   let count = 0;
@@ -16,7 +16,7 @@ export function countMoves(algorithm: string): number {
     }
     const family = /^\d*([A-Za-z]+)/.exec(token)?.[1];
     if (!family || /^[xyz]$/.test(family)) continue;
-    count += /^[MES]$/.test(family) ? 2 : 1;
+    count += 1;
   }
   return count;
 }

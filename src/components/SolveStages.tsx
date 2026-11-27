@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
 import { STICKER_COLOURS } from '@/lib/cube-colors';
-import { FACE_COLOUR, userNotation } from '@/lib/smart-cube/holding';
+import { FACE_COLOUR } from '@/lib/smart-cube/holding';
 import { cfopStages, type CfopStage } from '@/lib/solve/cfop-split';
 import { recordFrame, type SolveRecord } from '@/lib/solve/solve-record';
 import { formatSolveTime } from '@/lib/solve/solve-stats';
@@ -36,11 +36,10 @@ const tps2 = (value: number | null) => (value === null ? '-' : value.toFixed(2))
 export function SolveStages({ record, className = '' }: { record: SolveRecord; className?: string }) {
   const { t } = useT();
   const stages = useMemo(
-    () => (record.turns && record.split ? cfopStages(record.turns, record.split) : []),
+    () => (record.turns && record.split ? cfopStages(record.turns, record.split, recordFrame(record)) : []),
     [record],
   );
   if (!record.split || stages.length === 0) return null;
-  const frame = recordFrame(record);
   const crossColour = FACE_COLOUR[record.split.cross];
   const th = 'px-2 py-1.5 font-medium';
   return (
@@ -96,7 +95,7 @@ export function SolveStages({ record, className = '' }: { record: SolveRecord; c
             <div key={stage.stage} className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-2">
               <dt className="text-xs leading-6 text-zinc-500 dark:text-zinc-400">{t(STAGE_LABEL[stage.stage])}</dt>
               <dd className="font-mono leading-6 break-words text-zinc-800 dark:text-zinc-200">
-                {stage.turns.map((turn) => userNotation(frame, turn.face, turn.amount)).join(' ')}
+                {stage.notation}
               </dd>
             </div>
           ))}

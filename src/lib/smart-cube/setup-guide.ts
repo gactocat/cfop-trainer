@@ -220,6 +220,22 @@ export function expectedState(base: CubeState, plan: SetupPlan, progress: GuideP
   return s;
 }
 
+/**
+ * The rest of a wide turn or slice begun, as that move again ("M" after one M
+ * of M2, "r" after one r of r2), when the turns made on the step so far are
+ * whole quarters of it; `done` is those quarters. Null otherwise.
+ */
+export function axisTurnLeft(step: SetupStep, acc: GuideProgress['acc']): { move: string; done: number } | null {
+  const axis = step.axisTurn;
+  if (!axis) return null;
+  const done = mod4(acc[axis.face] ?? 0);
+  const whole = done !== 0 && (Object.keys(step.turns) as Face[]).every((face) =>
+    mod4(acc[face] ?? 0) === mod4(face === axis.face ? done : -done));
+  if (!whole) return null;
+  const left = mod4(step.turns[axis.face]! - done);
+  return { move: `${axis.move}${['', '', '2', "'"][left]}`, done };
+}
+
 export interface GuideView {
   /** Tokens fully done, from the start. */
   doneTokens: number;
@@ -236,7 +252,7 @@ export function guideView(plan: SetupPlan, progress: GuideProgress): GuideView {
   const frame = step?.frame ?? plan.finalFrame;
   let remaining = '';
   if (step && Object.values(progress.acc).some((n) => n !== 0)) {
-    remaining = (Object.entries(step.turns) as [Face, Amount][])
+    remaining = axisTurnLeft(step, progress.acc)?.move ?? (Object.entries(step.turns) as [Face, Amount][])
       .map(([face, n]) => [face, mod4(n - (progress.acc[face] ?? 0))] as const)
       .filter(([, n]) => n !== 0)
       .map(([face, n]) => userNotation(frame, face, n as Amount))

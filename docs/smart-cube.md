@@ -190,15 +190,46 @@ while typing; a box that runs moves one at a time at a chosen interval; and
 the moves the screen offers in one tap (`lib/test-cube-hints.ts`): the rest
 of a guided setup or scramble, taken from the guide's own plan so rotations
 and groups are followed exactly, the case's solution, the scramble backwards.
+It makes a slice the way a cube reports one (`stepTurns`): both faces of
+each quarter, the second 12 ms after the first, M2 as L R' then R' L from
+yellow on top; a key or button sends both at once.
 Moves are read like a setup (`planSetup`), from the holding and any rotation
 made since. Pages and the practice screen leave room at the bottom for the
 panel; it folds to a small tab.
 
 ## Recorded solves
 
-The result screen of a cube-timed solve shows the turns in the chosen
-holding's notation, the move count (consecutive turns of one face merged,
-cancellations dropped), TPS and recognition time. In an algorithm's practice
+The result screen of a cube-timed solve shows the move count, TPS and
+recognition time; the case page's list shows the turns too, in the chosen
+holding's notation.
+
+Turns are read as moves (`lib/smart-cube/slice-moves.ts`). The cube reports
+outer faces only, relative to its centres, so a slice arrives as its two
+outer faces turning the same way about their axis: M as R and L', M' as R'
+and L, E as U and D', S as F' and B, in either order. Both faces turn
+against the centres in one motion, so they should come within a few
+milliseconds (no recording of a slice on an i4 was at hand; in one of T perms,
+turns made one after the other came 37 ms apart at the closest). An M2 comes
+as two such quarters and was seen recorded as "L R2 L" (L R' then R' L from
+yellow on top). Two quarter turns of opposite faces like that within 60 ms
+(`SLICE_WINDOW_MS`, cube clock) with no turn on another axis between them
+are one slice quarter; the closest pairs are taken first. Consecutive turns
+of one face merge (R R is R2, R R' nothing), and so do slices on one axis. A slice moves the
+centres, so the turns after it are read in the frame it leaves: after M, the
+face the cube reports where U was is still U. Rotations are never reported and
+change nothing. What cannot be told apart: R and L' really turned at once
+read as M (and the turns after it as held after M); a wide turn reports only
+its opposite face (r as L) and leaves the frame as it was, so in algorithms
+that mix wide turns and slices (r U R' U' M ...) the turns after the wide one
+read turned.
+
+The move count is the moves as read: a face, slice or wide turn is one,
+rotations none, as `countMoves` counts an algorithm (`lib/move-count.ts`), so
+the TPS of a tap-timed solve and a cube-timed one use the same count. Records
+keep their turns; the screens read them again, so solves recorded before
+slices were read (their stored `moveCount` counts a slice as two) show
+slices too. The live 3D cube shows each quarter as it comes and turns a
+quarter into its slice once the other face arrives. In an algorithm's practice
 on its case page, recording the time also keeps that solve in IndexedDB
 (`cfop-smart-cube`, store `solves`) on this device (random practice keeps its
 solves for the session only and saves none): turns with cube times, recognition, execution, move count, TPS, the
@@ -236,6 +267,8 @@ unchanged, so older app versions are unaffected.
   second) resync the tracked state when no turn is in flight; three seconds
   without any notification counts as a lost link.
 - `src/hooks/useSmartCubeTrainer.ts`: connects a trainer to the session.
+- `src/lib/smart-cube/slice-moves.ts`: reported turns read as moves, slices
+  and the frame they leave included (see Recorded solves).
 - `src/lib/smart-cube/solve-record.ts`, `src/lib/smart-solve-store.ts`: the
   recorded solve and its IndexedDB store; `SmartSolveHistory.tsx` lists them.
 

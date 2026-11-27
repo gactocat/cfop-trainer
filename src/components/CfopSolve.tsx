@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, memo, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useCubeSolve, type CubeSolveScreen } from '@/hooks/useCubeSolve';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useHoldTimer } from '@/hooks/useHoldTimer';
@@ -19,7 +19,7 @@ import { connect, connectLast, startScan, unsupportedReason } from '@/lib/smart-
 import { deleteSolve, saveSolve } from '@/lib/solve-store';
 import { solveTps } from '@/lib/solve/cfop-split';
 import { inspectionCall, inspectionPenalty, inspectionShown } from '@/lib/solve/inspection';
-import { handSolve, type Penalty, type SolveRecord } from '@/lib/solve/solve-record';
+import { handSolve, recordMoveCount, type Penalty, type SolveRecord } from '@/lib/solve/solve-record';
 import { formatSolveTime } from '@/lib/solve/solve-stats';
 import { setTimerFocus } from '@/lib/timer-focus';
 import { BatteryLevel } from './BatteryLevel';
@@ -188,8 +188,9 @@ function Figure({ label, value, big = false }: { label: string; value: string; b
 function LatestSolve({ record, onUndo, className }: { record: SolveRecord; onUndo: () => void; className: string }) {
   const { t } = useT();
   const connected = useSmartCube().status === 'connected';
-  const cube = record.moveCount !== undefined;
-  const tps = cube ? solveTps(record.moveCount!, record.ms) : null;
+  const moves = useMemo(() => recordMoveCount(record), [record]);
+  const cube = moves !== undefined;
+  const tps = cube ? solveTps(moves, record.ms) : null;
   return (
     <section aria-labelledby="latest-solve" className={`${CARD} p-4 sm:p-5 ${className}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -210,7 +211,7 @@ function LatestSolve({ record, onUndo, className }: { record: SolveRecord; onUnd
           <dt className={LABEL}>{t('solve.time')}</dt>
           <dd><RecordTime record={record} className="font-mono text-3xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-50" /></dd>
         </div>
-        <Figure label={t('solve.moves')} value={cube ? String(record.moveCount) : '-'} />
+        <Figure label={t('solve.moves')} value={cube ? String(moves) : '-'} />
         <Figure label="TPS" value={tps === null ? '-' : tps.toFixed(2)} />
       </dl>
       {record.inspectionMs !== undefined && (

@@ -2,9 +2,10 @@
 // scramble being guided, the case's solution, the inverse of a scramble.
 // A screen sets its hints while it shows them; the test cube panel reads them.
 
-import type { Amount, Face } from '@/lib/smart-cube/cube-state';
+import type { Face } from '@/lib/smart-cube/cube-state';
 import type { Frame } from '@/lib/smart-cube/holding';
 import type { GuideProgress, GuideView, SetupPlan } from '@/lib/smart-cube/setup-guide';
+import { stepTurns, type TestCubeTurn } from '@/lib/smart-cube/test-cube';
 
 export type TestCubeHintKind = 'setup' | 'solution' | 'scramble' | 'unscramble';
 export interface TestCubeHint {
@@ -12,7 +13,7 @@ export interface TestCubeHint {
   /** The moves, as shown. */
   alg: string;
   /** Cube-frame quarter turns to make instead of reading `alg` (the rest of a guide), and the grip after them. */
-  turns?: readonly (readonly [Face, 1 | 3])[];
+  turns?: readonly TestCubeTurn[];
   frame?: Frame;
   /** Read `alg` from this grip and end in it: the holding a case or scramble is shown in. */
   grip?: Frame;
@@ -49,24 +50,20 @@ export function remainingGuide(tokens: readonly string[], view: GuideView): stri
   return [view.undo, view.remaining, ...rest].filter(Boolean).join(' ');
 }
 
-const quarterTurns = (face: Face, amount: number): [Face, 1 | 3][] => {
-  const n = ((amount % 4) + 4) % 4;
-  return n === 3 ? [[face, 3]] : n === 2 ? [[face, 1], [face, 1]] : n === 1 ? [[face, 1]] : [];
-};
-
 /**
  * The cube-frame turns that finish a guided setup or scramble from where it
- * is: take back the wrong turns, finish the step begun, make the steps left.
+ * is: take back the wrong turns, finish the step begun, make the steps left
+ * (a slice as a real cube reports it, both faces together).
  * Taken from the plan itself, so rotations already passed (which the shown
  * tokens count as done) and groups are followed exactly.
  */
-export function guideTurns(plan: SetupPlan, progress: GuideProgress): { turns: [Face, 1 | 3][]; frame: Frame } {
-  const turns: [Face, 1 | 3][] = [];
-  for (const wrong of [...progress.wrong].reverse()) turns.push(...quarterTurns(wrong.face, -wrong.amount));
+export function guideTurns(plan: SetupPlan, progress: GuideProgress): { turns: TestCubeTurn[]; frame: Frame } {
+  const turns: TestCubeTurn[] = [];
+  for (const wrong of [...progress.wrong].reverse()) turns.push(...stepTurns({ [wrong.face]: -wrong.amount }));
   plan.steps.slice(progress.step).forEach((step, i) => {
-    for (const [face, amount] of Object.entries(step.turns) as [Face, Amount][]) {
-      turns.push(...quarterTurns(face, amount - (i === 0 ? progress.acc[face] ?? 0 : 0)));
-    }
+    const left = Object.fromEntries((Object.entries(step.turns) as [Face, number][])
+      .map(([face, amount]) => [face, amount - (i === 0 ? progress.acc[face] ?? 0 : 0)]));
+    turns.push(...stepTurns(left));
   });
   return { turns, frame: plan.finalFrame };
 }

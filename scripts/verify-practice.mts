@@ -79,7 +79,7 @@ ok(byCase[1].recognition === null, 'no recognition without a cube');
 ok(countMoves("R U R' U'") === 4, 'plain turns');
 ok(countMoves("R U2 R' U2") === 4, 'a half turn is one move');
 ok(countMoves("y R U R'") === 3 && countMoves("x2 z' R") === 1, 'rotations are not moves');
-ok(countMoves("r U r' M2") === 5, 'a wide turn is one, a slice two');
+ok(countMoves("r U r' M2") === 4 && countMoves("M2 U M U2 M' U M2") === 7, 'a wide turn is one, a slice one');
 ok(countMoves("Rw U Rw' 2R") === 4, 'Rw-style wide turns and layer prefixes');
 ok(countMoves("(R U R' U')2") === 8 && countMoves("(R U R' U')'") === 4, 'groups count times their repeat');
 ok(countMoves('') === 0 && solutionMoves('U0', '') === null, 'no algorithm, no moves');

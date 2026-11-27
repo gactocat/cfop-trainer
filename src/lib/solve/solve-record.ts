@@ -108,6 +108,15 @@ export function cubeSolve(input: {
   };
 }
 
+/**
+ * The moves of a cube solve as the screens count them, read again from its
+ * turns (records made before slices were read count a slice as two);
+ * undefined for a solve timed by hand.
+ */
+export function recordMoveCount(record: Pick<SolveRecord, 'turns' | 'split' | 'moveCount'>): number | undefined {
+  return record.turns && record.split ? cfopMoveCount(record.turns, record.split) : record.moveCount;
+}
+
 /** A record with a penalty set or taken off. */
 export function withPenalty(record: SolveRecord, penalty: Penalty | null): SolveRecord {
   const next = { ...record };

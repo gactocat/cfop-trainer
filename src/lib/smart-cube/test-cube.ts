@@ -6,7 +6,7 @@
 // reset) runs the code a real cube does. Turns are given in the user's
 // notation and held frame, as a person would make them.
 
-import { SOLVED, applyTurn, type Amount, type CubeState, type Face } from '@/lib/smart-cube/cube-state';
+import { SOLVED, applyTurn, type CubeState, type Face } from '@/lib/smart-cube/cube-state';
 import { GanGen4Cipher, parseMac } from '@/lib/smart-cube/gan-gen4';
 import { startGanGen4Session, type GanConnectionHandlers, type GanGen4Connection } from '@/lib/smart-cube/gan-gen4-session';
 import type { Frame } from '@/lib/smart-cube/holding';
@@ -63,18 +63,44 @@ const hardwarePackets = () => [
   packBits([[8, 0xfe], [8, 0x02], [8, 0], [4, 1], [4, 0]]),
 ];
 
+/**
+ * A quarter turn of a cube face. `together` marks the second face of a slice
+ * quarter: a real cube reports both faces of a slice a few milliseconds
+ * apart, so the test cube turns it right after the one before.
+ */
+export type TestCubeTurn = readonly [face: Face, amount: 1 | 3, together?: boolean];
+
+const mod4 = (n: number) => ((n % 4) + 4) % 4;
+const quarters = (face: Face, amount: number): TestCubeTurn[] => {
+  const n = mod4(amount);
+  return n === 3 ? [[face, 3]] : n === 2 ? [[face, 1], [face, 1]] : n === 1 ? [[face, 1]] : [];
+};
+const OPPOSITE: Record<Face, Face> = { U: 'D', D: 'U', R: 'L', L: 'R', F: 'B', B: 'F' };
+
+/**
+ * The quarter turns that make one step of a planned move (its turns per
+ * cube face). A slice turns its two faces the same way about their axis, a
+ * quarter at a time, both faces together, the face that leads changing from
+ * one quarter to the next: M2 from yellow on top is L R', then R' L, which
+ * read face by face is "L R2 L", as an M2 was seen recorded from an i4.
+ * Anything else is each face's quarters in turn.
+ */
+export function stepTurns(turns: Partial<Record<Face, number>>): TestCubeTurn[] {
+  const faces = (Object.entries(turns) as [Face, number][]).filter(([, n]) => mod4(n) !== 0);
+  if (faces.length === 2 && faces[1][0] === OPPOSITE[faces[0][0]] && mod4(faces[0][1] + faces[1][1]) === 0) {
+    const [[a, n]] = faces;
+    const b = OPPOSITE[a];
+    if (mod4(n) !== 2) return [[a, mod4(n) as 1 | 3], [b, mod4(-n) as 1 | 3, true]];
+    return [[b, 1], [a, 3, true], [a, 3], [b, 1, true]];
+  }
+  return faces.flatMap(([face, n]) => quarters(face, n));
+}
+
 /** The cube-frame quarter turns for `alg` made from `frame`, and the frame after it (rotations change it). Null when it cannot be read. */
-export function testCubeTurns(alg: string, frame: Frame): { turns: [Face, 1 | 3][]; frame: Frame } | null {
+export function testCubeTurns(alg: string, frame: Frame): { turns: TestCubeTurn[]; frame: Frame } | null {
   const plan = planSetup(alg, frame);
   if (!plan) return null;
-  const turns: [Face, 1 | 3][] = [];
-  for (const step of plan.steps) {
-    for (const [face, amount] of Object.entries(step.turns) as [Face, Amount][]) {
-      if (amount === 3) turns.push([face, 3]);
-      else for (let i = 0; i < amount; i++) turns.push([face, 1]);
-    }
-  }
-  return { turns, frame: plan.finalFrame };
+  return { turns: plan.steps.flatMap((step) => stepTurns(step.turns)), frame: plan.finalFrame };
 }
 
 export class TestCube {

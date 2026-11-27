@@ -49,7 +49,7 @@ how; with one, the area appears once the cube is ready.
   stops it, on the cube's clock. Space stops by hand (recorded as an
   on-screen time) and Escape abandons the attempt.
 - Results: time; with a cube also moves and TPS (moves counted as in practice:
-  turns of one face in a row merged, a slice two moves) and each stage.
+  turns of one face in a row merged, a slice one move) and each stage.
 - +2 and DNF: buttons on the latest solve and on each solve in the list set or
   take off a penalty (one at a time), whether the inspection set it or not.
   A +2 shows as "8.90+" (two seconds added), a DNF as "DNF" with the measured
@@ -64,7 +64,11 @@ turn after which the cube is at least that far. Stages finished on the same
 turn (an X-cross, an OLL or PLL skip) take no time and no moves and are marked
 as skipped. Every turn between two stage ends counts for the later one, so
 turns that break and remake a pair count where they happen; rotations of the
-whole cube are not turns.
+whole cube are not turns. Each stage's turns are read as moves the way
+practice reads them (slices included, see Recorded solves in
+`docs/smart-cube.md`), each stage from the frame the one before left; totals
+are read again from the turns, so solves recorded before slices were read
+show them too.
 
 The cross is the bottom face of the solve's holding (the face opposite the
 top colour); OLL is its top face. Records keep the holding they were solved

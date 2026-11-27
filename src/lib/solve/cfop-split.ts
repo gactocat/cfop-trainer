@@ -9,10 +9,13 @@
 // face opposite the chosen top colour), and the last layer is the top face.
 //
 // States are in the cube's own frame (white U, green F). Rotations of the
-// whole cube are not turns, so they never count.
+// whole cube are not turns, so they never count. Each stage's turns are read
+// as moves (slice-moves.ts): a slice is one move, and the stages after it are
+// read in the frame it left.
 
 import { FACES, type CubeState, type Face } from '@/lib/smart-cube/cube-state';
-import { mergeTurns } from '@/lib/smart-cube/solve-record';
+import { holdingFrame, type Frame } from '@/lib/smart-cube/holding';
+import { readTurns } from '@/lib/smart-cube/slice-moves';
 
 export const CFOP_STAGES = ['cross', 'f2l1', 'f2l2', 'f2l3', 'f2l4', 'oll', 'pll'] as const;
 export type CfopStage = (typeof CFOP_STAGES)[number];
@@ -117,37 +120,49 @@ export interface TimedTurn {
 export interface StageResult {
   stage: CfopStage;
   ms: number;
-  /** Moves as the smart cube counts them (consecutive turns of one face merged). */
+  /** Moves as read (consecutive turns of one face merged, a slice one move). */
   moves: number;
   tps: number | null;
   /** Finished on the same turn as the stage before (or before the first turn). */
   skipped: boolean;
-  /** The stage's turns, merged, still in the cube's frame. */
-  turns: { face: Face; amount: 1 | 2 | 3 }[];
+  /** The stage's moves in the user's notation, e.g. "R U R' U'" or "M2 U M U2 M' U M2". */
+  notation: string;
 }
 
 const tpsOf = (moves: number, ms: number) => (ms > 0 ? Math.round((moves / (ms / 1000)) * 100) / 100 : null);
 
-/** Time, moves and TPS of each stage reached. Turns after the last stage reached are left out. */
-export function cfopStages(turns: readonly TimedTurn[], split: CfopSplit): StageResult[] {
+/**
+ * Time, moves and TPS of each stage reached, with its moves read from
+ * `frame` (how the cube was held at the first turn), and the frame after
+ * them. Turns after the last stage reached are left out.
+ */
+function readStages(turns: readonly TimedTurn[], split: CfopSplit, frame: Frame): { stages: StageResult[]; frame: Frame } {
   const timeAt = (index: number) => (index < 0 ? 0 : turns[index].t);
-  return split.ends.map((end, i) => {
+  let current = frame;
+  const stages = split.ends.map((end, i): StageResult => {
     const from = i === 0 ? -1 : split.ends[i - 1];
-    const merged = mergeTurns(turns.slice(from + 1, end + 1));
+    const reading = readTurns(turns.slice(from + 1, end + 1), current);
+    current = reading.frame;
     const ms = timeAt(end) - timeAt(from);
-    return { stage: CFOP_STAGES[i], ms, moves: merged.length, tps: tpsOf(merged.length, ms), skipped: end === from, turns: merged };
+    const moves = reading.moves.length;
+    return { stage: CFOP_STAGES[i], ms, moves, tps: tpsOf(moves, ms), skipped: end === from, notation: reading.moves.map((m) => m.move).join(' ') };
   });
+  return { stages, frame: current };
 }
+
+/** Time, moves and TPS of each stage reached, its moves read from `frame`. Turns after the last stage reached are left out. */
+export const cfopStages = (turns: readonly TimedTurn[], split: CfopSplit, frame: Frame): StageResult[] => readStages(turns, split, frame).stages;
 
 /**
  * Moves of a whole solve: the stages' moves added up, so the total matches
  * the table (a turn split by a stage boundary counts once in each), plus any
- * turns after the last stage reached.
+ * turns after the last stage reached. The count does not depend on how the
+ * cube was held.
  */
 export function cfopMoveCount(turns: readonly TimedTurn[], split: CfopSplit): number {
   const last = split.ends.length > 0 ? split.ends[split.ends.length - 1] : -1;
-  const rest = mergeTurns(turns.slice(last + 1)).length;
-  return cfopStages(turns, split).reduce((sum, stage) => sum + stage.moves, 0) + rest;
+  const { stages, frame } = readStages(turns, split, holdingFrame('white-green'));
+  return stages.reduce((sum, stage) => sum + stage.moves, 0) + readTurns(turns.slice(last + 1), frame).moves.length;
 }
 
 export const solveTps = tpsOf;

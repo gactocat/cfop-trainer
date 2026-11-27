@@ -5,7 +5,7 @@
 
 import type { Amount, CubeState, Face } from '@/lib/smart-cube/cube-state';
 import { rotateFrame, userNotation, type Frame } from '@/lib/smart-cube/holding';
-import type { GuideProgress, SetupPlan } from '@/lib/smart-cube/setup-guide';
+import { axisTurnLeft, type GuideProgress, type SetupPlan } from '@/lib/smart-cube/setup-guide';
 
 const mod4 = (n: number) => ((n % 4) + 4) % 4;
 
@@ -62,13 +62,8 @@ export function nextGuideMove(plan: SetupPlan, progress: GuideProgress): NextMov
     // Part of a wide turn or slice: the cube is held turned by the part done,
     // and the rest is that move again ("M" after one M of M2).
     const axis = step.axisTurn;
-    const done = axis ? mod4(progress.acc[axis.face] ?? 0) : 0;
-    const whole = axis && done !== 0 && (Object.keys(step.turns) as Face[]).every((face) =>
-      mod4(progress.acc[face] ?? 0) === mod4(face === axis.face ? done : -done));
-    if (axis && whole) {
-      const left = mod4(step.turns[axis.face]! - done);
-      return { frame: rotateFrame(frame, axis.axis, axis.dir * done), alg: `${axis.move}${['', '', '2', "'"][left]}` };
-    }
+    const rest = axisTurnLeft(step, progress.acc);
+    if (axis && rest) return { frame: rotateFrame(frame, axis.axis, axis.dir * rest.done), alg: rest.move };
     const left = (Object.entries(step.turns) as [Face, number][])
       .map(([face, n]) => [face, mod4(n - (progress.acc[face] ?? 0))] as const)
       .filter(([, n]) => n !== 0)

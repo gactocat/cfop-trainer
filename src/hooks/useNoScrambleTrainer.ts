@@ -8,7 +8,7 @@ import { canWriteData } from '@/lib/persistence';
 import type { PracticeCase, PracticeLog } from '@/lib/practice-log';
 import type { Face } from '@/lib/smart-cube/cube-state';
 import { displayRotation, type CubeHolding } from '@/lib/smart-cube/holding';
-import { mergeTurns, turnsPerSecond } from '@/lib/smart-cube/solve-record';
+import { timedMoveCount, turnsPerSecond } from '@/lib/smart-cube/solve-record';
 import type { TrainerPractice } from '@/lib/smart-cube/trainer-session';
 import {
   RESET_TURNS,
@@ -171,7 +171,7 @@ export function useNoScrambleTrainer({
     const solve = holder.getSnapshot()?.solve ?? null;
     if (info && seconds > 0) {
       const undo = callbacks.current.record(info.caseId, seconds, solve);
-      const moveCount = solve ? mergeTurns(solve.turns).length : null;
+      const moveCount = solve ? timedMoveCount(solve) : null;
       log.add({
         ...info,
         seconds,
