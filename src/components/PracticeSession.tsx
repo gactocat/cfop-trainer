@@ -5,7 +5,7 @@ import { useMounted } from '@/hooks/useMounted';
 import { usePracticeRun, PracticeRunContext, usePracticeOptions } from '@/hooks/usePracticeRun';
 import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { useSmartCube, useSmartCubeSettings } from '@/hooks/useSmartCube';
-import { TrainerFlavorContext, usePracticeMode, type TrainerFlavor } from '@/hooks/useTrainerMode';
+import { TrainerFlavorContext, usePracticeMode, type PracticeMode, type TrainerFlavor } from '@/hooks/useTrainerMode';
 import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
 import { aufStartOf } from '@/lib/auf-start';
@@ -14,6 +14,7 @@ import { setAutoAdvance } from '@/lib/smart-cube-settings-store';
 import { unsupportedReason } from '@/lib/smart-cube-store';
 import { getTimerFocus, getTimerFocusServerSnapshot, subscribeTimerFocus } from '@/lib/timer-focus';
 import { AUF_START_LABEL, AufStartToggle } from './AufStartToggle';
+import { InfoTip } from './InfoTip';
 import { SmartCubeConnect } from './SmartCubeConnect';
 import { TrainerModeToggle } from './TrainerModeToggle';
 
@@ -27,8 +28,9 @@ const MODE_LABEL: Record<TrainerFlavor, MessageKey> = {
   'smart-setup': 'practice.mode.withSetup',
 };
 
-// How the practice will run, under the mode: with a cube connected, what the
-// cube does.
+const MODES: PracticeMode[] = ['no-setup', 'setup'];
+
+// How a mode runs, in the mode's (i): with a cube connected, what the cube does.
 function modeHelp(flavor: TrainerFlavor, scope: PracticeScope): MessageKey {
   if (flavor === 'no-scramble') return 'practice.cube.noSetup';
   if (flavor === 'smart-setup') return 'practice.cube.setup';
@@ -109,22 +111,31 @@ function Options({ scope, subject, onStart }: {
           {subject}
         </div>
         <section className="space-y-2">
-          <h4 className="text-sm font-medium">{t('practice.mode.title')}</h4>
+          <h4 className="flex items-center gap-1 text-sm font-medium">
+            {t('practice.mode.title')}
+            <InfoTip>
+              {MODES.map((option) => (
+                <span key={option} className="block">
+                  <span className="font-medium text-zinc-800 dark:text-zinc-100">{t(MODE_LABEL[trainerFlavor(option, connected)])}</span>
+                  {' — '}{t(modeHelp(trainerFlavor(option, connected), scope))}
+                </span>
+              ))}
+            </InfoTip>
+          </h4>
           <TrainerModeToggle />
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">{t(modeHelp(flavor, scope))}</p>
         </section>
         <section className="space-y-2">
-          <h4 className="text-sm font-medium">{t('smartCube.title')}</h4>
+          <h4 className="flex items-center gap-1 text-sm font-medium">
+            {t('smartCube.title')}
+            {cubeAvailable && !connected && (
+              <InfoTip>{t(mode === 'setup' ? 'practice.cube.offerSetup' : 'practice.cube.offerNoSetup')}</InfoTip>
+            )}
+          </h4>
           <div data-own-enter>
             <SmartCubeConnect />
           </div>
-          {cubeAvailable && !connected && (
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              {t(mode === 'setup' ? 'practice.cube.offerSetup' : 'practice.cube.offerNoSetup')}
-            </p>
-          )}
           {isCubeFlavor(flavor) && (
-            <div className="space-y-1 pt-1">
+            <div className="flex items-center gap-1 pt-1">
               <label className="flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300 select-none">
                 <input
                   type="checkbox"
@@ -134,7 +145,7 @@ function Options({ scope, subject, onStart }: {
                 />
                 {t('trainer.setup.autoAdvance')}
               </label>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('trainer.setup.autoAdvanceHelp')}</p>
+              <InfoTip>{t('trainer.setup.autoAdvanceHelp')}</InfoTip>
             </div>
           )}
         </section>
@@ -142,7 +153,7 @@ function Options({ scope, subject, onStart }: {
           <AufStartToggle />
         </section>
         {scope === 'random' && (
-          <section className="space-y-1">
+          <section className="flex items-center gap-1">
             <label className="flex items-center gap-2 text-sm font-medium select-none">
               <input
                 type="checkbox"
@@ -152,7 +163,7 @@ function Options({ scope, subject, onStart }: {
               />
               {t('practice.round.label')}
             </label>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('practice.round.help')}</p>
+            <InfoTip>{t('practice.round.help')}</InfoTip>
           </section>
         )}
         {/* Sized like the app's other primary buttons, at the end of the form. */}

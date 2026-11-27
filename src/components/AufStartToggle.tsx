@@ -56,7 +56,6 @@ export function AufStartToggle() {
           );
         })}
       </div>
-      <p className="text-xs text-zinc-500 dark:text-zinc-400">{t(HELP[current])}</p>
     </div>
   );
 }
