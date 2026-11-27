@@ -89,8 +89,8 @@ CI (`.github/workflows/ci.yml`) runs the same three steps on every PR.
   stripping, so they need Node 24.
 - `src/types/` — shared types, including the `PllId` / `F2LId` unions and
   their `*_IDS` arrays.
-- `public/sw.js` — hand-written service worker (network-first navigations,
-  stale-while-revalidate assets). Bump `CACHE_NAME` if you change what it caches.
+- `public/sw.js` — hand-written service worker (network-first navigations and
+  Web Workers, stale-while-revalidate assets). Bump `CACHE_NAME` if you change what it caches.
   It leaves `/_vercel/` and scripts outside `/_next/` (Web Analytics, served
   from a per-project path on cfop.app) to the network.
 - `src/components/WebAnalytics.tsx` — Vercel Web Analytics, page views only,

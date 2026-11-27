@@ -3,7 +3,7 @@
 // two layers around a given cross (F2L on its own). States are in the cube's
 // own frame (white U, green F); a goal's face is a cube face.
 
-import { applyTurn, FACES, SOLVED, stateEquals, type CubeState, type Face } from '@/lib/smart-cube/cube-state';
+import { applyFaceTurns, applyTurn, FACES, SOLVED, stateEquals, type CubeState, type Face } from '@/lib/smart-cube/cube-state';
 import { colourFace, type CubeColour } from '@/lib/smart-cube/holding';
 import { cfopLevel } from '@/lib/solve/cfop-split';
 import { DEFAULT_MODE_CROSS, SOLVE_MODE, type SolveMode } from '@/lib/solve/solve-modes';
@@ -56,4 +56,26 @@ export function goalReached(goal: SolveGoal, state: CubeState): boolean {
 export function goalWithinOneTurn(goal: SolveGoal, state: CubeState): boolean {
   if (goalReached(goal, state)) return true;
   return FACES.some((face) => [1, 2, 3].some((amount) => goalReached(goal, applyTurn(state, face, amount))));
+}
+
+/**
+ * Whether `scramble`, turned as written from solved, leaves what its mode's
+ * scrambles leave (mode-scramble.ts): for the cross, no cross within one
+ * turn; for F2L, the cross on `face`; for the last layer, the first two
+ * layers around it. CFOP's scrambles fit any state. The scramble client
+ * checks the worker's answers with it, so a worker left from an earlier
+ * deploy (one that knew only CFOP) is caught.
+ */
+export function scrambleFitsMode(mode: SolveMode, scramble: string, face: Face = 'U'): boolean {
+  let state: CubeState;
+  try {
+    state = applyFaceTurns(SOLVED, scramble);
+  } catch {
+    return false;
+  }
+  switch (SOLVE_MODE[mode].solvedBefore) {
+    case 'nothing': return mode !== 'cross' || !goalWithinOneTurn(CROSS_GOAL, state);
+    case 'cross': return cfopLevel(state, face) >= 1;
+    case 'f2l': return cfopLevel(state, face) >= 5;
+  }
 }

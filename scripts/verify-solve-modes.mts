@@ -30,7 +30,7 @@ import { applyMoves, movesInHolding, scrambleState, SCRAMBLE_MAX_MOVES } from '@
 import { scrambleFeed } from '@/lib/solve/scramble-client';
 import { createSolveLibrary, type AccountSolves, type DeviceSolves, type ImportDecision, type Outbox, type SyncMemory } from '@/lib/solve/solve-library';
 import {
-  CROSS_GOAL, crossSolved, goalReached, goalWithinOneTurn, modeGoal, solvedCrosses, SOLVED_GOAL,
+  CROSS_GOAL, crossSolved, goalReached, goalWithinOneTurn, modeGoal, scrambleFitsMode, solvedCrosses, SOLVED_GOAL,
 } from '@/lib/solve/solve-goal';
 import { DEFAULT_MODE_CROSS, isSolveMode, modeOfSlug, SOLVE_MODE, SOLVE_MODES, type SolveMode } from '@/lib/solve/solve-modes';
 import { handSolve, parseSolveRecord, readRecord, recordMoveCount, SOLVE_EVENTS, withPenalty, type SolveRecord } from '@/lib/solve/solve-record';
@@ -588,6 +588,30 @@ function eqIds(list: readonly SolveRecord[], expected: string[]) {
   eq(f2l.getServerSnapshot(), { scramble: null, failed: false }, 'the server renders none');
 }
 function WCA_FRAME() { return colourFrame(WCA)!; }
+
+// --- The client's check of the worker's scrambles: a worker of an earlier
+// deploy (served from a service worker's cache) made CFOP scrambles on the
+// F2L and last-layer pages; the client now tells and makes them itself.
+{
+  for (const mode of SOLVE_MODES) {
+    for (const face of ['U', 'D', 'F'] as const) {
+      for (let i = 0; i < 6; i++) {
+        ok(scrambleFitsMode(mode, generateModeScramble(mode, face), face), `${mode} scramble ${i} for ${face} fits its mode`);
+      }
+    }
+  }
+  let caught = 0;
+  for (let i = 0; i < 20; i++) {
+    const cfop = generateModeScramble('cfop');
+    if (!scrambleFitsMode('f2l', cfop, 'U') && !scrambleFitsMode('ll', cfop, 'U')) caught++;
+  }
+  eq(caught, 20, 'CFOP scrambles do not pass for F2L or the last layer');
+  ok(!scrambleFitsMode('ll', generateModeScramble('f2l', 'U'), 'U'), 'nor does an F2L one for the last layer');
+  ok(!scrambleFitsMode('f2l', generateModeScramble('f2l', 'U'), 'D'), 'nor one with its cross elsewhere');
+  ok(!scrambleFitsMode('cross', "R' F' U' L' D' B'", 'U') || !goalWithinOneTurn(CROSS_GOAL, applyFaceTurns(SOLVED, "R' F' U' L' D' B'")), 'the cross: none within one turn');
+  ok(!scrambleFitsMode('cross', 'R', 'U'), 'a cross one turn away does not fit');
+  ok(!scrambleFitsMode('f2l', 'not a scramble', 'U'), 'nor does something that is not a scramble');
+}
 
 // --- How long scrambles take (Node on this machine; the page makes them in a worker, one ahead)
 {

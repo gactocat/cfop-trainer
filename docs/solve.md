@@ -307,7 +307,14 @@ They run in the scramble worker as CFOP's do. `useScramble({ mode, face })`
 `scrambleFeed({ mode, face })` from `lib/solve/scramble-client.ts` is one
 feed per mode and face with one scramble made ahead, for
 `useSyncExternalStore`. `generateModeScramble(mode, face)` is the same off
-the worker.
+the worker. The feed checks each scramble the worker sends
+(`scrambleFitsMode` in `lib/solve/solve-goal.ts`: F2L's leaves its cross,
+the last layer's its first two layers, the cross's no cross within a turn);
+one that does not fit came from a worker of an earlier deploy, so the page
+stops using the worker and makes its scrambles itself. That happened once:
+the service worker answered the worker loader's request with an earlier
+deploy's (see `public/sw.js`, now network-first for workers), and the F2L
+and last-layer pages got CFOP scrambles.
 
 ### When a solve ends
 

@@ -5,8 +5,14 @@
 // Vercel's own scripts and endpoints go straight to the network: Web Analytics
 // is served from /_vercel/insights/ or, once enabled for the project, from a
 // per-project path such as /<hash>/script.js.
+//
+// Web Workers are network-first. Turbopack starts a worker from one loader
+// whose URL names the worker's chunks after a '#'; the cache matches URLs
+// without it, so a cached loader from an earlier deploy would answer, the
+// worker would take that response's URL as its own and load the earlier
+// deploy's code (the scramble worker making the wrong kind of scramble).
 
-const CACHE_NAME = 'pll-manager-v8';
+const CACHE_NAME = 'pll-manager-v9';
 const APP_SHELL = ['/', '/manifest.webmanifest', '/icon.svg', '/logo.svg'];
 
 self.addEventListener('install', (event) => {
@@ -61,8 +67,8 @@ self.addEventListener('fetch', (event) => {
   if (req.destination === 'script' && !url.pathname.startsWith('/_next/')) return;
 
   // Navigation requests (HTML): network-first so deploys propagate quickly,
-  // fall back to cache when offline.
-  if (req.mode === 'navigate') {
+  // fall back to cache when offline. Workers likewise (see above).
+  if (req.mode === 'navigate' || req.destination === 'worker') {
     event.respondWith(
       (async () => {
         try {
@@ -72,7 +78,7 @@ self.addEventListener('fetch', (event) => {
           return fresh;
         } catch {
           const cache = await caches.open(CACHE_NAME);
-          return (await cache.match(req)) || (await cache.match('/'));
+          return (await cache.match(req)) || (req.mode === 'navigate' ? await cache.match('/') : undefined) || Response.error();
         }
       })(),
     );

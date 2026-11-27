@@ -6,6 +6,7 @@
 
 import type { CubeState, Face } from '@/lib/smart-cube/cube-state';
 import type { SolveMode } from '@/lib/solve/solve-modes';
+import { scrambleFitsMode } from '@/lib/solve/solve-goal';
 import type { SolverMove } from '@/lib/solver/two-phase';
 import type { ScrambleRequest, ScrambleResponse } from '@/lib/solve/scramble-worker';
 
@@ -123,10 +124,18 @@ function createFeed(spec: ScrambleSpec, key: string): ScrambleFeed {
     show({ scramble, failed: false });
   };
 
+  // A scramble that does not fit its mode comes from a worker of an earlier
+  // deploy (a service worker cache can hand one out): stop using the worker
+  // and make the scramble here instead.
+  const fits = (value: unknown) => typeof value === 'string' && scrambleFitsMode(spec.mode, value, spec.face);
   const makeAhead = () => {
     if (ready !== null || making) return;
     making = true;
     call(body).then((value) => {
+      if (fits(value)) return value;
+      failOver();
+      return runHere(body);
+    }).then((value) => {
       making = false;
       if (waitingSince !== null) {
         deliver(value as string);
