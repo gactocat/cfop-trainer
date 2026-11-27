@@ -5,7 +5,7 @@ import { useMounted } from '@/hooks/useMounted';
 import { usePracticeRun, PracticeRunContext, usePracticeOptions } from '@/hooks/usePracticeRun';
 import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { useSmartCube, useSmartCubeSettings } from '@/hooks/useSmartCube';
-import { TrainerFlavorContext, usePracticeMode, type PracticeMode, type TrainerFlavor } from '@/hooks/useTrainerMode';
+import { TrainerFlavorContext, usePracticeMode, type TrainerFlavor } from '@/hooks/useTrainerMode';
 import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
 import { aufStartOf } from '@/lib/auf-start';
@@ -16,7 +16,7 @@ import { getTimerFocus, getTimerFocusServerSnapshot, subscribeTimerFocus } from 
 import { AUF_START_LABEL, AufStartToggle } from './AufStartToggle';
 import { InfoTip } from './InfoTip';
 import { SmartCubeConnect } from './SmartCubeConnect';
-import { TrainerModeToggle } from './TrainerModeToggle';
+import { PRACTICE_MODE_OPTIONS, TrainerModeToggle } from './TrainerModeToggle';
 
 /** Random practice draws from the selected cases; case practice repeats one case. */
 export type PracticeScope = 'random' | 'case';
@@ -28,8 +28,6 @@ const MODE_LABEL: Record<TrainerFlavor, MessageKey> = {
   'smart-setup': 'practice.mode.withSetup',
 };
 
-const MODES: PracticeMode[] = ['no-setup', 'setup'];
-
 // How a mode runs, in the mode's (i): with a cube connected, what the cube does.
 function modeHelp(flavor: TrainerFlavor, scope: PracticeScope): MessageKey {
   if (flavor === 'no-scramble') return 'practice.cube.noSetup';
@@ -40,13 +38,13 @@ function modeHelp(flavor: TrainerFlavor, scope: PracticeScope): MessageKey {
 
 const chip = 'rounded-full bg-zinc-200/80 px-2.5 py-1 dark:bg-zinc-800';
 
-// A practice asks how to practise each time it opens: the mode, a smart cube,
-// random AUF, with a cube whether the next case comes by itself, and for
-// random practice whether to take each selected case once. The last choices
-// are kept (mode and AUF in the practice settings, the others on this
-// device), so starting again takes one tap. How the practice runs is fixed
-// when it starts (see TrainerFlavorContext and PracticeRunContext); each
-// start is a new session.
+// A practice asks how to practise each time it opens: a smart cube, the
+// mode (with or without setup), the AUF, with a cube whether the next case
+// comes by itself, and for random practice whether to take each selected
+// case once. The last choices are kept (mode and AUF in the practice
+// settings, the others on this device), so starting again takes one tap.
+// How the practice runs is fixed when it starts (see TrainerFlavorContext
+// and PracticeRunContext); each start is a new session.
 export function PracticeSession({ children, scope = 'random', subject }: {
   children: ReactNode;
   scope?: PracticeScope;
@@ -112,20 +110,6 @@ function Options({ scope, subject, onStart }: {
         </div>
         <section className="space-y-2">
           <h4 className="flex items-center gap-1 text-sm font-medium">
-            {t('practice.mode.title')}
-            <InfoTip>
-              {MODES.map((option) => (
-                <span key={option} className="block">
-                  <span className="font-medium text-zinc-800 dark:text-zinc-100">{t(MODE_LABEL[trainerFlavor(option, connected)])}</span>
-                  {' — '}{t(modeHelp(trainerFlavor(option, connected), scope))}
-                </span>
-              ))}
-            </InfoTip>
-          </h4>
-          <TrainerModeToggle />
-        </section>
-        <section className="space-y-2">
-          <h4 className="flex items-center gap-1 text-sm font-medium">
             {t('smartCube.title')}
             {cubeAvailable && !connected && (
               <InfoTip>{t(mode === 'setup' ? 'practice.cube.offerSetup' : 'practice.cube.offerNoSetup')}</InfoTip>
@@ -134,36 +118,54 @@ function Options({ scope, subject, onStart }: {
           <div data-own-enter>
             <SmartCubeConnect />
           </div>
-          {isCubeFlavor(flavor) && (
-            <div className="flex items-center gap-1 pt-1">
-              <label className="flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300 select-none">
-                <input
-                  type="checkbox"
-                  checked={autoAdvance}
-                  onChange={(event) => setAutoAdvance(event.target.checked)}
-                  className="h-3.5 w-3.5 accent-emerald-600"
-                />
-                {t('trainer.setup.autoAdvance')}
-              </label>
-              <InfoTip>{t('trainer.setup.autoAdvanceHelp')}</InfoTip>
-            </div>
-          )}
+        </section>
+        <section className="space-y-2">
+          <h4 className="flex items-center gap-1 text-sm font-medium">
+            {t('practice.mode.title')}
+            <InfoTip>
+              {PRACTICE_MODE_OPTIONS.map((option) => (
+                <span key={option.value} className="block">
+                  <span className="font-medium text-zinc-800 dark:text-zinc-100">{t(option.label)}</span>
+                  {' — '}{t(modeHelp(trainerFlavor(option.value, connected), scope))}
+                </span>
+              ))}
+            </InfoTip>
+          </h4>
+          <TrainerModeToggle />
         </section>
         <section>
           <AufStartToggle />
         </section>
-        {scope === 'random' && (
-          <section className="flex items-center gap-1">
-            <label className="flex items-center gap-2 text-sm font-medium select-none">
-              <input
-                type="checkbox"
-                checked={mounted && eachOnce}
-                onChange={(event) => setEachOnce(event.target.checked)}
-                className="h-4 w-4 accent-emerald-600"
-              />
-              {t('practice.round.label')}
-            </label>
-            <InfoTip>{t('practice.round.help')}</InfoTip>
+        {(isCubeFlavor(flavor) || scope === 'random') && (
+          <section className="space-y-3">
+            {isCubeFlavor(flavor) && (
+              <div className="flex items-center gap-1">
+                <label className="flex items-center gap-2 text-sm font-medium select-none">
+                  <input
+                    type="checkbox"
+                    checked={autoAdvance}
+                    onChange={(event) => setAutoAdvance(event.target.checked)}
+                    className="h-4 w-4 accent-emerald-600"
+                  />
+                  {t('trainer.setup.autoAdvance')}
+                </label>
+                <InfoTip>{t('trainer.setup.autoAdvanceHelp')}</InfoTip>
+              </div>
+            )}
+            {scope === 'random' && (
+              <div className="flex items-center gap-1">
+                <label className="flex items-center gap-2 text-sm font-medium select-none">
+                  <input
+                    type="checkbox"
+                    checked={mounted && eachOnce}
+                    onChange={(event) => setEachOnce(event.target.checked)}
+                    className="h-4 w-4 accent-emerald-600"
+                  />
+                  {t('practice.round.label')}
+                </label>
+                <InfoTip>{t('practice.round.help')}</InfoTip>
+              </div>
+            )}
           </section>
         )}
         {/* Sized like the app's other primary buttons, at the end of the form. */}

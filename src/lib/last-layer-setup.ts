@@ -36,9 +36,14 @@ export function buildLastLayerSetup(
 export type LastLayerSetup = ReturnType<typeof buildLastLayerSetup>;
 
 /**
- * The offset that leaves the case ready for the algorithm without its AUF.
- * Cube mode already applies the stored AUF, so no further turn is needed.
+ * A practice case: the case in its usual orientation (as the "In algorithm"
+ * display shows it) turned by `uOffset` (see AufStart). The list's AUF
+ * display only changes how the solution is written, not the case drawn.
  */
-export function alignedOffset(record: LastLayerAlgorithm, aufDisplay: PracticeSettings['aufDisplay']): Auf {
-  return aufDisplay === 'prefix' ? record.auf : 'U0';
+export function buildPracticeSetup(
+  record: LastLayerAlgorithm,
+  uOffset: Auf,
+  chooseSetup?: (inverse: string) => string,
+): LastLayerSetup {
+  return buildLastLayerSetup(record, 'prefix', uOffset, chooseSetup);
 }

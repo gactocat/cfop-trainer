@@ -4,9 +4,9 @@ import { choosePracticeMode, usePracticeMode, type PracticeMode } from '@/hooks/
 import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
 
-const OPTIONS: { value: PracticeMode; label: MessageKey; title: MessageKey }[] = [
-  { value: 'no-setup', label: 'practice.mode.noSetup', title: 'practice.mode.noSetupTitle' },
-  { value: 'setup', label: 'practice.mode.withSetup', title: 'practice.mode.withSetupTitle' },
+export const PRACTICE_MODE_OPTIONS: { value: PracticeMode; label: MessageKey; title: MessageKey }[] = [
+  { value: 'setup', label: 'practice.mode.on', title: 'practice.mode.withSetupTitle' },
+  { value: 'no-setup', label: 'practice.mode.off', title: 'practice.mode.noSetupTitle' },
 ];
 
 export function TrainerModeToggle() {
@@ -15,10 +15,10 @@ export function TrainerModeToggle() {
   return (
     <div
       role="radiogroup"
-      aria-label={t('practice.mode.aria')}
+      aria-label={t('practice.mode.title')}
       className="inline-flex flex-wrap rounded-md bg-zinc-100 dark:bg-zinc-800 p-0.5 gap-0.5"
     >
-      {OPTIONS.map((opt) => {
+      {PRACTICE_MODE_OPTIONS.map((opt) => {
         const active = opt.value === mode;
         return (
           <button

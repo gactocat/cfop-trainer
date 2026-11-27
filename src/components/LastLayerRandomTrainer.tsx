@@ -18,7 +18,7 @@ import { useT } from '@/hooks/useT';
 import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { useLastLayerSolver } from '@/hooks/useLastLayerSolver';
 import { pickAlternativeSetup } from '@/lib/last-layer-alternatives';
-import { alignedOffset, buildLastLayerSetup, type LastLayerAlgorithm, type LastLayerSetup } from '@/lib/last-layer-setup';
+import { buildPracticeSetup, type LastLayerAlgorithm, type LastLayerSetup } from '@/lib/last-layer-setup';
 import { aufStartOf, caseOffset } from '@/lib/auf-start';
 import { movesPerSecond, solutionMoves } from '@/lib/move-count';
 import { saveCubeSolve, type CaseTimes } from '@/lib/practice-log';
@@ -113,9 +113,8 @@ export function LastLayerRandomTrainer<Id extends string>({
       : pickStaleWeighted(pool.length ? pool : ids, (id) => lastSolved.get(id), Date.now());
     if (id === null) return null;
     const algorithm = algorithmFor(id);
-    const aufDisplay = aufDisplayOf(settings, practice);
-    const offset = caseOffset(aufStartOf(settings), alignedOffset(algorithm, aufDisplay));
-    const setup = buildLastLayerSetup(algorithm, aufDisplay, offset, (plain) =>
+    const offset = caseOffset(aufStartOf(settings), algorithm.auf);
+    const setup = buildPracticeSetup(algorithm, offset, (plain) =>
       inverse
         ? pickAlternativeSetup(solver, practice, plain, alternativesFor(id))
         : plain);

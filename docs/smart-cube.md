@@ -135,10 +135,14 @@ case" does. Stopping by hand records the host-timed attempt the same way, and
 leaving the iOS app abandons the attempt. The app keeps the screen on while a
 cube is connected in this mode.
 
-A practice asks for its mode, a smart cube, the case orientation (AUF: as
-set, random, or turned by the algorithm's AUF so it can start at once; see
-`lib/auf-start.ts`, stored as `randomAuf` and `alignAuf`) and, with a cube,
-the automatic next case each time it opens, starting from the last choices.
+A practice asks for a smart cube, its mode (setup on or off), the AUF
+(pre-applied: turned by the algorithm's AUF so it can start at once; in
+algorithm: not turned, so the AUF is part of the solve; or random) and, with
+a cube, the automatic next case each time it opens, starting from the last
+choices. The AUF choice does not depend on the list's AUF display, which only
+changes how the solution is written (see `lib/auf-start.ts`). It is stored as
+`randomAuf` and `alignAuf`; neither flag, once "as set", reads as in
+algorithm.
 The mode is stored in the synced trainer mode with the values older app
 versions know: no setup as `standard`, with setup as `inverse`. The three-mode
 version kept no scramble as a device-local `noScramble` flag in

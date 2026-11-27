@@ -7,16 +7,16 @@ import { aufStartOf, aufStartPatch, type AufStart } from '@/lib/auf-start';
 import { InfoTip } from './InfoTip';
 
 export const AUF_START_LABEL: Record<AufStart, MessageKey> = {
-  fixed: 'practice.auf.fixed',
+  'pre-applied': 'practice.auf.preApplied',
+  'in-algorithm': 'practice.auf.inAlgorithm',
   random: 'practice.auf.random',
-  algorithm: 'practice.auf.algorithm',
 };
 const HELP: Record<AufStart, MessageKey> = {
-  fixed: 'practice.auf.fixedHelp',
+  'pre-applied': 'practice.auf.preAppliedHelp',
+  'in-algorithm': 'practice.auf.inAlgorithmHelp',
   random: 'practice.auf.randomHelp',
-  algorithm: 'practice.auf.algorithmHelp',
 };
-const OPTIONS: AufStart[] = ['fixed', 'random', 'algorithm'];
+const OPTIONS: AufStart[] = ['pre-applied', 'in-algorithm', 'random'];
 
 // How each case is turned before it is shown (see AufStart).
 export function AufStartToggle() {

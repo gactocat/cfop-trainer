@@ -84,7 +84,7 @@ export function SmartCubeConnect() {
         className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 px-3 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 dark:border-emerald-500 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
       >
         <CubeIcon />
-        {t('practice.cube.connect')}
+        {t('practice.cube.connectShort')}
       </button>
       <div aria-live="polite" className="space-y-1 text-xs">
         {(busy || cube.status === 'needs-mac') && (

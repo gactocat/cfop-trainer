@@ -11,13 +11,13 @@ import { PRESET_ALGORITHMS } from '@/data/preset-algorithms';
 import { splitAuf } from '@/lib/auf-from-algorithm';
 import { aufStartOf, aufStartPatch, caseOffset, type AufStart } from '@/lib/auf-start';
 import { rotationNeutral } from '@/lib/cube-rotation';
-import { appendUTurn, splitF2LAuf } from '@/lib/f2l-auf';
+import { appendUTurn, prefixAuf, splitF2LAuf } from '@/lib/f2l-auf';
 import { buildF2LSetup, seededRandom } from '@/lib/f2l-scramble';
 import { holdStep, type HoldInput, type HoldPhase } from '@/lib/hold-timer';
 import { saveCubeSolve, type CaseTimes } from '@/lib/practice-log';
 import { countMoves, movesPerSecond, solutionMoves } from '@/lib/move-count';
 import { doneCases, nextRoundCase, roundPosition, shuffled } from '@/lib/practice-round';
-import { alignedOffset, buildLastLayerSetup } from '@/lib/last-layer-setup';
+import { buildLastLayerSetup, buildPracticeSetup } from '@/lib/last-layer-setup';
 import { summarizeByCase, summarizeSession, type SessionSolve } from '@/lib/session-stats';
 import type { F2LId } from '@/types/f2l';
 import { AUFS } from '@/types/pll';
@@ -145,38 +145,56 @@ ok(saved.join() === 'time 2', 'a solve stopped by hand saves its time only');
 
 // --- The AUF choice
 ok(aufStartOf({ randomAuf: true }) === 'random', 'saved random AUF reads as random');
-ok(aufStartOf({ randomAuf: false }) === 'fixed', 'saved fixed AUF reads as fixed');
-ok(aufStartOf({ randomAuf: false, alignAuf: true }) === 'algorithm', 'aligned AUF reads as algorithm');
-ok(aufStartOf({ randomAuf: true, alignAuf: true }) === 'algorithm', 'aligning wins over a stale random flag');
-for (const choice of ['fixed', 'random', 'algorithm'] as AufStart[]) {
+ok(aufStartOf({ randomAuf: false }) === 'in-algorithm', 'the old "as set" reads as the AUF in the algorithm');
+ok(aufStartOf({ randomAuf: false, alignAuf: true }) === 'pre-applied', 'aligned AUF reads as pre-applied');
+ok(aufStartOf({ randomAuf: true, alignAuf: true }) === 'pre-applied', 'aligning wins over a stale random flag');
+for (const choice of ['pre-applied', 'in-algorithm', 'random'] as AufStart[]) {
   ok(aufStartOf(aufStartPatch(choice)) === choice, `${choice} survives saving`);
 }
-ok(aufStartPatch('algorithm').randomAuf === false, 'older versions read an aligned AUF as fixed, not random');
+ok(aufStartPatch('pre-applied').randomAuf === false, 'versions before alignAuf read pre-applied as "as set", not random');
+ok(!aufStartPatch('in-algorithm').randomAuf && !aufStartPatch('in-algorithm').alignAuf, 'in-algorithm is stored as the old "as set"');
 const noRandom = () => { throw new Error('random drawn'); };
-ok(caseOffset('fixed', "U'", noRandom) === 'U0', 'fixed adds no turn and draws nothing');
-ok(caseOffset('algorithm', "U'", noRandom) === "U'", 'algorithm turns by the aligned AUF and draws nothing');
+ok(caseOffset('in-algorithm', "U'", noRandom) === 'U0', 'in-algorithm adds no turn and draws nothing');
+ok(caseOffset('pre-applied', "U'", noRandom) === "U'", 'pre-applied turns by the AUF and draws nothing');
 ok(caseOffset('random', "U'", () => 0.6) === AUFS[2], 'random draws a turn and ignores the algorithm');
 
-// --- Aligned last-layer cases: the body alone solves them, for every AUF and display mode
+// --- Last-layer practice cases, for every AUF: pre-applied leaves the body
+// alone to solve and looks like the list's pre-applied card, in-algorithm
+// needs the AUF too and looks like the list's in-algorithm card, and every
+// random turn is solved by the solution shown. None depends on the list's
+// AUF display, which the practice setup does not take.
 const kpuzzle = await cube3x3x3.kpuzzle();
 const solved = kpuzzle.defaultPattern();
 const same = (a: typeof solved, orbit: string, from = 0) =>
   JSON.stringify(a.patternData[orbit].pieces.slice(from)) === JSON.stringify(solved.patternData[orbit].pieces.slice(from)) &&
   a.patternData[orbit].orientation.slice(from).every((o: number) => o === 0);
+const solvedBy = (scramble: string, solution: string) => {
+  const after = solved.applyAlg(scramble).applyAlg(rotationNeutral(solution));
+  return same(after, 'CORNERS') && same(after, 'EDGES');
+};
+const sameState = (a: string, b: string) =>
+  JSON.stringify(solved.applyAlg(a).patternData) === JSON.stringify(solved.applyAlg(b).patternData);
 let lastLayer = 0;
 for (const [id, presets] of Object.entries({ ...PRESET_ALGORITHMS, ...OLL_PRESET_ALGORITHMS })) {
   for (const preset of presets) {
     const { rest: algorithm } = splitAuf(preset);
     for (const auf of AUFS) {
-      for (const mode of ['cube', 'prefix'] as const) {
-        const record = { algorithm, auf };
-        const setup = buildLastLayerSetup(record, mode, caseOffset('algorithm', alignedOffset(record, mode)));
-        const label = `${id} ${preset} ${auf} ${mode}`;
-        ok(setup.effectiveAuf === 'U0' && setup.solution === algorithm, `${label}: no AUF left before the algorithm`);
-        const after = solved.applyAlg(setup.scramble).applyAlg(rotationNeutral(algorithm));
-        ok(same(after, 'CORNERS') && same(after, 'EDGES'), `${label}: the algorithm alone solves the case`);
-        lastLayer++;
-      }
+      const record = { algorithm, auf };
+      const label = `${id} ${preset} ${auf}`;
+      const applied = buildPracticeSetup(record, caseOffset('pre-applied', auf, noRandom));
+      ok(applied.effectiveAuf === 'U0' && applied.solution === algorithm, `${label}: pre-applied leaves no AUF before the algorithm`);
+      ok(solvedBy(applied.scramble, algorithm), `${label}: pre-applied is solved by the algorithm alone`);
+      ok(sameState(applied.scramble, buildLastLayerSetup(record, 'cube').scramble), `${label}: pre-applied matches the list's pre-applied card`);
+      const included = buildPracticeSetup(record, caseOffset('in-algorithm', auf, noRandom));
+      ok(included.effectiveAuf === auf && included.solution === prefixAuf(auf, algorithm), `${label}: in-algorithm starts with the AUF`);
+      ok(solvedBy(included.scramble, included.solution), `${label}: in-algorithm is solved by the AUF and the algorithm`);
+      ok(sameState(included.scramble, buildLastLayerSetup(record, 'prefix').scramble), `${label}: in-algorithm matches the list's in-algorithm card`);
+      AUFS.forEach((turn, index) => {
+        const random = buildPracticeSetup(record, caseOffset('random', auf, () => index / AUFS.length));
+        ok(solvedBy(random.scramble, random.solution) && solvedBy(random.scramble, prefixAuf(random.effectiveAuf, algorithm)),
+          `${label} ${turn}: a random turn is solved by the solution shown`);
+      });
+      lastLayer++;
     }
   }
 }
@@ -190,11 +208,11 @@ for (const [id, presets] of Object.entries(F2L_PRESET_ALGORITHMS) as [F2LId, rea
     const { auf, rest: body } = splitF2LAuf(preset);
     for (const seed of [1, 2, 3]) {
       const label = `${id} ${preset} seed ${seed}`;
-      const fixed = buildF2LSetup(id, { auf, body }, 'fixed', seededRandom(seed));
-      const aligned = buildF2LSetup(id, { auf, body }, 'algorithm', seededRandom(seed));
-      ok(aligned.uOffset === auf && aligned.scramble === appendUTurn(fixed.scramble, auf), `${label}: the setup turned by the AUF`);
+      const included = buildF2LSetup(id, { auf, body }, 'in-algorithm', seededRandom(seed));
+      const aligned = buildF2LSetup(id, { auf, body }, 'pre-applied', seededRandom(seed));
+      ok(aligned.uOffset === auf && aligned.scramble === appendUTurn(included.scramble, auf), `${label}: the setup turned by the AUF`);
       const viaBody = solved.applyAlg(aligned.scramble).applyAlg(rotationNeutral(body));
-      const viaAuf = solved.applyAlg(fixed.scramble).applyAlg(rotationNeutral(`${auf === 'U0' ? '' : auf} ${body}`));
+      const viaAuf = solved.applyAlg(included.scramble).applyAlg(rotationNeutral(`${auf === 'U0' ? '' : auf} ${body}`));
       ok(same(viaBody, 'CORNERS', 4) === same(viaAuf, 'CORNERS', 4) && same(viaBody, 'EDGES', 4) === same(viaAuf, 'EDGES', 4),
         `${label}: the body alone ends like the AUF and the body`);
       if (index === 0) ok(same(viaBody, 'CORNERS', 4) && same(viaBody, 'EDGES', 4), `${label}: the primary algorithm solves F2L`);
@@ -203,4 +221,4 @@ for (const [id, presets] of Object.entries(F2L_PRESET_ALGORITHMS) as [F2LId, rea
   });
 }
 
-console.log(`Verified ${checks} checks: session figures, move counts, the hold timer, each case once, the AUF choice, ${lastLayer} aligned last-layer cases and ${f2l} aligned F2L setups.`);
+console.log(`Verified ${checks} checks: session figures, move counts, the hold timer, each case once, the AUF choice, ${lastLayer} last-layer practice cases and ${f2l} aligned F2L setups.`);
