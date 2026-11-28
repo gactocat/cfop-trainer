@@ -89,7 +89,7 @@ export function TestCubePanel() {
   }
 
   return (
-    <section ref={(element) => { box.current = element; }} aria-label={t('smartCube.test.title')}
+    <section data-ui="TestCubePanel" ref={(element) => { box.current = element; }} aria-label={t('smartCube.test.title')}
       className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-3 z-[55] max-h-[70vh] w-[min(24rem,calc(100vw-1.5rem))] overflow-y-auto rounded-xl border border-amber-400 bg-amber-50/95 p-3 text-sm text-zinc-900 shadow-xl backdrop-blur dark:border-amber-600 dark:bg-zinc-900/95 dark:text-zinc-100">
       <div className="mb-2 flex items-center justify-between gap-2">
         <h2 className="flex items-center gap-1.5 text-xs font-semibold text-amber-900 dark:text-amber-200">

@@ -79,7 +79,7 @@ export function F2LGrid() {
   };
 
   return (
-    <div className="space-y-8">
+    <div data-ui="F2LGrid" className="space-y-8">
       {/* The page title is in the header; Select and random practice sit beside it. */}
       <h1 className="sr-only">{t('f2l.grid.title')}</h1>
       <ListHeaderActions
@@ -171,7 +171,7 @@ export function F2LGrid() {
                 </>
               );
               return (
-                <li key={f2l.id}>
+                <li key={f2l.id} data-ui="F2LGrid.case">
                   {showSelect ? (
                     <div
                       role="checkbox"

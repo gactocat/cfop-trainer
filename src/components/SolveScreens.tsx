@@ -75,7 +75,7 @@ export function SolveFrame({ label, head, cube, cubeSize, tail, onPress }: {
   onPress?: (event: ReactPointerEvent) => void;
 }) {
   return (
-    <section
+    <section data-ui="SolveFrame"
       aria-label={label}
       onPointerDown={onPress ? (event) => { if (!ownPress(event.target)) onPress(event); } : undefined}
       onContextMenu={onPress ? (event) => event.preventDefault() : undefined}
@@ -133,7 +133,7 @@ export function StatusLine({ children }: { children?: ReactNode }) {
   const problemKey = mounted && problem && status !== 'connected' ? PROBLEM[problem] : null;
   const text = problemKey ? t(problemKey) : children;
   return (
-    <div aria-live="polite" className="flex h-10 w-full items-center justify-center text-center text-sm leading-5">
+    <div data-ui="StatusLine" aria-live="polite" className="flex h-10 w-full items-center justify-center text-center text-sm leading-5">
       {text && (
         <p role={problemKey ? 'alert' : undefined} title={typeof text === 'string' ? text : undefined}
           className={`line-clamp-2 ${problemKey ? 'text-amber-800 dark:text-amber-200' : 'text-zinc-500 dark:text-zinc-400'}`}>
@@ -178,7 +178,7 @@ export function ScrambleHead({ toolbar, lead, scramble, failed = false, tokens, 
 }) {
   const { t } = useT();
   return (
-    <div className="flex w-full flex-col gap-3">
+    <div data-ui="ScrambleHead" className="flex w-full flex-col gap-3">
       <div className="flex min-h-8 items-start justify-between gap-3">
         {rerouted && scramble ? (
           <h2 className={`${LABEL} flex min-w-0 items-center gap-1 pt-1.5`}>
@@ -212,7 +212,7 @@ export function ScrambleHead({ toolbar, lead, scramble, failed = false, tokens, 
 /** Where the timer's digits sit, on the timer screen and the result alike, so the result's time takes the timer's place. */
 export function DigitsArea({ children, under }: { children: ReactNode; under: ReactNode }) {
   return (
-    <div className="flex min-h-[26vh] w-full flex-col items-center justify-end gap-2">
+    <div data-ui="DigitsArea" className="flex min-h-[26vh] w-full flex-col items-center justify-end gap-2">
       {children}
       <div className="flex h-5 items-center text-sm font-medium" aria-live="polite">{under}</div>
     </div>
@@ -248,7 +248,7 @@ export function TimerHead({ face, inspectionSince }: { face: TimerFace; inspecti
 export function DnfButton({ onDnf }: { onDnf: () => void }) {
   const { t } = useT();
   return (
-    <button type="button" onClick={onDnf} aria-label={t('solve.penalty.dnfAria')} title={t('solve.penalty.dnfAria')}
+    <button data-ui="DnfButton" type="button" onClick={onDnf} aria-label={t('solve.penalty.dnfAria')} title={t('solve.penalty.dnfAria')}
       className={`${buttonClass('secondary', 'sm')} font-mono`}>
       DNF
     </button>
@@ -269,7 +269,7 @@ export function SolveFigures({ record, moves, tps, crossColour }: {
 }) {
   const { t } = useT();
   return (
-    <dl className="flex flex-wrap justify-center gap-x-7 gap-y-2 sm:gap-x-10">
+    <dl data-ui="SolveFigures" className="flex flex-wrap justify-center gap-x-7 gap-y-2 sm:gap-x-10">
       <Figure size="sm" label={t('solve.moves')} value={moves === undefined ? '-' : String(moves)} />
       <Figure size="sm" label="TPS" value={tps === null ? '-' : tps.toFixed(2)} />
       <Figure size="sm" label={t('solve.inspection')} value={record.inspectionMs === undefined ? '-' : (record.inspectionMs / 1000).toFixed(2)} />
@@ -299,7 +299,7 @@ export function ResultHead({ record, moves, tps, crossColour, onRetry, onNext, o
 }) {
   const { t } = useT();
   return (
-    <div className="flex w-full flex-col items-center gap-5">
+    <div data-ui="ResultHead" className="flex w-full flex-col items-center gap-5">
       <div className="absolute right-3 top-3 flex items-center gap-1.5 sm:right-4 sm:top-4">
         <PenaltyButtons record={record} />
         <button type="button" onClick={onUndo} className={buttonClass('secondary', 'sm')}>

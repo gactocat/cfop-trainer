@@ -1,6 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { useDevMode } from '@/hooks/useDevMode';
 import { useMounted } from '@/hooks/useMounted';
 import { usePersistence } from '@/hooks/usePersistence';
 import { useSmartCube } from '@/hooks/useSmartCube';
@@ -10,7 +12,7 @@ import { openAccountDialog, openAppDialog } from '@/lib/app-dialog';
 import { WritableArea } from './AccountBoundary';
 import { LocaleToggle } from './LocaleToggle';
 import { ThemeToggle } from './ThemeToggle';
-import { ChevronIcon, CubeIcon, GearIcon, Icon, SettingRow, SettingsGroup, StopwatchIcon } from './ui';
+import { ChevronIcon, CubeIcon, GearIcon, Icon, SettingRow, SettingsGroup, StopwatchIcon, Switch } from './ui';
 
 // A setting kept in its own dialog: its name, what it is now, and an arrow.
 // As tall as a SettingRow; the second line is there from the start, so the
@@ -18,7 +20,7 @@ import { ChevronIcon, CubeIcon, GearIcon, Icon, SettingRow, SettingsGroup, Stopw
 function DialogRow({ icon, label, detail, onClick }: { icon: ReactNode; label: MessageKey; detail: ReactNode; onClick: () => void }) {
   const { t } = useT();
   return (
-    <button type="button" onClick={onClick}
+    <button type="button" onClick={onClick} data-ui="DialogRow"
       className="flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-zinc-50 focus-visible:bg-zinc-50 focus-visible:outline-none dark:hover:bg-zinc-800/60 dark:focus-visible:bg-zinc-800/60">
       <span className="shrink-0 text-zinc-500 dark:text-zinc-400">{icon}</span>
       <span className="min-w-0 flex-1">
@@ -45,7 +47,7 @@ export function HomeSection({ id, title, icon, as: Tag = 'section', children }: 
   children: ReactNode;
 }) {
   return (
-    <Tag id={id} aria-labelledby={`${id}-heading`}
+    <Tag id={id} aria-labelledby={`${id}-heading`} data-ui="HomeSection"
       className="rounded-2xl border border-zinc-200 bg-zinc-100/70 p-3 sm:p-4 dark:border-zinc-800 dark:bg-zinc-900/25">
       <h2 id={`${id}-heading`} lang="en" className="mb-2.5 flex items-center gap-1.5 px-1 text-sm font-semibold text-zinc-700 sm:mb-3 dark:text-zinc-300">
         <span className="text-zinc-500 dark:text-zinc-400">{icon}</span>
@@ -65,6 +67,26 @@ export const SECTION_ICON = {
 
 export const CUBE_ICON = <CubeIcon />;
 const ACCOUNT_ICON = <Icon><circle cx="12" cy="8" r="4" /><path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2" /></Icon>;
+
+// Developer mode, for the accounts the database lists as developers only:
+// on or off on this device, and the notes written with it. Nobody else sees it.
+function DevModeSettings() {
+  const { t } = useT();
+  const { developer, enabled, setEnabled } = useDevMode();
+  if (!developer) return null;
+  return (
+    <SettingsGroup className="overflow-hidden">
+      <SettingRow label={t('devMode.title')}>
+        {(labelId) => <Switch checked={enabled} onChange={setEnabled} labelledBy={labelId} />}
+      </SettingRow>
+      <Link href="/dev-notes" data-ui="DevModeSettings.notes"
+        className="flex min-h-14 items-center gap-3 px-4 py-3 transition-colors hover:bg-zinc-50 focus-visible:bg-zinc-50 focus-visible:outline-none dark:hover:bg-zinc-800/60 dark:focus-visible:bg-zinc-800/60">
+        <span className="min-w-0 flex-1 text-sm font-medium">{t('devNotes.title')}</span>
+        <ChevronIcon className="size-4 text-zinc-400 dark:text-zinc-500" />
+      </Link>
+    </SettingsGroup>
+  );
+}
 
 // The app's settings, on the top page below the F2L / OLL / PLL entries:
 // language and theme in place, and the smart cube and the account in their
@@ -91,6 +113,7 @@ export function HomeSettings() {
             detail={mounted && t(cube.status === 'connected' ? 'smartCube.status.connected' : 'smartCube.status.idle')} />
           <DialogRow icon={ACCOUNT_ICON} label="account.title" onClick={openAccountDialog} detail={mounted && account} />
         </SettingsGroup>
+        <DevModeSettings />
       </div>
     </HomeSection>
   );

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { AppDialogs } from '@/components/AppDialogs';
+import { DevMode } from '@/components/DevMode';
 import { TestCubePanel } from '@/components/TestCubePanel';
 import { HtmlLang } from '@/components/HtmlLang';
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
@@ -74,7 +75,7 @@ export default function RootLayout({
         <WebAnalytics />
         <HtmlLang />
         <ColorTheme />
-        <header className="pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur sticky top-0 z-10">
+        <header data-ui="AppHeader" className="pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur sticky top-0 z-10">
           {/* Back and the page's title, then what the page adds: a list page's Select and random practice, and its selection tools below. */}
           <div className="mx-auto max-w-6xl px-3 sm:px-4 py-3 flex min-h-[3.75rem] items-center gap-2">
             <HeaderTitle />
@@ -82,12 +83,13 @@ export default function RootLayout({
           </div>
           <div id={HEADER_TOOLBAR_ID} />
         </header>
-        <main className="mx-auto w-full max-w-6xl pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom),var(--test-cube-inset,0px))] flex-1">
+        <main data-ui="AppMain" className="mx-auto w-full max-w-6xl pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom),var(--test-cube-inset,0px))] flex-1">
           <AccountBoundary>{children}</AccountBoundary>
         </main>
         <AppDialogs />
         <TestCubePanel />
-        <footer className="mx-auto w-full max-w-6xl px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]"><PublicLinks /></footer>
+        <DevMode />
+        <footer data-ui="AppFooter" className="mx-auto w-full max-w-6xl px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]"><PublicLinks /></footer>
       </body>
     </html>
   );

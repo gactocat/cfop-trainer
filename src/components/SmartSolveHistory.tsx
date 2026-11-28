@@ -22,7 +22,7 @@ export function SmartSolveHistory({ practice, caseId }: { practice: TrainerPract
   const date = new Intl.DateTimeFormat(intl, { dateStyle: 'short', timeStyle: 'short' });
 
   return (
-    <section className="space-y-3">
+    <section data-ui="SmartSolveHistory" className="space-y-3">
       <header className="flex items-center justify-between gap-3">
         <h2 className="flex items-center gap-1 text-lg font-medium">
           {t('smartCube.history.title')}
@@ -59,7 +59,7 @@ function HistoryRow({ record, date }: { record: SmartSolveRecord; date: Intl.Dat
     return { notation: read.map((m) => m.move).join(' '), count: read.length, tps: turnsPerSecond(read.length, record.executionMs) };
   }, [record]);
   return (
-    <li className={`${CARD} p-3 text-sm`}>
+    <li data-ui="HistoryRow" className={`${CARD} p-3 text-sm`}>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="font-mono font-semibold tabular-nums">{(record.executionMs / 1000).toFixed(3)}</span>
         {record.mode === 'no-scramble' && (

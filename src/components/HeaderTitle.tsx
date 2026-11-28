@@ -59,6 +59,7 @@ function pageFor(pathname: string, t: Translate): Page | null {
     return name ? { title: t('casePractice.title', { name }), up: { href: `/${practice.practice}/${encodeURIComponent(practice.caseId)}`, label: name } } : null;
   }
   if (first === 'privacy' || first === 'support') return { title: t(`${first}.title`), up: home };
+  if (first === 'dev-notes') return { title: t('devNotes.title'), up: home };
   if (first === 'solve') return id && id in SOLVES ? { title: SOLVES[id], up: home } : null;
   if (!isStage(first)) return null;
   const name = id ? caseName(first, id, t) : undefined;
@@ -138,7 +139,7 @@ export function HeaderTitle() {
 
   const label = t('nav.backTo', { page: page.up.label });
   return (
-    <div className="flex min-w-0 shrink items-center gap-1">
+    <div data-ui="HeaderTitle" className="flex min-w-0 shrink items-center gap-1">
       <Link href={upHref} onClick={back} aria-label={label} title={label}
         className={`${iconButtonClass()} -ml-1.5`}>
         <BackIcon />

@@ -90,7 +90,7 @@ export function OLLGrid() {
   };
 
   return (
-    <div className="space-y-8">
+    <div data-ui="OLLGrid" className="space-y-8">
       {/* The page title is in the header; Select and random practice sit beside it. */}
       <h1 className="sr-only">{t('oll.grid.title')}</h1>
       <ListHeaderActions
@@ -172,7 +172,7 @@ export function OLLGrid() {
                 </>
               );
               return (
-                <li key={oll.id}>
+                <li key={oll.id} data-ui="OLLGrid.case">
                   {showSelect ? (
                     <div
                       role="checkbox"

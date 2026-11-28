@@ -79,7 +79,7 @@ export function PllGrid() {
   };
 
   return (
-    <div className="space-y-8">
+    <div data-ui="PllGrid" className="space-y-8">
       {/* The page title is in the header; Select and random practice sit beside it. */}
       <h1 className="sr-only">{t('pll.grid.title')}</h1>
       <ListHeaderActions
@@ -161,7 +161,7 @@ export function PllGrid() {
                 </>
               );
               return (
-                <li key={pll.id}>
+                <li key={pll.id} data-ui="PllGrid.case">
                   {showSelect ? (
                     <div
                       role="checkbox"

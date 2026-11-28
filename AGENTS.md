@@ -4,9 +4,9 @@ Web app for managing CFOP F2L and PLL algorithms, recording solve times, and
 training recognition with random cases. Guest data lives in `localStorage`.
 Optional Supabase email/password accounts save user data to PostgreSQL through
 Auth and an ownership-checked RPC; account data is held only in client memory.
-The only Next.js API route is `/api/supabase-keepalive`, a read-only request
+Next.js has two API routes: `/api/supabase-keepalive`, a read-only request
 that Vercel Cron (`vercel.json`) sends so the Free Supabase project does not
-pause. Account deletion uses a Supabase Edge Function. Deployed on Vercel from `main` (https://cfop.app), installable as a PWA.
+pause, and `/api/dev-note`, which passes a developer-mode note on to a webhook. Account deletion uses a Supabase Edge Function. Deployed on Vercel from `main` (https://cfop.app), installable as a PWA.
 
 Stack: Next.js (App Router, every page prerendered at build time), React 19,
 TypeScript strict, Tailwind CSS v4, cubing.js for 3D / LL visualisation.
@@ -53,7 +53,8 @@ CI (`.github/workflows/ci.yml`) runs the same three steps on every PR.
   `generateStaticParams`. The top page's groups and entries are data in
   `src/data/home-entries.ts`. Extra extensions limit where a route exists
   (`next.config.ts`): `page.dev.tsx` only under `next dev`, `route.web.ts`
-  (server routes, `/api/supabase-keepalive`) everywhere but the iOS static export.
+  (server routes, `/api/supabase-keepalive`, `/api/dev-note`) everywhere but
+  the iOS static export.
 - `src/components/` — UI. Almost everything is a `'use client'` component.
   PLL and F2L have parallel component sets (`PllGrid` / `F2LGrid`,
   `RandomTrainer` / `F2LRandomTrainer`, ...); keep them in step when changing
@@ -107,6 +108,12 @@ CI (`.github/workflows/ci.yml`) runs the same three steps on every PR.
   with the query and hash dropped. It renders nothing in the iOS export
   (`NEXT_PUBLIC_NATIVE_APP`), which keeps the library out of the app and the
   App Store privacy answers unchanged; the privacy policy says so too.
+- `src/lib/dev-mode/`, `components/DevMode.tsx`, `DevNoteLayer.tsx`,
+  `DevNotes.tsx` — developer mode: for accounts in the database's `dev_users`
+  only (never name anyone in the code), notes on a picked part or area of a
+  screen with its `data-ui` marks and a screenshot, saved to `dev_notes` and
+  passed to a webhook by `/api/dev-note`; the list at `/dev-notes`. Its code
+  loads only while it is on. See `docs/dev-mode.md`.
 - `ios/` — Capacitor project and native bridge. Generated public assets and
   config are ignored. Keep normal and native Next builds sequential.
 
@@ -138,6 +145,9 @@ CI (`.github/workflows/ci.yml`) runs the same three steps on every PR.
   (`buttonClass`, `iconButtonClass`, `Segmented` for a choice, `Switch` for
   on / off, `SettingsGroup` and `SettingRow` for settings, `CARD`, `INPUT`):
   extend those rather than styling a new button or toggle in place.
+- Screens' main blocks and the shared controls carry `data-ui="<Component>"`
+  (or `<Component>.<part>`), which developer-mode notes report; mark a new
+  screen's blocks the same way.
 - Layout stays put: a message that comes and goes takes a place kept for it
   (the solve and practice screens' status line, a row's second line) or
   replaces words in place, so nothing around it moves.

@@ -47,7 +47,7 @@ export function TimeHistoryPanel({
   const ao5 = averageOfN(times, 5);
 
   return (
-    <div className="rounded-xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 p-3 space-y-3">
+    <div data-ui="TimeHistoryPanel" className="rounded-xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 p-3 space-y-3">
       <dl className="grid grid-cols-2 gap-2">
         <Figure label={t('common.best')} value={formatSeconds(best)} />
         <Figure label={t('common.ao5')} value={formatSeconds(ao5)} />

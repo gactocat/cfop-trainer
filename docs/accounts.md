@@ -291,6 +291,14 @@ drop table public.solves;
 The app then goes back to keeping signed-in users' solves on the device.
 Changes waiting in a device's outbox stay there until the table exists again.
 
+## Developer notes tables (not applied yet)
+
+Developer mode keeps its notes in `public.dev_notes`, and who is a developer
+in `public.dev_users`, from
+[`20261128000000_dev_notes.sql`](../supabase/migrations/20261128000000_dev_notes.sql).
+Until it runs, nobody sees developer mode and nothing else changes. How to
+apply it, register a developer and undo it is in [developer mode](dev-mode.md#database-not-applied-yet).
+
 ## Keep the Free project from pausing
 
 Supabase pauses a Free plan project that shows low database activity over

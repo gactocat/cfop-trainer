@@ -64,7 +64,7 @@ const FEATURED = 'col-span-full border-emerald-300 bg-emerald-50/50 hover:border
 function Entry({ entry }: { entry: HomeEntry }) {
   const { href, name, art, featured } = entry;
   return (
-    <Link href={href} className={`${TILE} ${featured ? FEATURED : PLAIN}`}>
+    <Link data-ui="LandingPage.entry" href={href} className={`${TILE} ${featured ? FEATURED : PLAIN}`}>
       <span className="size-14 sm:size-18"><Cube stage={art} /></span>
       <span className="text-lg font-semibold tracking-tight sm:text-2xl">{name}</span>
     </Link>
@@ -89,7 +89,7 @@ function Group({ group }: { group: HomeGroup }) {
 export function LandingPage() {
   const { t } = useT();
   return (
-    <div className="mx-auto max-w-4xl space-y-4 pb-6 sm:space-y-6 sm:pb-10">
+    <div data-ui="LandingPage" className="mx-auto max-w-4xl space-y-4 pb-6 sm:space-y-6 sm:pb-10">
       <div className="flex justify-center pt-2 pb-2 sm:pt-6 sm:pb-4">
         <h1 className="flex items-center gap-3 sm:gap-4">
           <Image src="/logo.svg" alt="" width={93} height={98} preload className="h-11 w-auto shrink-0 sm:h-14" />

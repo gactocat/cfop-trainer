@@ -61,7 +61,7 @@ function RecognitionCount({ since }: { since: number }) {
 /** The case screen's controls: the smart cube (connect, or its battery) and the practice's settings. */
 function PracticeToolbar({ scope }: { scope: PracticeScope }) {
   return (
-    <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+    <div data-ui="PracticeToolbar" className="flex shrink-0 flex-wrap items-center justify-end gap-1">
       <span className="mr-1"><CubeConnection /></span>
       <PracticeSettingsButton scope={scope} className={iconButtonClass()} />
     </div>
@@ -71,7 +71,7 @@ function PracticeToolbar({ scope }: { scope: PracticeScope }) {
 /** With auto-advance, the wait for the cube to rest before the next case. */
 function SettleBar({ settle }: { settle: { key: number } }) {
   return (
-    <div className="h-1 w-full max-w-xs overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800" aria-hidden>
+    <div data-ui="SettleBar" className="h-1 w-full max-w-xs overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800" aria-hidden>
       <div key={settle.key} className="h-full origin-left bg-emerald-500" style={{ animation: `no-scramble-settle ${SETTLE_MS}ms linear forwards` }} />
     </div>
   );
@@ -95,7 +95,7 @@ function PracticeResultHead({ result, elapsed, solution, caseStats, settle, onRe
   const { t } = useT();
   const undone = result?.undone ?? false;
   return (
-    <div className="flex w-full flex-col items-center gap-5">
+    <div data-ui="PracticeResultHead" className="flex w-full flex-col items-center gap-5">
       {result && !undone && (
         <div className="absolute right-3 top-3 sm:right-4 sm:top-4">
           <button type="button" onClick={() => onUndo(result.key)} title="Esc" className={buttonClass('secondary', 'sm')}>
@@ -139,7 +139,7 @@ function RoundDone({ total, results, listHref, onRestart }: {
   const { t } = useT();
   const up = useUpLink(listHref);
   return (
-    <div className="flex w-full flex-col items-center gap-5 py-4 text-center">
+    <div data-ui="RoundDone" className="flex w-full flex-col items-center gap-5 py-4 text-center">
       <h2 className="text-xl font-semibold">{t('practice.round.done', { total })}</h2>
       <SessionStats results={results} heading={false} className="max-w-md" />
       <div className="flex items-center gap-2">

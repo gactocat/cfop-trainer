@@ -61,7 +61,7 @@ export function F2LAlgorithmForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-2">
+    <form data-ui="F2LAlgorithmForm" onSubmit={handleSubmit} className="space-y-2">
       {presets && presets.length > 0 && (
         <div className="flex items-center gap-2">
           <label

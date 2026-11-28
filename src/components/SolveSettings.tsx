@@ -25,7 +25,7 @@ export function Swatches({ label, value, allowed, onPick, disabled = false }: {
 }) {
   const { t } = useT();
   return (
-    <div role="radiogroup" aria-label={label} className="flex items-center gap-3">
+    <div data-ui="Swatches" role="radiogroup" aria-label={label} className="flex items-center gap-3">
       <span className="w-10 shrink-0 text-xs font-medium text-zinc-600 dark:text-zinc-300">{label}</span>
       <span className="flex flex-wrap gap-1.5">
         {CUBE_COLOURS.map((colour) => {
@@ -61,7 +61,7 @@ function SolveSettingsForm({ settings }: { settings: Settings }) {
   const { t } = useT();
   const readOnly = !settings.writable;
   return (
-    <div className="space-y-3">
+    <div data-ui="SolveSettingsForm" className="space-y-3">
       <SettingsGroup>
         <SettingRow label={t('solve.settings.scramble')} info={t('solve.settings.scrambleHelp')} stacked>
           <div className="space-y-3">

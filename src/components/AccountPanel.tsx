@@ -86,7 +86,7 @@ export function AccountPanel() {
     finally { setBusy(false); }
   };
   const signedIn = !!state.userId && state.mode !== 'boot';
-  return <div className="space-y-4">
+  return <div data-ui="AccountPanel" className="space-y-4">
     <p className="px-1 text-xs text-zinc-500 dark:text-zinc-400">{t('account.description')}</p>
     <StorageStatus />
     <div className={`${CARD} space-y-4 p-4`}>

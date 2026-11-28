@@ -40,7 +40,7 @@ export function OLLAlgorithmRow({
   const ao5 = averageOfN(record.times, 5);
 
   return (
-    <li
+    <li data-ui="OLLAlgorithmRow"
       className={`rounded-xl border ${
         record.isStarred
           ? 'border-amber-400 dark:border-amber-500'

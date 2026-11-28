@@ -62,7 +62,7 @@ export function F2LDetail({ f2lId }: F2LDetailProps) {
 
   const displayAlg = star?.algorithm ?? def.primaryAlg;
   return (
-    <div className="space-y-6">
+    <div data-ui="F2LDetail" className="space-y-6">
       {/* The header shows the case's name; the heading stays for screen readers. */}
       <h1 className="sr-only">
         {t('common.f2lCase', { number: def.number })}

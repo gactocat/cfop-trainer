@@ -66,7 +66,7 @@ export function OLLDetail({ ollId }: OLLDetailProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div data-ui="OLLDetail" className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
         <div className="space-y-2">
           {/* The header shows the case's name; the heading stays for screen readers. */}

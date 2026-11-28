@@ -9,7 +9,7 @@ export function PublicPage({ kind }: { kind: 'privacy' | 'support' }) {
   const sections = kind === 'privacy'
     ? ['operator', 'data', 'purpose', 'providers', 'retention', 'choices', 'changes'] as const
     : ['practice', 'sync', 'email', 'delete', 'contact'] as const;
-  return <article className="mx-auto max-w-2xl space-y-6 text-sm leading-7 text-zinc-700 dark:text-zinc-300">
+  return <article data-ui="PublicPage" className="mx-auto max-w-2xl space-y-6 text-sm leading-7 text-zinc-700 dark:text-zinc-300">
     <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{t(`${kind}.title`)}</h1>
     <p>{t(`${kind}.intro`)}</p>
     {sections.map((section) => <section key={section} className="space-y-2">

@@ -14,7 +14,7 @@ const TONE: Record<TimerTone, string> = {
 // letting go starts, plain while running and after.
 export function TimerDigits({ tone = 'plain', className = '', children }: { tone?: TimerTone; className?: string; children: ReactNode }) {
   return (
-    <div className={`font-mono text-6xl font-bold tabular-nums leading-none transition-colors sm:text-8xl ${TONE[tone]} ${className}`} aria-live="off">
+    <div data-ui="TimerDigits" className={`font-mono text-6xl font-bold tabular-nums leading-none transition-colors sm:text-8xl ${TONE[tone]} ${className}`} aria-live="off">
       {children}
     </div>
   );

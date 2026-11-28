@@ -20,7 +20,7 @@ export function TitleBar({ title, titleId, info, onClose, hidden = false }: {
 }) {
   const { t } = useT();
   return (
-    <div className={`flex h-14 shrink-0 items-center justify-between gap-2 border-b border-zinc-200 bg-white pl-4 pr-2.5 dark:border-zinc-800 dark:bg-zinc-900 ${hidden ? 'invisible' : ''}`}>
+    <div data-ui="TitleBar" className={`flex h-14 shrink-0 items-center justify-between gap-2 border-b border-zinc-200 bg-white pl-4 pr-2.5 dark:border-zinc-800 dark:bg-zinc-900 ${hidden ? 'invisible' : ''}`}>
       <h2 id={titleId} className="flex min-w-0 items-center gap-1 text-base font-semibold">
         <span className="truncate">{title}</span>
         {info && <InfoTip>{info}</InfoTip>}
@@ -52,7 +52,7 @@ export function AppModal({ title, info, onClose, children }: { title: string; in
   }, []);
 
   return createPortal(
-    <dialog ref={dialog} aria-modal="true" aria-labelledby={titleId} data-app-overlay
+    <dialog data-ui="AppModal" ref={dialog} aria-modal="true" aria-labelledby={titleId} data-app-overlay
       onCancel={(event) => { event.preventDefault(); onClose(); }}
       onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}
       className="mx-auto mb-auto mt-[max(1rem,env(safe-area-inset-top),8dvh)] max-h-[calc(92dvh-1rem-env(safe-area-inset-bottom))] w-[calc(100%-2rem-env(safe-area-inset-left)-env(safe-area-inset-right))] max-w-md overflow-y-auto overscroll-contain rounded-xl border border-zinc-200 bg-zinc-50 p-0 text-zinc-900 shadow-xl backdrop:bg-black/40 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100">

@@ -25,7 +25,7 @@ import { VirtualCube } from './VirtualCube';
 /** One part of the page: a card with its small heading. More parts go in as more of them. */
 function Part({ label, children }: { label?: string; children: ReactNode }) {
   return (
-    <section className={`${CARD} space-y-3 p-4 sm:p-5`}>
+    <section data-ui="Part" className={`${CARD} space-y-3 p-4 sm:p-5`}>
       {label && <h2 className={LABEL}>{label}</h2>}
       {children}
     </section>
@@ -60,7 +60,7 @@ function RecordView({ mode, record }: { mode: SolveMode; record: SolveRecord }) 
     goUp(router, solveRecordsPath(mode));
   };
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-3">
+    <div data-ui="RecordView" className="mx-auto w-full max-w-2xl space-y-3">
       <Part>
         <div className="flex flex-col items-center gap-4 py-2">
           <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">

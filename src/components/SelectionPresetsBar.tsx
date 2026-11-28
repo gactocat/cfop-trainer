@@ -49,7 +49,7 @@ export function SelectionPresetsBar<Id extends string>({
 
   // The parts flow with the selection tools around them (see ListHeaderActions).
   return (
-    <div className="contents">
+    <div data-ui="SelectionPresetsBar" className="contents">
       {presets.length > 0 && (
         <select
           aria-label={t('selection.savedSetsAria')}

@@ -41,7 +41,7 @@ export function PenaltyButtons({ record }: { record: SolveRecord }) {
     );
   };
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span data-ui="PenaltyButtons" className="inline-flex items-center gap-1.5">
       {button('plus2', '+2', t('solve.penalty.plus2Aria'))}
       {button('dnf', 'DNF', t('solve.penalty.dnfAria'))}
     </span>

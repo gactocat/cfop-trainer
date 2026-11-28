@@ -41,7 +41,7 @@ export function SolveStages({ record, className = '' }: { record: SolveRecord; c
   const th = 'px-1 pb-1.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400';
   const td = 'px-1 py-1.5 font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-300';
   return (
-    <table aria-label={t('solve.stage.title')} className={`w-full table-fixed text-right ${className}`}>
+    <table data-ui="SolveStages" aria-label={t('solve.stage.title')} className={`w-full table-fixed text-right ${className}`}>
       <thead>
         <tr>
           <th scope="col" className={`${th} w-[28%] text-left`}>{t('solve.stage.title')}</th>

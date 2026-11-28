@@ -8,6 +8,9 @@ import { InfoTip } from './InfoTip';
 // box are 32 px (md, 13 px text), a small action in a row or toolbar 28 px
 // (sm, 12 px text), with no exceptions for important ones. On a touch screen
 // each reaches past what is drawn (TOUCH), so a finger still finds it.
+//
+// Each part carries `data-ui` with its component's name, as the screens'
+// main blocks do, so developer mode's notes can say what they point at.
 
 /** A card: the top page's groups, a solve's screens, a list's cases. */
 export const CARD = 'rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900';
@@ -30,6 +33,8 @@ const FIELD = 'min-w-0 rounded-md border border-zinc-300 bg-white text-zinc-900 
 export const INPUT = `${FIELD} h-8 w-full px-2.5 text-base sm:text-[13px]`;
 /** A select among sm buttons in a toolbar. */
 export const INPUT_SM = `${FIELD} h-7 px-2 text-xs`;
+/** A box for a few lines of text, with an input's text and border. */
+export const TEXTAREA = `${FIELD} block w-full resize-none px-2.5 py-1.5 text-base sm:text-[13px]`;
 
 const BUTTON_BASE = `relative inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:pointer-events-none disabled:opacity-50 ${TOUCH}`;
 const BUTTON_SIZE = { md: 'h-8 px-3.5 text-[13px]', sm: 'h-7 px-2.5 text-xs' } as const;
@@ -151,7 +156,7 @@ export function Segmented<T extends string>({ label, value, options, onChange, v
   className?: string;
 }) {
   return (
-    <div role="radiogroup" aria-label={label}
+    <div role="radiogroup" aria-label={label} data-ui="Segmented"
       className={`${vertical ? 'flex w-full flex-col' : 'inline-flex max-w-full flex-wrap'} gap-0.5 rounded-lg bg-zinc-100 p-0.5 dark:bg-zinc-800 ${className}`}>
       {options.map((option) => {
         const active = option.value === value;
@@ -192,7 +197,7 @@ export function Switch({ checked, onChange, label, labelledBy, disabled = false 
   disabled?: boolean;
 }) {
   return (
-    <button type="button" role="switch" aria-checked={checked} aria-label={label} aria-labelledby={labelledBy}
+    <button type="button" role="switch" aria-checked={checked} aria-label={label} aria-labelledby={labelledBy} data-ui="Switch"
       disabled={disabled} onClick={() => onChange(!checked)}
       className={`flex h-6 w-10 shrink-0 items-center rounded-full p-0.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:cursor-not-allowed disabled:opacity-50 ${checked ? 'bg-emerald-600' : 'bg-zinc-300 dark:bg-zinc-600'}`}>
       <span className={`size-5 rounded-full bg-white shadow-sm transition-transform ${checked ? 'translate-x-4' : ''}`} />
@@ -202,7 +207,7 @@ export function Switch({ checked, onChange, label, labelledBy, disabled = false 
 
 /** Settings as one card, a row each (SettingRow), on the top page and in the settings dialogs alike. */
 export function SettingsGroup({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`divide-y divide-zinc-200 dark:divide-zinc-800 ${CARD} ${className}`}>{children}</div>;
+  return <div data-ui="SettingsGroup" className={`divide-y divide-zinc-200 dark:divide-zinc-800 ${CARD} ${className}`}>{children}</div>;
 }
 
 /**
@@ -220,7 +225,7 @@ export function SettingRow({ label, info, detail, stacked = false, children }: {
 }) {
   const id = useId();
   return (
-    <div className={`flex min-h-14 gap-x-4 gap-y-2 px-4 py-3 ${stacked ? 'flex-col' : 'flex-wrap items-center justify-between'}`}>
+    <div data-ui="SettingRow" className={`flex min-h-14 gap-x-4 gap-y-2 px-4 py-3 ${stacked ? 'flex-col' : 'flex-wrap items-center justify-between'}`}>
       <div className="min-w-0">
         <div className="flex items-center gap-1 text-sm font-medium">
           <span id={id}>{label}</span>

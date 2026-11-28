@@ -36,7 +36,7 @@ export function SessionStats({ results, note, heading = true, className = '' }: 
     <span className="block text-[10px] text-zinc-400 dark:text-zinc-500">{t('trainer.session.best', { value: formatSolveTime(value * 1000) })}</span>
   );
   return (
-    <section className={`w-full ${CARD} p-4 text-sm ${className}`}>
+    <section data-ui="SessionStats" className={`w-full ${CARD} p-4 text-sm ${className}`}>
       <h3 className={`flex items-baseline gap-2 ${LABEL} ${heading ? 'justify-between' : 'justify-end'}`}>
         {heading && t('trainer.noScramble.session')}
         {totals.count > 0 && <span className="normal-case tracking-normal">{t('trainer.session.count', { count: totals.count })}</span>}

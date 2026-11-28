@@ -62,7 +62,7 @@ export function InfoTip({ children, className = '' }: { children: ReactNode; cla
   }, [place, hide]);
 
   return (
-    <span ref={root} className={`inline-flex align-middle ${className}`}
+    <span data-ui="InfoTip" ref={root} className={`inline-flex align-middle ${className}`}
       onPointerEnter={(event) => { if (event.pointerType === 'mouse' && !place) show(); }}
       onPointerLeave={(event) => { if (event.pointerType === 'mouse' && !pinned) setPlace(null); }}>
       <button ref={button} type="button" data-readonly-allowed

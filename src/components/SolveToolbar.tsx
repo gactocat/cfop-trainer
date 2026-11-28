@@ -49,7 +49,7 @@ export function CubeConnection() {
     }
   };
   return (
-    <button type="button" disabled={busy} onClick={onConnect} title={t(cubeStatusKey(cube))} className={chip}>
+    <button data-ui="CubeConnection" type="button" disabled={busy} onClick={onConnect} title={t(cubeStatusKey(cube))} className={chip}>
       {CUBE_ICON}
       {t(cube.status === 'needs-mac' ? 'practice.cube.enterMac' : busy ? 'smartCube.status.connecting' : 'practice.cube.connectShort')}
     </button>
@@ -65,7 +65,7 @@ export function SolveToolbar({ settings, onNewScramble, newDisabled }: {
 }) {
   const { t } = useT();
   return (
-    <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+    <div data-ui="SolveToolbar" className="flex shrink-0 flex-wrap items-center justify-end gap-1">
       <span className="mr-1"><CubeConnection /></span>
       <button type="button" onClick={onNewScramble} disabled={newDisabled} aria-label={t('solve.scramble.new')} title={t('solve.scramble.new')}
         className={iconButtonClass()}>

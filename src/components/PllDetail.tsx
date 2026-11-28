@@ -66,7 +66,7 @@ export function PllDetail({ pllId }: PllDetailProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div data-ui="PllDetail" className="space-y-6">
       {/* The header shows the case's name; the heading stays for screen readers. */}
       <h1 className="sr-only">{def.name}</h1>
       <div className="flex flex-col md:flex-row md:items-start md:justify-end gap-6">

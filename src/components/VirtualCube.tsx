@@ -249,5 +249,5 @@ export function VirtualCube({ practice, holding, setupAlg = '', moves = [], rese
     return () => { cancelled = true; };
   }, [player, state, frame, next]);
 
-  return <div ref={hostRef} className={className} />;
+  return <div data-ui="VirtualCube" ref={hostRef} className={className} />;
 }

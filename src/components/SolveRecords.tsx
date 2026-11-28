@@ -48,7 +48,7 @@ function SolveRow({ number, record, href }: { number: number; record: SolveRecor
   const summary = useMovesSummary(record);
   const when = useRecordedAt(record);
   return (
-    <li>
+    <li data-ui="SolveRow">
       <Link href={href} className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-emerald-600 dark:hover:bg-zinc-800/60">
         <span className="w-8 shrink-0 text-right font-mono text-xs tabular-nums text-zinc-400 dark:text-zinc-500">{number}</span>
         <span className="min-w-0 flex-1">
@@ -77,7 +77,7 @@ function SyncNote({ event, snapshot }: { event: SolveEvent; snapshot: SolvesSnap
     : where === 'account' ? 'solve.records.account'
       : where === 'device-for-account' ? 'solve.records.deviceForAccount' : 'solve.records.device';
   return (
-    <div className="mt-3 space-y-1 text-[11px] text-zinc-400 dark:text-zinc-500">
+    <div data-ui="SyncNote" className="mt-3 space-y-1 text-[11px] text-zinc-400 dark:text-zinc-500">
       {status === 'error' ? (
         <p role="alert" className="text-amber-800 dark:text-amber-200">
           {t('solve.records.loadFailed')}{' '}
@@ -91,7 +91,7 @@ function SyncNote({ event, snapshot }: { event: SolveEvent; snapshot: SolvesSnap
 function ImportOffer({ event, count }: { event: SolveEvent; count: number }) {
   const { t } = useT();
   return (
-    <div className="mt-3 rounded-xl border border-zinc-200 p-3 text-xs dark:border-zinc-800">
+    <div data-ui="ImportOffer" className="mt-3 rounded-xl border border-zinc-200 p-3 text-xs dark:border-zinc-800">
       <p className="text-zinc-700 dark:text-zinc-200">{t('solve.records.offer', { count })}</p>
       <div className="mt-2 flex flex-wrap gap-2">
         <button type="button" onClick={() => void importDeviceSolves(event)} className={buttonClass('primary', 'sm')}>
@@ -118,7 +118,7 @@ export function SolveRecords({ mode, className = '' }: { mode: SolveMode; classN
   const [shown, setShown] = useState(PAGE);
   const average = (ms: number | null) => formatSolveTime(ms, { average: true });
   return (
-    <section aria-labelledby="solve-records" className={`${CARD} p-4 ${className}`}>
+    <section data-ui="SolveRecords" aria-labelledby="solve-records" className={`${CARD} p-4 ${className}`}>
       {/* The page's title in the header says what this is. */}
       <h2 id="solve-records" className="flex items-baseline justify-end gap-2">
         <span className="sr-only">{t('solve.records.title')}</span>

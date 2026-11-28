@@ -100,7 +100,7 @@ export function SmartCubeInfo() {
   const { t } = useT();
   return (
     <>
-      <span className="block">{t('smartCube.description')}</span>
+      <span data-ui="SmartCubeInfo" className="block">{t('smartCube.description')}</span>
       <span className="block">{t('smartCube.usage')}</span>
     </>
   );
@@ -141,7 +141,7 @@ export function SmartCubePanel() {
   const sm = (variant: Parameters<typeof buttonClass>[0]) => buttonClass(variant, 'sm');
 
   return (
-    <div className="space-y-3 text-sm">
+    <div data-ui="SmartCubePanel" className="space-y-3 text-sm">
       {(!unsupported || testCube) ? (
         <SettingsGroup>
           <SettingRow

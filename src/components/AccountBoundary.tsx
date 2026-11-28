@@ -27,7 +27,7 @@ export function StorageStatus({ floating = false }: { floating?: boolean }) {
     : !state.online ? 'account.offline' : null;
   if (!message) return null;
   return (
-    <div role={state.error ? 'alert' : 'status'} className={`rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 ${floating
+    <div data-ui="StorageStatus" role={state.error ? 'alert' : 'status'} className={`rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 ${floating
       ? 'fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 mx-auto max-w-md shadow-lg'
       : ''}`}>
       <p>{t(message)}</p>

@@ -61,7 +61,7 @@ export function OLLAlgorithmForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-2">
+    <form data-ui="OLLAlgorithmForm" onSubmit={handleSubmit} className="space-y-2">
       {presets && presets.length > 0 && (
         <div className="flex items-center gap-2">
           <label
