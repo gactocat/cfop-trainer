@@ -13,6 +13,7 @@ import { solvePageOf, solveRecordsPath } from '@/lib/solve/solve-pages';
 import { F2L_IDS, type F2LId } from '@/types/f2l';
 import { OLL_IDS, type OLLId } from '@/types/oll';
 import type { PllId } from '@/types/pll';
+import { BrandLine } from './BrandName';
 import { iconButtonClass } from './ui';
 
 const STAGES = { f2l: 'F2L', oll: 'OLL', pll: 'PLL' } as const;
@@ -130,9 +131,9 @@ export function HeaderTitle() {
 
   if (!page) {
     return (
-      <Link href="/" aria-current="page" className="flex shrink-0 items-center gap-2 text-base font-semibold tracking-tight sm:text-lg">
+      <Link href="/" aria-current="page" className="flex shrink-0 items-center gap-2">
         <Image src="/logo.svg" alt="" width={27} height={28} className="h-6 w-auto sm:h-7" />
-        {HOME}
+        <BrandLine label={HOME} />
       </Link>
     );
   }

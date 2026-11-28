@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { HOME_GROUPS, type HomeEntry, type HomeEntryArt, type HomeGroup } from '@/data/home-entries';
 import { useT } from '@/hooks/useT';
+import { BrandStack } from './BrandName';
 import { HomeSection, HomeSettings, SECTION_ICON } from './HomeSettings';
 
 // Equal tiles on three isometric planes echo the app icon without a WebGL player.
@@ -91,12 +92,10 @@ export function LandingPage() {
   return (
     <div data-ui="LandingPage" className="mx-auto max-w-4xl space-y-4 pb-6 sm:space-y-6 sm:pb-10">
       <div className="flex justify-center pt-2 pb-2 sm:pt-6 sm:pb-4">
-        <h1 className="flex items-center gap-3 sm:gap-4">
-          <Image src="/logo.svg" alt="" width={93} height={98} preload className="h-11 w-auto shrink-0 sm:h-14" />
-          <span className="whitespace-nowrap text-[1.75rem] leading-none tracking-tight sm:text-4xl">
-            {/* As heavy as the header's name. */}
-            <span className="font-semibold">{t('landing.brandName')} {t('landing.brandDescriptor')}</span>
-          </span>
+        {/* The icon and the name on two lines, as tall as the icon (--h). */}
+        <h1 className="flex items-center gap-3 [--h:52px] sm:gap-4 sm:[--h:68px]">
+          <Image src="/logo.svg" alt="" width={93} height={98} preload className="h-[var(--h)] w-auto shrink-0" />
+          <BrandStack label={`${t('landing.brandName')} ${t('landing.brandDescriptor')}`} />
         </h1>
       </div>
       {HOME_GROUPS.map((group) => <Group key={group.id} group={group} />)}
