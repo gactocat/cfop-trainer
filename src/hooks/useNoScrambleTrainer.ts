@@ -105,9 +105,11 @@ const serverView = () => null;
  * case again.
  */
 export function useNoScrambleTrainer({
-  active, practice, scramble, trainerState, autoAdvance, log, describe, record, onStart, onStop, onAbort, onAdvance,
+  active, practice, scramble, trainerState, autoAdvance, recognition, log, describe, record, onStart, onStop, onAbort, onAdvance,
 }: {
   active: boolean;
+  /** Keep the recognition (case shown to first turn) with each solve; otherwise none is kept. */
+  recognition: boolean;
   /** Go on to the next case by itself once the cube rests; otherwise wait for `next`. */
   autoAdvance: boolean;
   practice: TrainerPractice;
@@ -142,8 +144,8 @@ export function useNoScrambleTrainer({
   const connected = cube.status === 'connected';
   const [holder] = useState(() => new VirtualHolder());
   const view = useSyncExternalStore(holder.subscribe, holder.getSnapshot, serverView);
-  const callbacks = useRef({ autoAdvance, describe, record, onStart, onStop, onAbort, onAdvance });
-  useEffect(() => { callbacks.current = { autoAdvance, describe, record, onStart, onStop, onAbort, onAdvance }; });
+  const callbacks = useRef({ autoAdvance, recognition, describe, record, onStart, onStop, onAbort, onAdvance });
+  useEffect(() => { callbacks.current = { autoAdvance, recognition, describe, record, onStart, onStop, onAbort, onAdvance }; });
   // The phone is put down while practising, so keep its screen on.
   useKeepAwake(active && connected);
 
@@ -168,14 +170,17 @@ export function useNoScrambleTrainer({
     if (!session) return;
     const seconds = callbacks.current.onStop(cubeSeconds);
     const info = callbacks.current.describe();
-    const solve = holder.getSnapshot()?.solve ?? null;
+    // Recognition not measured is kept nowhere, the cube's record included.
+    const measured = callbacks.current.recognition;
+    const timed = holder.getSnapshot()?.solve ?? null;
+    const solve = timed && !measured ? { ...timed, recognitionMs: null } : timed;
     if (info && seconds > 0) {
       const undo = callbacks.current.record(info.caseId, seconds, solve);
       const moveCount = solve ? timedMoveCount(solve) : null;
       log.add({
         ...info,
         seconds,
-        recognitionMs: session.recognitionMs,
+        recognitionMs: measured ? session.recognitionMs : null,
         moveCount,
         tps: solve && moveCount !== null ? turnsPerSecond(moveCount, solve.executionMs) : null,
       }, undo);

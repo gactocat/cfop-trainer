@@ -18,9 +18,11 @@ type TrainerState = 'idle' | 'running' | 'stopped';
  * cube has rested. Same contract as useNoScrambleTrainer.
  */
 export function useSmartSetupPractice({
-  active, practice, scramble, trainerState, autoAdvance, log, describe, record, onStart, onStop, onAdvance,
+  active, practice, scramble, trainerState, autoAdvance, recognition, log, describe, record, onStart, onStop, onAdvance,
 }: {
   active: boolean;
+  /** Keep the recognition (setup done to first turn) with each solve; otherwise none is kept. */
+  recognition: boolean;
   practice: TrainerPractice;
   /** The case's setup in the user's notation, as the trainer built it. */
   scramble: string | null;
@@ -41,13 +43,15 @@ export function useSmartSetupPractice({
   next: () => void;
 } {
   const connected = useSmartCube().status === 'connected';
-  const callbacks = useRef({ autoAdvance, describe, record, onStop, onAdvance });
-  useEffect(() => { callbacks.current = { autoAdvance, describe, record, onStop, onAdvance }; });
+  const callbacks = useRef({ autoAdvance, recognition, describe, record, onStop, onAdvance });
+  useEffect(() => { callbacks.current = { autoAdvance, recognition, describe, record, onStop, onAdvance }; });
   useKeepAwake(active && connected);
 
-  const finish = (cubeSeconds: number | null, solve: SmartSolve | null) => {
+  const finish = (cubeSeconds: number | null, timed: SmartSolve | null) => {
     const seconds = callbacks.current.onStop(cubeSeconds);
     const info = callbacks.current.describe();
+    // Recognition not measured is kept nowhere, the cube's record included.
+    const solve = timed && !callbacks.current.recognition ? { ...timed, recognitionMs: null } : timed;
     if (info && seconds > 0) {
       const undo = callbacks.current.record(info.caseId, seconds, solve);
       const moveCount = solve ? timedMoveCount(solve) : null;

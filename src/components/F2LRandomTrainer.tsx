@@ -5,6 +5,7 @@ import { getF2LDefinition } from '@/data/f2l-definitions';
 import { useF2LAlgorithms } from '@/hooks/useF2LAlgorithms';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useF2LRandomSelection } from '@/hooks/useF2LRandomSelection';
+import { useHandRecognition } from '@/hooks/useHandRecognition';
 import { useHoldTimer } from '@/hooks/useHoldTimer';
 import { useMounted } from '@/hooks/useMounted';
 import { usePracticeSettings } from '@/hooks/usePracticeSettings';
@@ -41,6 +42,8 @@ interface Drawn {
   id: F2LId;
   seed: number;
   round: PracticeRound<F2LId> | null;
+  /** performance.now() it was drawn: shown at once, recognition runs from here. */
+  shownAt: number;
 }
 
 interface F2LTrainerProps {
@@ -93,8 +96,12 @@ export function F2LTrainer({ ids, selected, algorithmFor, caseTimes }: F2LTraine
   const smartSetup = mode === 'smart-setup';
   const cubeDriven = noScramble || smartSetup;
   const inverse = mode === 'inverse' || smartSetup;
-  // Both setups and no-scramble show the case before timing, so draw it ahead.
-  const drawAhead = inverse || noScramble;
+  // Recognition timed apart from the solve (off unless chosen).
+  const mounted = useMounted();
+  const recognitionOn = mounted && scrambleSettings.measureRecognition === true;
+  // Both setups and no-scramble show the case before timing, so draw it
+  // ahead; so does no setup when recognition is timed (it runs from there).
+  const drawAhead = inverse || noScramble || (mode === 'standard' && recognitionOn);
   // The case with the seed for its setup, drawn together so the setup is
   // stable across re-renders but different on every draw.
   const [drawn, setDrawn] = useState<Drawn | null>(null);
@@ -103,7 +110,6 @@ export function F2LTrainer({ ids, selected, algorithmFor, caseTimes }: F2LTraine
   // Same case again: the next start keeps the case on screen instead of drawing one.
   const [again, setAgain] = useState(false);
   const [elapsed, setElapsed] = useState(0);
-  const mounted = useMounted();
   const startRef = useRef(0);
   const rafRef = useRef<number | null>(null);
   // A cube-driven practice without a connected cube has nothing to solve, so Space waits.
@@ -130,10 +136,13 @@ export function F2LTrainer({ ids, selected, algorithmFor, caseTimes }: F2LTraine
     const id = round.round
       ? round.nextCase
       : pickStaleWeighted(pool.length > 0 ? pool : ids, (id) => lastSolved.get(id), Date.now());
-    return id === null ? null : { id, seed: Math.floor(Math.random() * 0x7fffffff), round: round.round };
+    return id === null ? null : { id, seed: Math.floor(Math.random() * 0x7fffffff), round: round.round, shownAt: performance.now() };
   }, [round.round, round.nextCase, pool, ids, lastSolved]);
 
   const noneSelected = mounted && selected.size === 0;
+  // Without a cube: recognition from the case in sight to the start.
+  const hand = useHandRecognition({ on: recognitionOn, flavor: mode, shownAt: drawn?.shownAt ?? null });
+  const awaitingTap = hand.awaitingTap && mounted && state === 'idle' && current !== null && !noneSelected && !complete;
 
   useEffect(() => {
     if (state !== 'running') return;
@@ -169,10 +178,11 @@ export function F2LTrainer({ ids, selected, algorithmFor, caseTimes }: F2LTraine
       setDrawn(next);
     }
     setAgain(false);
+    hand.begin();
     startRef.current = Date.now();
     setElapsed(0);
     setState('running');
-  }, [pickRandom, mounted, noneSelected, complete, drawAhead, again, current]);
+  }, [pickRandom, mounted, noneSelected, complete, drawAhead, again, current, hand]);
 
   // Stop with a time measured elsewhere (the smart cube's clock).
   const stopWith = useCallback((seconds: number) => {
@@ -181,25 +191,29 @@ export function F2LTrainer({ ids, selected, algorithmFor, caseTimes }: F2LTraine
   }, []);
 
   // On to the next case.
+  const { restart: restartRecognition } = hand;
   const next = useCallback(() => {
     setState('idle');
     setElapsed(0);
     setAgain(false);
     setDrawn(null);
-  }, []);
+    restartRecognition();
+  }, [restartRecognition]);
 
   // The same case again, from the case screen.
   const retry = useCallback(() => {
     setState('idle');
     setElapsed(0);
     setAgain(true);
-  }, []);
+    restartRecognition();
+  }, [restartRecognition]);
 
   // Abandon the attempt but keep the case (a reset while timing, Escape, leaving the app).
   const abort = useCallback(() => {
     setState('idle');
     setElapsed(0);
-  }, []);
+    restartRecognition();
+  }, [restartRecognition]);
 
   // Everything the three case screens need, derived once from the drawn case
   // and its seed. The given algorithm (the starred one in random practice)
@@ -235,11 +249,11 @@ export function F2LTrainer({ ids, selected, algorithmFor, caseTimes }: F2LTraine
       name: shown.def ? t('common.f2lCase', { number: shown.def.number }) : current,
       solution: shown.body ? prefixAuf(shown.effectiveAuf, shown.body) : '',
       seconds,
-      recognitionMs: null,
+      recognitionMs: hand.measured,
       moveCount,
       tps: moveCount === null ? null : movesPerSecond(moveCount, seconds),
     }, timeId && caseTimes ? () => caseTimes.remove(timeId) : null);
-  }, [current, shown, caseTimes, log, t, stopWith]);
+  }, [current, shown, caseTimes, log, t, stopWith, hand.measured]);
 
   // With a smart cube, either flow runs from the cube: solves are recorded in
   // this session's log as they stop, and the next case follows on Next, or by
@@ -250,6 +264,7 @@ export function F2LTrainer({ ids, selected, algorithmFor, caseTimes }: F2LTraine
     scramble: shown ? shown.setup.scramble : null,
     trainerState: state,
     autoAdvance,
+    recognition: recognitionOn,
     log,
     describe: () => shown && current && {
       caseId: current,
@@ -288,11 +303,15 @@ export function F2LTrainer({ ids, selected, algorithmFor, caseTimes }: F2LTraine
   ]);
 
   // Without a cube: hold to start, let go to go, press to stop; Space too.
-  // Without a setup to make first, Space on the result holds for the next case at once.
+  // Without a setup to make first, Space on the result holds for the next
+  // case at once. With a setup and recognition timed, a tap (or Space) first
+  // says the case is made; Escape takes that back.
   const hold = useHoldTimer({
-    active: !cubeDriven && mounted && !noneSelected && !complete,
-    state, pressOnNext: !drawAhead, onStart: start, onStop: stop, onAbort: abort, onNext: next,
+    active: !cubeDriven && mounted && !noneSelected && !complete && !awaitingTap,
+    state, pressOnNext: mode === 'standard', onStart: start, onStop: stop, onAbort: abort, onNext: next,
   });
+  useSpacebar(hand.tap, awaitingTap);
+  useEscapeKey(hand.cancelTap, mode === 'inverse' && hand.since !== null && state === 'idle' && hold.phase === 'idle');
   // With a cube, Space stops by hand while timing and goes on from the result.
   const onSpace = useCallback(() => {
     if (state === 'idle') {
@@ -350,6 +369,7 @@ export function F2LTrainer({ ids, selected, algorithmFor, caseTimes }: F2LTraine
         ? t('detail.caseStats', { best: formatSeconds(caseTimes.best), ao5: formatSeconds(caseTimes.ao5), solves: tn('common.solves', caseTimes.count) })
         : undefined}
       progress={position && t('practice.round.progress', position)}
+      recognition={{ on: recognitionOn, since: hand.since, measured: hand.measured, awaitingTap, onTap: hand.tap }}
       empty={noneSelected && (
         <div className="flex flex-col items-center gap-2 text-center text-zinc-500 dark:text-zinc-400">
           <div className="text-sm font-medium uppercase tracking-wider">{t('trainer.noneSelected')}</div>

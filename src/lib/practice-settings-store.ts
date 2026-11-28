@@ -32,6 +32,13 @@ export interface PracticeSettings {
    */
   colorTheme?: 'light' | 'dark';
   /**
+   * Practice times recognition apart from the solve: from the case being
+   * ready to the start (see the practice's screens). Off unless set, and
+   * written only when on, so older versions (which drop it when they save,
+   * turning it off again) see the settings they know.
+   */
+  measureRecognition?: boolean;
+  /**
    * Solves from a scramble, per kind: how the cube is held for the scramble
    * and whether there is inspection. Absent in older versions, which drop it
    * when they save; each kind then starts again from its defaults.
@@ -99,6 +106,7 @@ function validSettings(raw: unknown): Partial<PracticeSettings> {
     ...(typeof value.randomAuf === 'boolean' ? { randomAuf: value.randomAuf } : {}),
     ...(typeof value.alignAuf === 'boolean' ? { alignAuf: value.alignAuf } : {}),
     ...(value.colorTheme === 'light' || value.colorTheme === 'dark' ? { colorTheme: value.colorTheme } : {}),
+    ...(value.measureRecognition === true ? { measureRecognition: true } : {}),
     ...validSolves(value.solves),
   };
 }
@@ -140,6 +148,17 @@ export function update(patch: Partial<Omit<PracticeSettings, 'aufDisplays'>>): v
     const next = { ...prev, ...patch };
     return next.aufDisplay === prev.aufDisplay && next.trainerMode === prev.trainerMode &&
       next.randomAuf === prev.randomAuf && next.alignAuf === prev.alignAuf && next.colorTheme === prev.colorTheme ? prev : next;
+  });
+}
+
+/** Time recognition apart in practice, or not (the field goes away when off). */
+export function setMeasureRecognition(on: boolean): void {
+  store.mutate((prev) => {
+    if ((prev.measureRecognition === true) === on) return prev;
+    const next = { ...prev };
+    if (on) next.measureRecognition = true;
+    else delete next.measureRecognition;
+    return next;
   });
 }
 

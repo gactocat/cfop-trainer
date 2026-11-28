@@ -4,10 +4,12 @@ import { useState } from 'react';
 import { useMounted } from '@/hooks/useMounted';
 import { usePracticeOptions } from '@/hooks/usePracticeRound';
 import { useSmartCube, useSmartCubeSettings } from '@/hooks/useSmartCube';
+import { usePracticeSettings } from '@/hooks/usePracticeSettings';
 import { usePracticeMode } from '@/hooks/useTrainerMode';
 import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
 import { isCubeFlavor, trainerFlavor, type TrainerFlavor } from '@/lib/practice-mode';
+import { setMeasureRecognition } from '@/lib/practice-settings-store';
 import { setAutoAdvance } from '@/lib/smart-cube-settings-store';
 import { unsupportedReason } from '@/lib/smart-cube-store';
 import { AppModal } from './AppModal';
@@ -29,11 +31,11 @@ function modeHelp(flavor: TrainerFlavor, scope: PracticeScope): MessageKey {
 }
 
 // How to practise, as setting rows like the top page's: the smart cube, the
-// mode (with or without setup), the AUF, with a cube whether the next case
-// comes by itself, and for random practice whether to take each selected
-// case once. Kept as chosen (mode and AUF in the practice settings, the
-// others on this device); a change takes effect with the next case (at once
-// while a case waits).
+// mode (with or without setup), the AUF, whether recognition is timed apart,
+// with a cube whether the next case comes by itself, and for random practice
+// whether to take each selected case once. Kept as chosen (mode, AUF and
+// recognition in the practice settings, the others on this device); a change
+// takes effect with the next case (at once while a case waits).
 function PracticeSettingsForm({ scope }: { scope: PracticeScope }) {
   const { t } = useT();
   const mounted = useMounted();
@@ -43,6 +45,7 @@ function PracticeSettingsForm({ scope }: { scope: PracticeScope }) {
   const flavor = trainerFlavor(mode, connected);
   const { autoAdvance } = useSmartCubeSettings();
   const { eachOnce, setEachOnce } = usePracticeOptions();
+  const { settings } = usePracticeSettings();
   const cubeAvailable = mounted && unsupportedReason() === null;
   const cubeName = cube.virtual ? t('smartCube.test.title') : cube.deviceName;
   return (
@@ -64,6 +67,9 @@ function PracticeSettingsForm({ scope }: { scope: PracticeScope }) {
       </SettingRow>
       <SettingRow label={t('practice.auf.title')} info={<AufStartHelp />}>
         <AufStartToggle />
+      </SettingRow>
+      <SettingRow label={t('practice.recognition.label')} info={t('practice.recognition.help')}>
+        {(labelId) => <Switch checked={mounted && settings.measureRecognition === true} onChange={setMeasureRecognition} labelledBy={labelId} />}
       </SettingRow>
       {isCubeFlavor(flavor) && (
         <SettingRow label={t('trainer.setup.autoAdvance')} info={t('trainer.setup.autoAdvanceHelp')}>

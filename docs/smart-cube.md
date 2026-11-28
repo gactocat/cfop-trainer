@@ -34,9 +34,10 @@ and PLL:
    that take wrong ones back take the next token's place, in red, so no line
    comes and goes. What the cube needs first (step 1) and why it is not
    connected go in one line under the setup whose height is always kept.
-3. When the cube reaches the setup's state the case is ready and the
-   recognition counts under the cube. The first turn after that starts the
-   timer; ready to first turn is kept as recognition time.
+3. When the cube reaches the setup's state the case is ready. The first
+   turn after that starts the timer. When recognition is timed (see below),
+   it counts under the cube from ready and ready to first turn is kept as
+   recognition time.
 4. The timer stops when the goal state is reached: F2L solved, last layer
    oriented, or solved apart from the final AUF. The time is the cube clock
    between the first and the last turn, so Bluetooth delivery delay does not
@@ -80,8 +81,20 @@ starting state and drives its timeline.
 Both cube-driven practices keep this session's solves in one log
 (`lib/practice-log.ts`) and show them per case, most recently solved first:
 recognition and solving, each as a mean and a best (`lib/session-stats.ts`).
-Undone solves do not count; a solve without a recognition time (started by
-hand) shows "-" there.
+Undone solves do not count. The recognition column is there only when some
+solve of the session has a recognition time; a solve without one (started
+by hand) shows "-" in it.
+
+Recognition is timed apart from the solve only when "Measure recognition
+time" is on (`measureRecognition` in the synced practice settings, off by
+default and written only when on, so older versions drop it and see it off).
+With a cube it is ready to first turn, as above; without one, with no setup
+the case shows on the case screen as it is drawn and recognition runs until
+letting go starts the timer, and with setup a tap once the case is made
+starts it (as a tap starts a solve's inspection; `useHandRecognition`). The
+solve's time then runs from the start. Off, nothing shows or keeps a
+recognition time, a cube's record of the solve included, and without a cube
+the case appears as the timer starts, as before.
 
 ## iOS app
 
@@ -159,8 +172,8 @@ cube is connected in this mode.
 A practice's settings, behind the gear on its case screen, are the smart
 cube, its mode (setup on or off), the AUF (pre-applied: turned by the
 algorithm's AUF so it can start at once; in algorithm: not turned, so the AUF
-is part of the solve; or random), with a cube the automatic next case, and
-for random practice each selected case once. The page starts on a case at
+is part of the solve; or random), whether recognition is timed, with a cube
+the automatic next case, and for random practice each selected case once. The page starts on a case at
 once; a change takes effect with the next case (at once while a case waits). The AUF choice does not depend on the list's AUF display, which only
 changes how the solution is written (see `lib/auf-start.ts`). It is stored as
 `randomAuf` and `alignAuf`; neither flag, once "as set", reads as in
@@ -223,9 +236,9 @@ panel; it folds to a small tab.
 
 ## Recorded solves
 
-The result screen of a cube-timed solve shows the move count, TPS and
-recognition time; the case page's list shows the turns too, in the chosen
-holding's notation.
+The result screen of a cube-timed solve shows the move count, TPS and (when
+timed) recognition time; the case page's list shows the turns too, in the
+chosen holding's notation.
 
 Turns are read as moves (`lib/smart-cube/slice-moves.ts`). The cube reports
 outer faces only, relative to its centres, so a slice arrives as its two

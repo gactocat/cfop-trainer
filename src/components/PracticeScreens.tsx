@@ -36,19 +36,29 @@ import { VirtualCube } from './VirtualCube';
 const CHIP = 'rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium tabular-nums text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200';
 const seconds = (value: number) => formatSolveTime(value * 1000);
 
-/** What a practice runs on, as its (i) says: with or without setup, a smart cube, one case or the selection. */
-function hintOf(practice: TrainerPractice, flavor: TrainerFlavor, scope: PracticeScope): MessageKey {
-  if (flavor === 'no-scramble') return 'trainer.hint.noScramble';
-  if (flavor === 'inverse' || flavor === 'smart-setup') return practice === 'f2l' ? 'trainer.hint.f2lSetup' : 'trainer.hint.lastLayerSolved';
-  if (scope === 'case') return 'trainer.hint.case';
-  return practice === 'f2l' ? 'trainer.f2l.hidden' : practice === 'oll' ? 'trainer.oll.hidden' : 'trainer.pll.hidden';
+/**
+ * What a practice runs on, as its (i) says: with or without setup, a smart
+ * cube, one case or the selection, and how recognition is timed when it is.
+ */
+function hintsOf(practice: TrainerPractice, flavor: TrainerFlavor, scope: PracticeScope, recognition: boolean): MessageKey[] {
+  if (flavor === 'no-scramble') return ['trainer.hint.noScramble', ...(recognition ? ['trainer.hint.recognitionCube' as const] : [])];
+  if (flavor === 'inverse' || flavor === 'smart-setup') {
+    return [
+      practice === 'f2l' ? 'trainer.hint.f2lSetup' : 'trainer.hint.lastLayerSolved',
+      ...(recognition ? [flavor === 'inverse' ? 'trainer.hint.recognitionTap' as const : 'trainer.hint.recognitionCube' as const] : []),
+    ];
+  }
+  // No setup or cube, timing recognition: the case shows before the start.
+  if (recognition) return ['trainer.hint.recognitionShown', ...(scope === 'case' ? ['trainer.hint.caseTimes' as const] : [])];
+  if (scope === 'case') return ['trainer.hint.case'];
+  return [practice === 'f2l' ? 'trainer.f2l.hidden' : practice === 'oll' ? 'trainer.oll.hidden' : 'trainer.pll.hidden'];
 }
 
 function SessionIcon() {
   return <Icon><path d="M3 3v18h18" /><path d="M8 17v-5M13 17V8M18 17v-8" /></Icon>;
 }
 
-/** The recognition counting up from `since` (performance.now()), until the first turn. */
+/** The recognition counting up from `since` (performance.now()), until the start. */
 function RecognitionCount({ since }: { since: number }) {
   const { t } = useT();
   const now = useNow(true);
@@ -152,6 +162,25 @@ function RoundDone({ total, results, listHref, onRestart }: {
   );
 }
 
+/** Recognition while a press is held, under the timer's digits: counting, until letting go starts. */
+function LiveRecognition({ since }: { since: number }) {
+  const { t } = useT();
+  const now = useNow(true);
+  return <>{t('trainer.cube.recognition')} {formatSolveTime(Math.max(0, now - since))}</>;
+}
+
+/** Whether a practice times recognition, and where it stands without a cube (see useHandRecognition). */
+export interface PracticeRecognition {
+  on: boolean;
+  /** Without a cube: performance.now() recognition started, while it runs. */
+  since: number | null;
+  /** Without a cube: the recognition kept at the start. */
+  measured: number | null;
+  /** With a setup and no cube: a tap says the case is made and starts recognition. */
+  awaitingTap: boolean;
+  onTap: () => void;
+}
+
 export interface PracticeScreensProps {
   practice: TrainerPractice;
   scope: PracticeScope;
@@ -176,6 +205,7 @@ export interface PracticeScreensProps {
   caseStats?: string;
   /** Which case of a round is on screen, e.g. 3/21. */
   progress?: string;
+  recognition: PracticeRecognition;
   /** Random practice with no case ticked: why nothing comes up. */
   empty?: ReactNode;
   /** "Each selected case once" is done. */
@@ -194,11 +224,14 @@ export interface PracticeScreensProps {
 //   place, the smart cube and the gear for the settings. With setup the
 //   cube shows the case to make (with a smart cube, the cube as it is,
 //   turning the next move); without setup, on the virtual cube with a
-//   smart cube, or not until the timer starts without one. With a cube the
-//   recognition counts under it once the case is ready.
+//   smart cube, or without one not until the timer starts (unless
+//   recognition is timed: then it shows first). When recognition is timed,
+//   it counts under the cube once the case is ready (without a cube and with
+//   a setup, from a tap once the case is made).
 // - Timer: the digits (red, then green while a press is held, as on the
-//   solve), with a cube the recognition under them and the cube small;
-//   without a setup or cube, the case to solve below them.
+//   solve), with a cube the cube small; without a setup or cube, the case to
+//   solve below them. When recognition is timed, it is under the digits:
+//   counting while a press is held, then as it was at the start.
 // - Result: see PracticeResultHead.
 //
 // The session's figures are a page under the practice (an icon in the
@@ -206,7 +239,7 @@ export interface PracticeScreensProps {
 export function PracticeScreens(props: PracticeScreensProps) {
   const {
     practice, scope, flavor, state, hold, elapsed, setup, caseLook, virtual, guided, results, settle,
-    solution, caseStats, progress, empty, roundDone, onNext, onUndo, onRetry, onStopByHand, onReset,
+    solution, caseStats, progress, recognition, empty, roundDone, onNext, onUndo, onRetry, onStopByHand, onReset,
   } = props;
   const { t } = useT();
   const mounted = useMounted();
@@ -230,7 +263,7 @@ export function PracticeScreens(props: PracticeScreensProps) {
       href={`${practiceSessionPath(page)}${mounted ? window.location.search : ''}`}
       lead={(
         <InfoTip className="shrink-0">
-          <span className="block">{t(hintOf(practice, flavor, scope))}</span>
+          {hintsOf(practice, flavor, scope, recognition.on).map((key) => <span key={key} className="block">{t(key)}</span>)}
           {scope === 'random' && <span className="block">{t('trainer.hint.selection')}</span>}
         </InfoTip>
       )}
@@ -281,7 +314,7 @@ export function PracticeScreens(props: PracticeScreensProps) {
   ) : flavor === 'inverse' ? setup !== null && (
     // The case the setup makes, held as the smart cube would be.
     <VirtualCube key={flavor} practice={practice} holding={holding} setupAlg={`${displayRotation(holding)} ${setup}`.trim()} still className="h-full w-full" />
-  ) : screen === 'case' ? (
+  ) : recognition.on ? caseLook : screen === 'case' ? (
     // Holds the case's place until the timer starts.
     <div className="flex h-full w-full items-center justify-center rounded-xl border-2 border-dashed border-zinc-300 px-4 text-center text-xs text-zinc-400 dark:border-zinc-700 dark:text-zinc-500">
       {t('trainer.hold.caseLater')}
@@ -302,7 +335,8 @@ export function PracticeScreens(props: PracticeScreensProps) {
   }
 
   if (screen === 'timer') {
-    const recognitionMs = (flavor === 'no-scramble' ? virtual : guided)?.recognitionMs ?? null;
+    const cubeRecognition = (flavor === 'no-scramble' ? virtual : guided)?.recognitionMs ?? null;
+    const recognitionMs = !recognition.on ? null : withCube ? cubeRecognition : state === 'running' ? recognition.measured : null;
     return (
       <>
         {header}
@@ -314,8 +348,10 @@ export function PracticeScreens(props: PracticeScreensProps) {
           cube={cube}
           cubeSize={withCube ? 'small' : flavor === 'standard' ? 'medium' : 'hidden'}
           head={(
-            <DigitsArea under={withCube && recognitionMs !== null && (
-              <span className="font-mono text-zinc-500 tabular-nums dark:text-zinc-400">{t('trainer.cube.recognition')} {formatSolveTime(recognitionMs)}</span>
+            <DigitsArea under={(recognitionMs !== null || (recognition.on && !withCube && state !== 'running' && recognition.since !== null)) && (
+              <span className="font-mono text-zinc-500 tabular-nums dark:text-zinc-400">
+                {recognitionMs !== null ? `${t('trainer.cube.recognition')} ${formatSolveTime(recognitionMs)}` : <LiveRecognition since={recognition.since!} />}
+              </span>
             )}>
               <TimerDigits tone={withCube ? 'plain' : toneOf(hold.phase)}>{seconds(state === 'running' ? elapsed : 0)}</TimerDigits>
             </DigitsArea>
@@ -333,14 +369,20 @@ export function PracticeScreens(props: PracticeScreensProps) {
     : flavor === 'smart-setup' ? (guided ? guided.plan.tokens.join(' ') : setup ?? null)
       : undefined;
   const setupStatus = flavor === 'smart-setup' && guided ? setupStatusKey(guided, practice) : null;
-  const ready = flavor === 'no-scramble' ? virtual?.shownAt ?? null
-    : flavor === 'smart-setup' && guided?.phase === 'ready' ? guided.readySince : null;
+  const ready = !recognition.on ? null
+    : flavor === 'no-scramble' ? virtual?.shownAt ?? null
+      : flavor === 'smart-setup' ? (guided?.phase === 'ready' ? guided.readySince : null)
+        : recognition.since;
+  // Without a cube, a press holds for the timer, or first says the case is made.
+  const press = withCube || !mounted ? undefined
+    : recognition.awaitingTap ? (event: { preventDefault: () => void }) => { event.preventDefault(); recognition.onTap(); }
+      : hold.pressProps.onPointerDown;
   return (
     <>
       {header}
       <SolveFrame
-        label={t('practice.screen.case')}
-        onPress={withCube || !mounted ? undefined : hold.pressProps.onPointerDown}
+        label={recognition.awaitingTap ? t('practice.recognition.tapAria') : t('practice.screen.case')}
+        onPress={press}
         cube={cube}
         cubeSize="large"
         head={(

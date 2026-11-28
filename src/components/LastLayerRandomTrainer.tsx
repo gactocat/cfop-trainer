@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useHandRecognition } from '@/hooks/useHandRecognition';
 import { useHoldTimer } from '@/hooks/useHoldTimer';
 import { useMounted } from '@/hooks/useMounted';
 import { useSpacebar } from '@/hooks/useSpacebar';
@@ -44,6 +45,8 @@ interface Pick<Id extends string> {
   inverse: boolean;
   // The round of "each selected case once" it was dealt from, if any.
   round: PracticeRound<Id> | null;
+  // performance.now() it was drawn: shown at once, recognition runs from here.
+  shownAt: number;
 }
 interface Props<Id extends string> {
   practice: LastLayerPractice;
@@ -75,14 +78,17 @@ export function LastLayerRandomTrainer<Id extends string>({
   const cubeDriven = noScramble || smartSetup;
   // A setup to make on the cube (by hand or guided), varied between algorithms.
   const inverse = mode === 'inverse' || smartSetup;
-  // Both setups and no-scramble show the case before timing, so draw it ahead.
-  const drawAhead = inverse || noScramble;
+  // Recognition timed apart from the solve (off unless chosen).
+  const mounted = useMounted();
+  const recognitionOn = mounted && settings.measureRecognition === true;
+  // Both setups and no-scramble show the case before timing, so draw it
+  // ahead; so does no setup when recognition is timed (it runs from there).
+  const drawAhead = inverse || noScramble || (mode === 'standard' && recognitionOn);
   const solver = useLastLayerSolver();
   const [current, setCurrent] = useState<Pick<Id> | null>(null);
   // Same case again: the next start keeps the case on screen instead of drawing one.
   const [again, setAgain] = useState(false);
   const [elapsed, setElapsed] = useState(0);
-  const mounted = useMounted();
   const startRef = useRef(0);
   const rafRef = useRef<number | null>(null);
   // A cube-driven practice without a connected cube has nothing to solve, so Space waits.
@@ -116,10 +122,13 @@ export function LastLayerRandomTrainer<Id extends string>({
       inverse
         ? pickAlternativeSetup(solver, practice, plain, alternativesFor(id))
         : plain);
-    return { id, setup, settings, withSolver: solver !== null, inverse, round: round.round };
+    return { id, setup, settings, withSolver: solver !== null, inverse, round: round.round, shownAt: performance.now() };
   }, [round.round, round.nextCase, pool, ids, lastSolved, settings, algorithmFor, alternativesFor, solver, practice, inverse]);
 
   const noneSelected = mounted && selected.size === 0;
+  // Without a cube: recognition from the case in sight to the start.
+  const hand = useHandRecognition({ on: recognitionOn, flavor: mode, shownAt: current?.shownAt ?? null });
+  const awaitingTap = hand.awaitingTap && mounted && state === 'idle' && current !== null && !noneSelected && !complete;
 
   useEffect(() => {
     if (state !== 'running') return;
@@ -151,10 +160,11 @@ export function LastLayerRandomTrainer<Id extends string>({
       setCurrent(next);
     }
     setAgain(false);
+    hand.begin();
     startRef.current = Date.now();
     setElapsed(0);
     setState('running');
-  }, [pickRandom, mounted, noneSelected, complete, drawAhead, again, current]);
+  }, [pickRandom, mounted, noneSelected, complete, drawAhead, again, current, hand]);
 
   // Stop with a time measured elsewhere (the smart cube's clock).
   const stopWith = useCallback((seconds: number) => {
@@ -163,10 +173,12 @@ export function LastLayerRandomTrainer<Id extends string>({
   }, []);
 
   // Abandon the attempt but keep the case (a reset while timing, Escape, leaving the app).
+  const { restart: restartRecognition } = hand;
   const abort = useCallback(() => {
     setState('idle');
     setElapsed(0);
-  }, []);
+    restartRecognition();
+  }, [restartRecognition]);
 
   // On to the next case.
   const next = useCallback(() => {
@@ -174,14 +186,16 @@ export function LastLayerRandomTrainer<Id extends string>({
     setElapsed(0);
     setAgain(false);
     setCurrent(null);
-  }, []);
+    restartRecognition();
+  }, [restartRecognition]);
 
   // The same case again, from the case screen.
   const retry = useCallback(() => {
     setState('idle');
     setElapsed(0);
     setAgain(true);
-  }, []);
+    restartRecognition();
+  }, [restartRecognition]);
 
   // Without a cube: stopping records the solve in the session at once (and,
   // in case practice, in the algorithm's times); Undo takes it back.
@@ -196,11 +210,11 @@ export function LastLayerRandomTrainer<Id extends string>({
       name: nameFor(current.id),
       solution: current.setup.solution,
       seconds,
-      recognitionMs: null,
+      recognitionMs: hand.measured,
       moveCount,
       tps: moveCount === null ? null : movesPerSecond(moveCount, seconds),
     }, timeId && caseTimes ? () => caseTimes.remove(timeId) : null);
-  }, [current, caseTimes, log, nameFor, stopWith]);
+  }, [current, caseTimes, log, nameFor, stopWith, hand.measured]);
 
   // With a smart cube, either flow runs from the cube: solves are recorded in
   // this session's log as they stop, and the next case follows on Next, or by
@@ -211,6 +225,7 @@ export function LastLayerRandomTrainer<Id extends string>({
     scramble: current ? current.setup.scramble : null,
     trainerState: state,
     autoAdvance,
+    recognition: recognitionOn,
     log,
     describe: () => current && { caseId: current.id, name: nameFor(current.id), solution: current.setup.solution },
     // Random practice keeps its solves in the session only; case practice
@@ -246,11 +261,15 @@ export function LastLayerRandomTrainer<Id extends string>({
   useNativeTimer(state === 'running', noScramble ? virtual.reset : abort);
 
   // Without a cube: hold to start, let go to go, press to stop; Space too.
-  // Without a setup to make first, Space on the result holds for the next case at once.
+  // Without a setup to make first, Space on the result holds for the next
+  // case at once. With a setup and recognition timed, a tap (or Space) first
+  // says the case is made; Escape takes that back.
   const hold = useHoldTimer({
-    active: !cubeDriven && mounted && !noneSelected && !complete,
-    state, pressOnNext: !drawAhead, onStart: start, onStop: stop, onAbort: abort, onNext: next,
+    active: !cubeDriven && mounted && !noneSelected && !complete && !awaitingTap,
+    state, pressOnNext: mode === 'standard', onStart: start, onStop: stop, onAbort: abort, onNext: next,
   });
+  useSpacebar(hand.tap, awaitingTap);
+  useEscapeKey(hand.cancelTap, mode === 'inverse' && hand.since !== null && state === 'idle' && hold.phase === 'idle');
   // With a cube, Space stops by hand while timing and goes on from the result.
   const onSpace = useCallback(() => {
     if (state === 'idle') {
@@ -292,6 +311,7 @@ export function LastLayerRandomTrainer<Id extends string>({
         ? t('detail.caseStats', { best: formatSeconds(caseTimes.best), ao5: formatSeconds(caseTimes.ao5), solves: tn('common.solves', caseTimes.count) })
         : undefined}
       progress={position && t('practice.round.progress', position)}
+      recognition={{ on: recognitionOn, since: hand.since, measured: hand.measured, awaitingTap, onTap: hand.tap }}
       empty={noneSelected && (
         <div className="flex flex-col items-center gap-2 text-center text-zinc-500 dark:text-zinc-400">
           <div className="text-sm font-medium uppercase tracking-wider">{t('trainer.noneSelected')}</div>

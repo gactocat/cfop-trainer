@@ -46,6 +46,9 @@ const scenarios: { name: string; stored: Record<string, string>; expected: Pract
   { name: 'invalid theme follows system default', stored: { [sharedKey]: '{"colorTheme":"invalid"}' }, expected: defaults },
   { name: 'aligned AUF survives', stored: { [sharedKey]: '{"randomAuf":false,"alignAuf":true}' }, expected: { ...defaults, randomAuf: false, alignAuf: true } },
   { name: 'invalid aligned AUF is ignored', stored: { [sharedKey]: '{"alignAuf":"yes"}' }, expected: defaults },
+  { name: 'measuring recognition survives', stored: { [sharedKey]: '{"measureRecognition":true}' }, expected: { ...defaults, measureRecognition: true } },
+  { name: 'recognition off is no field', stored: { [sharedKey]: '{"measureRecognition":false}' }, expected: defaults },
+  { name: 'invalid recognition choice is off', stored: { [sharedKey]: '{"measureRecognition":"yes"}' }, expected: defaults },
 ];
 
 let moduleId = 0;
@@ -173,6 +176,40 @@ console.log(`Verified ${scenarios.length} shared-settings migration, persistence
 if (originalWindow) Object.defineProperty(globalThis, 'window', originalWindow);
 else Reflect.deleteProperty(globalThis, 'window');
 console.log('Verified per-list AUF display: inheritance, list changes, persistence and older versions.');
+
+// Measuring recognition: off by default, saved only when on, and turned off
+// again by an older version saving (it keeps only the fields it knows).
+{
+  const values = new Map<string, string>([[sharedKey, JSON.stringify({ ...defaults, colorTheme: 'dark' })]]);
+  let writes = 0;
+  Object.defineProperty(globalThis, 'window', { configurable: true, value: {
+    localStorage: {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => { writes++; values.set(key, value); },
+    },
+  } });
+  const store = await freshStore();
+  assert.equal(store.getSnapshot().measureRecognition, undefined, 'recognition is not measured by default');
+  store.setMeasureRecognition(false);
+  assert.equal(writes, 0, 'turning off what is off writes nothing');
+  store.setMeasureRecognition(true);
+  assert.deepEqual(JSON.parse(values.get(sharedKey)!), { ...defaults, colorTheme: 'dark', measureRecognition: true }, 'on is saved in the synced settings, the rest kept');
+  assert.equal((await freshStore()).getSnapshot().measureRecognition, true, 'on survives a reload');
+  store.update({ trainerMode: 'inverse' });
+  assert.equal(JSON.parse(values.get(sharedKey)!).measureRecognition, true, 'other edits keep it');
+  store.setMeasureRecognition(false);
+  assert.equal('measureRecognition' in JSON.parse(values.get(sharedKey)!), false, 'off takes the field away');
+  store.setMeasureRecognition(true);
+  const olderKnown = ['aufDisplay', 'trainerMode', 'randomAuf', 'alignAuf', 'colorTheme', 'aufDisplays', 'solves'];
+  const older = Object.fromEntries(Object.entries(JSON.parse(values.get(sharedKey)!)).filter(([key]) => olderKnown.includes(key)));
+  values.set(sharedKey, JSON.stringify(older));
+  const reread = (await freshStore()).getSnapshot();
+  assert.equal(reread.measureRecognition, undefined, 'after an older version saves, recognition is off again');
+  assert.equal(reread.trainerMode, 'inverse', 'and the settings it knows are as it left them');
+}
+if (originalWindow) Object.defineProperty(globalThis, 'window', originalWindow);
+else Reflect.deleteProperty(globalThis, 'window');
+console.log('Verified measuring recognition: default, saving, reload and older versions.');
 
 // Practice mode: no setup or with setup, read from the synced trainer mode
 // and the device-local no-scramble flag of the three-mode version.
