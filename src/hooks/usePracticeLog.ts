@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { usePracticeSession } from '@/components/KeptScreen';
 import { PracticeLog } from '@/lib/practice-log';
 
@@ -14,6 +14,5 @@ export function usePracticeLog() {
   const [own] = useState(() => (session ? null : new PracticeLog()));
   const log = session?.log ?? own!;
   const snapshot = useSyncExternalStore(log.subscribe, log.getSnapshot, log.getSnapshot);
-  useEffect(() => () => log.clearSettle(), [log]);
   return { log, ...snapshot };
 }

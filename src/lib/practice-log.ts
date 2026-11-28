@@ -1,10 +1,6 @@
 // The solves of one practice session, newest first, with the way to take
-// each back, and (with a smart cube) the wait for the cube to rest before the
-// next case. Kept in memory only: the trainer creates one per session
+// each back. Kept in memory only: the trainer creates one per session
 // (usePracticeLog), so closing the practice or starting it again begins empty.
-
-/** With auto-advance, the next case comes once the cube has been still this long after a solve. */
-export const SETTLE_MS = 1500;
 
 /** What the trainer knows about the case on screen, read when it is solved. */
 export interface PracticeCase {
@@ -28,15 +24,11 @@ export interface PracticeResult extends PracticeCase {
 
 export interface PracticeLogSnapshot {
   results: readonly PracticeResult[];
-  /** Waiting for the cube to rest before the next case; `key` changes when the wait restarts. */
-  settle: { key: number } | null;
 }
 
 export class PracticeLog {
-  private snapshot: PracticeLogSnapshot = { results: [], settle: null };
+  private snapshot: PracticeLogSnapshot = { results: [] };
   private resultKeys = 0;
-  private settleKeys = 0;
-  private settleTimer: ReturnType<typeof setTimeout> | null = null;
   private undos = new Map<number, () => void>();
   private listeners = new Set<() => void>();
 
@@ -45,7 +37,6 @@ export class PracticeLog {
     return () => { this.listeners.delete(listener); };
   };
   getSnapshot = () => this.snapshot;
-  get settling() { return this.snapshot.settle !== null; }
 
   private publish(patch: Partial<PracticeLogSnapshot>) {
     this.snapshot = { ...this.snapshot, ...patch };
@@ -68,23 +59,6 @@ export class PracticeLog {
     this.undos.delete(key);
     undo();
     this.publish({ results: this.snapshot.results.map((r) => (r.key === key ? { ...r, undone: true } : r)) });
-  }
-
-  /** (Re)start the wait for the cube to rest; `done` runs once it has. */
-  startSettle(done: () => void) {
-    if (this.settleTimer) clearTimeout(this.settleTimer);
-    this.settleTimer = setTimeout(() => {
-      this.settleTimer = null;
-      this.publish({ settle: null });
-      done();
-    }, SETTLE_MS);
-    this.publish({ settle: { key: ++this.settleKeys } });
-  }
-
-  clearSettle() {
-    if (this.settleTimer) clearTimeout(this.settleTimer);
-    this.settleTimer = null;
-    if (this.snapshot.settle) this.publish({ settle: null });
   }
 }
 

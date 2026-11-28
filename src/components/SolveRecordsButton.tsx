@@ -12,7 +12,8 @@ export function RecordsIcon() {
 
 // A solve page's records (its kind's), behind an icon in the app header:
 // a page of their own (SolveRecordsPage), the solve kept as it was behind it.
-export function SolveRecordsButton({ mode }: { mode: SolveMode }) {
+// No icon until there is a solve to list.
+export function SolveRecordsButton({ mode, show }: { mode: SolveMode; show: boolean }) {
   const { t } = useT();
-  return <HeaderPageLink label={t('solve.records.title')} icon={<RecordsIcon />} href={solveRecordsPath(mode)} />;
+  return <HeaderPageLink label={t('solve.records.title')} icon={<RecordsIcon />} href={solveRecordsPath(mode)} show={show} />;
 }

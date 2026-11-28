@@ -26,7 +26,6 @@ import { subscribeTurns } from '@/lib/smart-cube-store';
 
 type TrainerState = 'idle' | 'running' | 'stopped';
 
-export { SETTLE_MS } from '@/lib/practice-log';
 
 export interface NoScrambleView {
   practice: TrainerPractice;
@@ -100,18 +99,16 @@ const serverView = () => null;
  * trainer's setup, the smart cube's turns move it, the first turn starts the
  * timer and reaching the practice's goal stops it. A solve is recorded in
  * `log` as soon as it stops (undo takes it back). The next case comes with
- * `next`, or, with `autoAdvance`, by itself once the cube has been still for
- * SETTLE_MS. Turning one face the same way four times in a row starts the
- * case again.
+ * `next`. Turning one face the same way four times in a row starts the case
+ * again.
  */
 export function useNoScrambleTrainer({
-  active, practice, scramble, trainerState, autoAdvance, recognition, log, describe, record, onStart, onStop, onAbort, onAdvance,
+  active, practice, scramble, trainerState, recognition, log, describe, record, onStart, onStop, onAbort, onAdvance,
 }: {
   active: boolean;
   /** Keep the recognition (case shown to first turn) with each solve; otherwise none is kept. */
   recognition: boolean;
   /** Go on to the next case by itself once the cube rests; otherwise wait for `next`. */
-  autoAdvance: boolean;
   practice: TrainerPractice;
   /** The case's setup in the user's notation, as the trainer built it. */
   scramble: string | null;
@@ -144,8 +141,8 @@ export function useNoScrambleTrainer({
   const connected = cube.status === 'connected';
   const [holder] = useState(() => new VirtualHolder());
   const view = useSyncExternalStore(holder.subscribe, holder.getSnapshot, serverView);
-  const callbacks = useRef({ autoAdvance, recognition, describe, record, onStart, onStop, onAbort, onAdvance });
-  useEffect(() => { callbacks.current = { autoAdvance, recognition, describe, record, onStart, onStop, onAbort, onAdvance }; });
+  const callbacks = useRef({ recognition, describe, record, onStart, onStop, onAbort, onAdvance });
+  useEffect(() => { callbacks.current = { recognition, describe, record, onStart, onStop, onAbort, onAdvance }; });
   // The phone is put down while practising, so keep its screen on.
   useKeepAwake(active && connected);
 
@@ -153,16 +150,13 @@ export function useNoScrambleTrainer({
   // start and stop (tap, Space) are mirrored into the attempt.
   useEffect(() => {
     if (!active || !scramble) {
-      // The log may belong to the with-setup practice while this one is off.
-      if (active) log.clearSettle();
       holder.set(null, true);
     } else if (trainerState === 'idle') {
-      log.clearSettle();
       holder.set(startVirtual(practice, holding, scramble, performance.now()), true);
     } else if (holder.session) {
       holder.set(trainerState === 'running' ? manualStartVirtual(holder.session) : manualStopVirtual(holder.session), false);
     }
-  }, [holder, log, active, practice, holding, scramble, trainerState]);
+  }, [holder, active, practice, holding, scramble, trainerState]);
 
   // The attempt just stopped: record it and wait for the cube to rest.
   const finish = (cubeSeconds: number | null) => {
@@ -185,7 +179,6 @@ export function useNoScrambleTrainer({
         tps: solve && moveCount !== null ? turnsPerSecond(moveCount, solve.executionMs) : null,
       }, undo);
     }
-    if (callbacks.current.autoAdvance) log.startSettle(() => callbacks.current.onAdvance());
   };
   const finishRef = useRef(finish);
   useEffect(() => { finishRef.current = finish; });
@@ -207,11 +200,8 @@ export function useNoScrambleTrainer({
       if (!session) return;
       // Not while a dialog covers the trainer or data cannot be written (as for Space).
       if (!canWriteData() || document.querySelector('[data-app-overlay]')) return;
-      // Turns after the stop (a last AUF, setting the cube down) only delay an automatic next case.
-      if (session.phase === 'done') {
-        if (log.settling) log.startSettle(() => callbacks.current.onAdvance());
-        return;
-      }
+      // Turns after the stop (a last AUF, setting the cube down) do nothing.
+      if (session.phase === 'done') return;
       holder.recent = [...holder.recent.slice(-(RESET_TURNS - 1)), { face: turn.face, amount: turn.amount, at: turn.hostTime }];
       const result = virtualMove(session, turn);
       holder.set(result.session, false);
@@ -222,7 +212,7 @@ export function useNoScrambleTrainer({
         resetRef.current();
       }
     });
-  }, [holder, log, active, connected]);
+  }, [holder, active, connected]);
 
   const stopByHand = () => {
     const session = holder.session;
@@ -233,7 +223,6 @@ export function useNoScrambleTrainer({
 
   const next = () => {
     if (holder.session?.phase !== 'done') return;
-    log.clearSettle();
     callbacks.current.onAdvance();
   };
 

@@ -14,11 +14,11 @@ type TrainerState = 'idle' | 'running' | 'stopped';
  * With setup on a connected smart cube, run like no-scramble practice: the
  * setup is guided turn by turn, the first turn after it starts the timer and
  * the goal stops it, and the solve is recorded in `log` at once (undo takes
- * it back). The next case comes with `next`, or, with `autoAdvance`, once the
- * cube has rested. Same contract as useNoScrambleTrainer.
+ * it back). The next case comes with `next`. Same contract as
+ * useNoScrambleTrainer.
  */
 export function useSmartSetupPractice({
-  active, practice, scramble, trainerState, autoAdvance, recognition, log, describe, record, onStart, onStop, onAdvance,
+  active, practice, scramble, trainerState, recognition, log, describe, record, onStart, onStop, onAdvance,
 }: {
   active: boolean;
   /** Keep the recognition (setup done to first turn) with each solve; otherwise none is kept. */
@@ -27,7 +27,6 @@ export function useSmartSetupPractice({
   /** The case's setup in the user's notation, as the trainer built it. */
   scramble: string | null;
   trainerState: TrainerState;
-  autoAdvance: boolean;
   log: PracticeLog;
   describe: () => PracticeCase | null;
   /** Record a solve; returns how to take it back, or null when nothing was recorded. */
@@ -43,8 +42,8 @@ export function useSmartSetupPractice({
   next: () => void;
 } {
   const connected = useSmartCube().status === 'connected';
-  const callbacks = useRef({ autoAdvance, recognition, describe, record, onStop, onAdvance });
-  useEffect(() => { callbacks.current = { autoAdvance, recognition, describe, record, onStop, onAdvance }; });
+  const callbacks = useRef({ recognition, describe, record, onStop, onAdvance });
+  useEffect(() => { callbacks.current = { recognition, describe, record, onStop, onAdvance }; });
   useKeepAwake(active && connected);
 
   const finish = (cubeSeconds: number | null, timed: SmartSolve | null) => {
@@ -63,7 +62,6 @@ export function useSmartSetupPractice({
         tps: solve && moveCount !== null ? turnsPerSecond(moveCount, solve.executionMs) : null,
       }, undo);
     }
-    if (callbacks.current.autoAdvance) log.startSettle(() => callbacks.current.onAdvance());
   };
 
   const view = useSmartCubeTrainer({
@@ -72,15 +70,7 @@ export function useSmartSetupPractice({
     trainerState,
     onStart,
     onStop: finish,
-    // Turns after the stop (a last AUF, setting the cube down) only delay an automatic next case.
-    onTurnAfterStop: () => { if (log.settling) log.startSettle(() => callbacks.current.onAdvance()); },
   });
-
-  // A new case starts without a pending automatic next case. (The log is
-  // shared with no-scramble practice, so only while this one is on.)
-  useEffect(() => {
-    if (active && trainerState === 'idle') log.clearSettle();
-  }, [log, active, trainerState, scramble]);
 
   return {
     view: active ? view : null,
@@ -88,7 +78,6 @@ export function useSmartSetupPractice({
     stopByHand: () => { if (trainerState === 'running') finish(null, null); },
     next: () => {
       if (trainerState !== 'stopped') return;
-      log.clearSettle();
       callbacks.current.onAdvance();
     },
   };

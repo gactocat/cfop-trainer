@@ -161,10 +161,9 @@ practice (/pll/random/session, /pll/T/practice/session?alg=<id>), from an
 icon in the header; the practice is the route's layout (`KeptScreen`), which
 also keeps the session's log, so going there and back keeps the case and the
 session. The log is in memory only: leaving the practice ends it. A solve is recorded as soon as the goal stops it
-and Undo (or Escape) takes it back. Next (or Space) brings the next case;
-with "Next case by itself" (`autoAdvance`, off by default) it also comes once
-the cube has been still for 1.5 seconds, so a final AUF or setting the cube
-down does not start it. Turning one face the same way four
+and Undo (or Escape) takes it back. Next (or Space) brings the next case
+(versions before could also bring it by itself once the cube had rested,
+`autoAdvance`; that is gone, and a stored value is ignored). Turning one face the same way four
 times in a row (within 2.5 seconds) starts the case again, as "Back to the
 case" does. Stopping by hand records the host-timed attempt the same way, and
 leaving the iOS app abandons the attempt. The app keeps the screen on while a
@@ -173,8 +172,8 @@ cube is connected in this mode.
 A practice's settings, behind the gear on its case screen, are the smart
 cube, its mode (setup on or off), the AUF (pre-applied: turned by the
 algorithm's AUF so it can start at once; in algorithm: not turned, so the AUF
-is part of the solve; or random), with a cube whether recognition is timed
-and the automatic next case, and for random practice each selected case once. The page starts on a case at
+is part of the solve; or random), with a cube whether recognition is timed,
+and for random practice each selected case once. The page starts on a case at
 once; a change takes effect with the next case (at once while a case waits). The AUF choice does not depend on the list's AUF display, which only
 changes how the solution is written (see `lib/auf-start.ts`). It is stored as
 `randomAuf` and `alignAuf`; neither flag, once "as set", reads as in
@@ -183,7 +182,7 @@ The mode is stored in the synced trainer mode with the values older app
 versions know: no setup as `standard`, with setup as `inverse`. The three-mode
 version kept no scramble as a device-local `noScramble` flag in
 `cfop:smart-cube:v1`; it reads as no setup and is cleared once a mode is
-chosen (`src/lib/practice-mode.ts`). `autoAdvance` stays device-local. How the
+chosen (`src/lib/practice-mode.ts`). How the
 practice runs follows the settings and the cube while a case waits, and is
 kept from the start of an attempt to the next case (`usePracticeFlavor`), so
 a cube lost mid-attempt leaves it on the cube, where a press still stops it,

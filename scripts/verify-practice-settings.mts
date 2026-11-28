@@ -266,7 +266,7 @@ try {
   const cubeSaved = JSON.parse(saved.get(cubeKey)!);
   assert.equal(cubeSaved.noScramble, false, 'the old no-scramble flag is cleared');
   assert.equal(cubeSaved.holding, 'white-green', 'the holding is kept');
-  assert.equal(cubeSaved.autoAdvance, true, 'the next-case option is kept');
+  assert.equal('autoAdvance' in cubeSaved, false, 'the old next-case option is no longer read, and dropped when saved');
   choosePracticeMode('no-setup');
   assert.equal(current(), 'no-setup', 'choosing no setup takes effect');
   assert.equal(JSON.parse(saved.get(sharedKey)!).trainerMode, 'standard', 'no setup is saved as standard');

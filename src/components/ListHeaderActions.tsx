@@ -19,9 +19,10 @@ import { buttonClass, iconButtonClass } from './ui';
 
 // A list page's controls, in the app header: the page's (i) after its
 // title, then Select (an icon, with the number of cases shown when some are
-// left out) and random practice. While selecting, the selection's tools and
-// the list's AUF display take a second header row, so they stay in reach
-// down a long list. Random practice is a page of its own.
+// left out) and Training (random practice of the selected cases). While
+// selecting, the selection's tools and the list's AUF display take a second
+// header row, so they stay in reach down a long list. Training is a page of
+// its own.
 export function ListHeaderActions<Id extends string>({
   practice, info, total, selection, presets, selectionMode, onSelectionModeChange,
 }: {
@@ -77,14 +78,11 @@ export function ListHeaderActions<Id extends string>({
             </button>
             <Link
               href={randomPracticePath(practice)}
-              aria-label={t('common.randomTraining')}
               title={t('common.randomTraining')}
               className={buttonClass('primary')}
             >
               <ShuffleIcon />
-              {/* Short on a phone, so the title and both buttons keep to one row. */}
-              <span className="sm:hidden">{t('common.randomShort')}</span>
-              <span className="hidden sm:inline">{t('common.randomTraining')}</span>
+              {t('common.randomTraining')}
             </Link>
           </div>
         </>,

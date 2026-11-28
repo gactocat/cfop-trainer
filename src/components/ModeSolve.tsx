@@ -237,7 +237,7 @@ export function ModeSolve({ mode }: { mode: SolveMode }) {
 
   const status = byCube && scramble ? cubeSolveStatus(screen, cube.state !== null) : null;
 
-  const records = !hidden && <SolveRecordsButton mode={mode} />;
+  const records = !hidden && <SolveRecordsButton mode={mode} show={solves.solves.length > 0} />;
 
   if (on === 'result' && result) {
     const moves = modeMoveCount(result);

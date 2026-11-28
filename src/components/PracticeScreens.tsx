@@ -11,7 +11,7 @@ import type { SmartTrainerView } from '@/hooks/useSmartCubeTrainer';
 import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
 import { toneOf } from '@/lib/hold-timer';
-import { SETTLE_MS, type PracticeResult } from '@/lib/practice-log';
+import type { PracticeResult } from '@/lib/practice-log';
 import { isCubeFlavor, type TrainerFlavor } from '@/lib/practice-mode';
 import { practicePageOf, practiceSessionPath } from '@/lib/practice-pages';
 import { practiceScreenOf, type TrainerState } from '@/lib/practice-screen';
@@ -68,26 +68,16 @@ function PracticeToolbar({ scope }: { scope: PracticeScope }) {
   );
 }
 
-/** With auto-advance, the wait for the cube to rest before the next case. */
-function SettleBar({ settle }: { settle: { key: number } }) {
-  return (
-    <div data-ui="SettleBar" className="h-1 w-full max-w-xs overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800" aria-hidden>
-      <div key={settle.key} className="h-full origin-left bg-emerald-500" style={{ animation: `no-scramble-settle ${SETTLE_MS}ms linear forwards` }} />
-    </div>
-  );
-}
-
 /**
  * The result, laid out as a solve's: the time where the timer was, then
  * small the recognition (with a cube), moves, TPS, the case and the
  * algorithm; the same case again or Next (Space), Undo (Esc) in the corner.
  */
-function PracticeResultHead({ result, elapsed, solution, caseStats, settle, onRetry, onNext, onUndo }: {
+function PracticeResultHead({ result, elapsed, solution, caseStats, onRetry, onNext, onUndo }: {
   result: PracticeResult | undefined;
   elapsed: number;
   solution: ReactNode;
   caseStats?: string;
-  settle: { key: number } | null;
   onRetry: () => void;
   onNext: () => void;
   onUndo: (key: number) => void;
@@ -124,7 +114,6 @@ function PracticeResultHead({ result, elapsed, solution, caseStats, settle, onRe
           <kbd className="ml-2 hidden font-mono text-[10px] font-normal opacity-70 sm:inline">Space</kbd>
         </button>
       </div>
-      {settle && <SettleBar settle={settle} />}
     </div>
   );
 }
@@ -168,7 +157,6 @@ export interface PracticeScreensProps {
   /** With setup and a cube: the setup guided on the cube. */
   guided: SmartTrainerView | null;
   results: readonly PracticeResult[];
-  settle: { key: number } | null;
   /** The algorithm practised, as the result shows it. */
   solution: ReactNode;
   /** Case practice: the algorithm's best and ao5, under the result's time. */
@@ -195,8 +183,9 @@ export interface PracticeScreensProps {
 //   place, the smart cube and the gear for the settings. With setup the
 //   cube shows the case to make (with a smart cube, the cube as it is,
 //   turning the next move); without setup, on the virtual cube with a
-//   smart cube, or not until the timer starts without one. With a cube and
-//   recognition timed, it counts under the cube once the case is ready.
+//   smart cube. Without either, the case screen is the timer at 0.00, the
+//   case coming below it once it starts. With a cube and recognition
+//   timed, it counts under the cube once the case is ready.
 // - Timer: the digits (red, then green while a press is held, as on the
 //   solve), with a cube the cube small (and the recognition under the
 //   digits when it is timed);
@@ -207,7 +196,7 @@ export interface PracticeScreensProps {
 // header, beside the (i)), the practice kept as it is behind it (KeptScreen).
 export function PracticeScreens(props: PracticeScreensProps) {
   const {
-    practice, scope, flavor, state, hold, elapsed, setup, caseLook, virtual, guided, results, settle,
+    practice, scope, flavor, state, hold, elapsed, setup, caseLook, virtual, guided, results,
     solution, caseStats, progress, recognition, empty, roundDone, onNext, onUndo, onRetry, onStopByHand, onReset,
   } = props;
   const { t } = useT();
@@ -230,6 +219,8 @@ export function PracticeScreens(props: PracticeScreensProps) {
       label={t('trainer.noScramble.session')}
       icon={<SessionIcon />}
       href={`${practiceSessionPath(page)}${mounted ? window.location.search : ''}`}
+      // Only once the session has a solve to show (one taken back does not count).
+      show={results.some((result) => !result.undone)}
       lead={(
         <InfoTip className="shrink-0">
           <span className="block">{t(hintOf(practice, flavor, scope))}</span>
@@ -284,12 +275,8 @@ export function PracticeScreens(props: PracticeScreensProps) {
   ) : flavor === 'inverse' ? setup !== null && (
     // The case the setup makes, held as the smart cube would be.
     <VirtualCube key={flavor} practice={practice} holding={holding} setupAlg={`${displayRotation(holding)} ${setup}`.trim()} still className="h-full w-full" />
-  ) : screen === 'case' ? (
-    // Holds the case's place until the timer starts.
-    <div className="flex h-full w-full items-center justify-center rounded-xl border-2 border-dashed border-zinc-300 px-4 text-center text-xs text-zinc-400 dark:border-zinc-700 dark:text-zinc-500">
-      {t('trainer.hold.caseLater')}
-    </div>
   ) : state === 'running' ? caseLook : null;
+  const progressLead = progress ? <span className="pt-1.5 text-sm font-medium tabular-nums text-zinc-600 dark:text-zinc-300">{progress}</span> : undefined;
 
   if (screen === 'result') {
     return (
@@ -298,8 +285,37 @@ export function PracticeScreens(props: PracticeScreensProps) {
         <SolveFrame label={t('practice.screen.result')} cube={cube} cubeSize="hidden"
           head={(
             <PracticeResultHead result={results[0]} elapsed={elapsed} solution={solution} caseStats={caseStats}
-              settle={settle} onRetry={onRetry} onNext={onNext} onUndo={onUndo} />
+              onRetry={onRetry} onNext={onNext} onUndo={onUndo} />
           )} />
+      </>
+    );
+  }
+
+  // Without a cube or setup, the case screen is the timer at 0.00 (in the
+  // place it runs in and the result shows the time in), the case to come
+  // below it once it starts: a press held turns it red, then green, and
+  // letting go starts it. The case screen's controls sit over the top,
+  // out of sight while the timer is held or runs, so nothing moves.
+  if (flavor === 'standard') {
+    return (
+      <>
+        {header}
+        <SolveFrame
+          label={state === 'running' ? t('trainer.tapToStopAria') : t('trainer.hold.aria')}
+          onPress={mounted ? hold.pressProps.onPointerDown : undefined}
+          cube={cube}
+          cubeSize="medium"
+          head={(
+            <>
+              <div className={`absolute inset-x-3 top-3 sm:inset-x-4 sm:top-4 ${screen === 'timer' ? 'invisible' : ''}`}>
+                <ScrambleHead toolbar={toolbar} lead={progressLead} scramble={undefined} tokens={[]} done={null} />
+              </div>
+              <DigitsArea under={null}>
+                <TimerDigits tone={toneOf(hold.phase)}>{seconds(state === 'running' ? elapsed : 0)}</TimerDigits>
+              </DigitsArea>
+            </>
+          )}
+        />
       </>
     );
   }
@@ -315,7 +331,7 @@ export function PracticeScreens(props: PracticeScreensProps) {
           // press held starts it and a press anywhere stops it (useHoldTimer).
           onPress={withCube ? (state === 'running' ? onStopByHand : undefined) : hold.pressProps.onPointerDown}
           cube={cube}
-          cubeSize={withCube ? 'small' : flavor === 'standard' ? 'medium' : 'hidden'}
+          cubeSize={withCube ? 'small' : 'hidden'}
           head={(
             <DigitsArea under={withCube && recognitionMs !== null && (
               <span className="font-mono text-zinc-500 tabular-nums dark:text-zinc-400">{t('trainer.cube.recognition')} {formatSolveTime(recognitionMs)}</span>
@@ -350,7 +366,7 @@ export function PracticeScreens(props: PracticeScreensProps) {
         head={(
           <ScrambleHead
             toolbar={toolbar}
-            lead={progress ? <span className="pt-1.5 text-sm font-medium tabular-nums text-zinc-600 dark:text-zinc-300">{progress}</span> : undefined}
+            lead={progressLead}
             scramble={scramble}
             tokens={guided ? guided.plan.tokens : scramble?.split(' ') ?? []}
             done={flavor === 'smart-setup' && guided ? guided.doneTokens : null}

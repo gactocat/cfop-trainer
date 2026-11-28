@@ -90,7 +90,7 @@ export function LastLayerRandomTrainer<Id extends string>({
   const startBlockedRef = useRef(false);
 
   // This session's solves, in memory only: leaving the page begins a new one.
-  const { log, results, settle } = usePracticeLog();
+  const { log, results } = usePracticeLog();
   const latest = results[0];
   const pool = useMemo(() => ids.filter((id) => selected.has(id)), [ids, selected]);
   // Each selected case once (random practice), dealt when switched on.
@@ -208,14 +208,12 @@ export function LastLayerRandomTrainer<Id extends string>({
   }, [current, caseTimes, log, nameFor, stopWith]);
 
   // With a smart cube, either flow runs from the cube: solves are recorded in
-  // this session's log as they stop, and the next case follows on Next, or by
-  // itself once the cube rests when auto-advance is on.
-  const { autoAdvance, holding: cubeHolding } = useSmartCubeSettings();
+  // this session's log as they stop, and the next case follows on Next.
+  const { holding: cubeHolding } = useSmartCubeSettings();
   const cubeFlow = {
     practice,
     scramble: current ? current.setup.scramble : null,
     trainerState: state,
-    autoAdvance,
     recognition: recognitionOn,
     log,
     describe: () => current && { caseId: current.id, name: nameFor(current.id), solution: current.setup.solution },
@@ -292,7 +290,6 @@ export function LastLayerRandomTrainer<Id extends string>({
       virtual={virtual.view}
       guided={guided.view}
       results={results}
-      settle={settle}
       solution={shown}
       caseStats={caseTimes && caseTimes.count > 0
         ? t('detail.caseStats', { best: formatSeconds(caseTimes.best), ao5: formatSeconds(caseTimes.ao5), solves: tn('common.solves', caseTimes.count) })
@@ -310,7 +307,7 @@ export function LastLayerRandomTrainer<Id extends string>({
         : null}
       onNext={cubeDriven ? cube.next : next}
       onUndo={(key) => log.undo(key)}
-      onRetry={() => { log.clearSettle(); retry(); }}
+      onRetry={retry}
       onStopByHand={cube.stopByHand}
       onReset={virtual.reset}
     />

@@ -12,11 +12,14 @@ import { iconButtonClass } from './ui';
 // header, as the list pages keep their controls there, that opens it as a
 // page of its own (back in the header returns here, as it was left; see
 // KeptScreen). `lead` goes after the page's title (its (i), for example).
-export function HeaderPageLink({ label, icon, href, lead }: {
+// The icon shows only once there is something to see there (`show`); it is
+// the last thing on the row, so coming nothing else moves.
+export function HeaderPageLink({ label, icon, href, lead, show = true }: {
   label: string;
   icon: ReactNode;
   href: string;
   lead?: ReactNode;
+  show?: boolean;
 }) {
   const mounted = useMounted();
   // The header's slot exists once the page is in the browser.
@@ -24,11 +27,13 @@ export function HeaderPageLink({ label, icon, href, lead }: {
   return actions && createPortal(
     <>
       {lead}
-      <div className="ml-auto flex shrink-0 items-center">
-        <Link href={href} aria-label={label} title={label} className={iconButtonClass('outline')}>
-          {icon}
-        </Link>
-      </div>
+      {show && (
+        <div className="ml-auto flex shrink-0 items-center">
+          <Link href={href} aria-label={label} title={label} className={iconButtonClass('outline')}>
+            {icon}
+          </Link>
+        </div>
+      )}
     </>,
     actions,
   );
