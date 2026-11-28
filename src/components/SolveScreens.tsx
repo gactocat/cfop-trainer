@@ -179,9 +179,9 @@ export function ScrambleHead({ toolbar, lead, scramble, failed = false, tokens, 
   const { t } = useT();
   return (
     <div className="flex w-full flex-col gap-3">
-      <div className="flex min-h-9 items-start justify-between gap-3">
+      <div className="flex min-h-8 items-start justify-between gap-3">
         {rerouted && scramble ? (
-          <h2 className={`${LABEL} flex min-w-0 items-center gap-1 pt-2`}>
+          <h2 className={`${LABEL} flex min-w-0 items-center gap-1 pt-1.5`}>
             {t('solve.cube.routeTitle')}
             <InfoTip>
               <span className="block">{t('solve.cube.reroute')}</span>

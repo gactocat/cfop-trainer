@@ -30,6 +30,26 @@ function DialogRow({ icon, label, detail, onClick }: { icon: ReactNode; label: M
   );
 }
 
+/**
+ * One of the top page's sections (the algorithms, the solves, the settings):
+ * its name at the top inside a light panel that shows where it begins and
+ * ends; what is inside keeps its own cards, on a fainter border.
+ */
+export function HomeSection({ id, title, as: Tag = 'section', children }: {
+  id: string;
+  title: ReactNode;
+  as?: 'section' | 'nav';
+  children: ReactNode;
+}) {
+  return (
+    <Tag id={id} aria-labelledby={`${id}-heading`}
+      className="rounded-2xl border border-zinc-200 bg-zinc-100/70 p-3 sm:p-4 dark:border-zinc-800 dark:bg-zinc-900/25">
+      <h2 id={`${id}-heading`} className="mb-2.5 px-1 text-sm font-semibold text-zinc-700 sm:mb-3 dark:text-zinc-300">{title}</h2>
+      {children}
+    </Tag>
+  );
+}
+
 export const CUBE_ICON = <Icon><path d="M12 2 21 7v10l-9 5-9-5V7z" /><path d="M3 7l9 5 9-5M12 12v10" /></Icon>;
 const ACCOUNT_ICON = <Icon><circle cx="12" cy="8" r="4" /><path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2" /></Icon>;
 
@@ -45,9 +65,8 @@ export function HomeSettings() {
   const account = state.mode === 'account' ? state.email
     : state.mode === 'guest' ? t('home.settings.guest') : null;
   return (
-    <section aria-labelledby="settings-heading">
-      <h2 id="settings-heading" className="mb-3 text-sm font-medium text-zinc-600 dark:text-zinc-400">{t('settings.title')}</h2>
-      <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+    <HomeSection id="settings" title={t('settings.title')}>
+      <div className="grid gap-2 sm:grid-cols-2 sm:gap-3">
         <WritableArea>
           <SettingsGroup>
             <SettingRow label={t('settings.language.title')}><LocaleToggle /></SettingRow>
@@ -60,6 +79,6 @@ export function HomeSettings() {
           <DialogRow icon={ACCOUNT_ICON} label="account.title" onClick={openAccountDialog} detail={mounted && account} />
         </SettingsGroup>
       </div>
-    </section>
+    </HomeSection>
   );
 }

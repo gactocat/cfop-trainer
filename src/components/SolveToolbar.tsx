@@ -11,7 +11,7 @@ import { cubeStatusKey } from './SmartCubePanel';
 import { SolveSettingsButton } from './SolveSettings';
 import { buttonClass, Icon, iconButtonClass } from './ui';
 
-export const CUBE_ICON = <Icon className="size-4"><path d="M12 2 21 7v10l-9 5-9-5V7z" /><path d="M3 7l9 5 9-5M12 12v10" /></Icon>;
+export const CUBE_ICON = <Icon className="size-3.5"><path d="M12 2 21 7v10l-9 5-9-5V7z" /><path d="M3 7l9 5 9-5M12 12v10" /></Icon>;
 
 const BUSY = ['choosing', 'scanning', 'reading-mac', 'connecting'];
 

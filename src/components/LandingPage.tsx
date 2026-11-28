@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { HOME_GROUPS, type HomeEntry, type HomeEntryArt, type HomeGroup } from '@/data/home-entries';
 import { useT } from '@/hooks/useT';
-import { HomeSettings } from './HomeSettings';
+import { HomeSection, HomeSettings } from './HomeSettings';
 
 // Equal tiles on three isometric planes echo the app icon without a WebGL player.
 // A stage lights up its stickers; a solve, the whole cube.
@@ -53,7 +53,9 @@ function Cube({ stage, from }: { stage: HomeEntryArt; from: 'stage' | 'scramble'
 // takes the whole row of its group and a tint, so it stands out without
 // another size or layout. Only the cube and the name: no counts, text or arrows.
 const TILE = 'flex h-32 flex-col items-center justify-center gap-2 rounded-xl border px-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 sm:h-40 sm:gap-3';
-const PLAIN = 'border-zinc-200 bg-white hover:border-emerald-600 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-emerald-500';
+// On the section's panel the tile's own border is faint, so the panel's
+// outline is the one that reads.
+const PLAIN = 'border-zinc-200/60 bg-white hover:border-emerald-600 dark:border-zinc-800/80 dark:bg-zinc-900 dark:hover:border-emerald-500';
 const FEATURED = 'col-span-full border-emerald-300 bg-emerald-50/50 hover:border-emerald-600 dark:border-emerald-900 dark:bg-emerald-950/40 dark:hover:border-emerald-500';
 
 function Entry({ entry, from }: { entry: HomeEntry; from: 'stage' | 'scramble' }) {
@@ -73,23 +75,22 @@ function Entry({ entry, from }: { entry: HomeEntry; from: 'stage' | 'scramble' }
 function Group({ group }: { group: HomeGroup }) {
   const { t } = useT();
   return (
-    <nav id={group.id} aria-labelledby={`${group.id}-heading`}>
-      <h2 id={`${group.id}-heading`} className="mb-3 text-sm font-medium text-zinc-600 dark:text-zinc-400">{t(group.title)}</h2>
-      <div className="grid grid-cols-3 gap-3 sm:gap-4">
+    <HomeSection id={group.id} title={t(group.title)} as="nav">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         {group.entries.map((entry) => <Entry key={entry.id} entry={entry} from={group.id === 'solve' ? 'scramble' : 'stage'} />)}
       </div>
-    </nav>
+    </HomeSection>
   );
 }
 
-// The top page: the app's name, the algorithms, the solves and the
-// settings, one spacing between them, narrower than the other pages so the
-// tiles stay near square on a wide screen.
+// The top page: the app's name, then the algorithms, the solves and the
+// settings, each in its section's panel, one spacing between them, narrower
+// than the other pages so the tiles stay near square on a wide screen.
 export function LandingPage() {
   const { t } = useT();
   return (
-    <div className="mx-auto max-w-4xl space-y-8 pb-6 sm:space-y-10 sm:pb-10">
-      <div className="flex justify-center pt-2 sm:pt-6">
+    <div className="mx-auto max-w-4xl space-y-4 pb-6 sm:space-y-6 sm:pb-10">
+      <div className="flex justify-center pt-2 pb-2 sm:pt-6 sm:pb-4">
         <h1 className="flex items-center gap-3 sm:gap-4">
           <Image src="/logo.svg" alt="" width={93} height={98} preload className="h-11 w-auto shrink-0 sm:h-14" />
           <span className="whitespace-nowrap text-[1.75rem] leading-none tracking-tight sm:text-4xl">
