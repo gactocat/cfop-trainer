@@ -52,6 +52,8 @@ ok(aa.count === 2, 'Aa counts a solve without recognition');
 near(aa.solve.mean, 1.5, 'Aa solve mean includes both');
 near(aa.recognition?.mean, 0.7, 'Aa recognition mean only over solves that had one');
 near(aa.recognition?.best, 0.7, 'Aa recognition best');
+ok(t.solve.count === 2 && t.recognition?.count === 2 && aa.solve.count === 2 && aa.recognition?.count === 1,
+  'each mean knows how many solves it is over (a mean of one shows as that solve)');
 ok(z.recognition === null, 'no recognition at all shows as none');
 ok(summarizeByCase([]).length === 0, 'empty session');
 ok(summarizeByCase([solve('T', 2, 800, true), solve('T', 1, 600)]).map((r) => r.count).join() === '1', 'undone solves are not counted');

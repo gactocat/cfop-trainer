@@ -4,10 +4,17 @@ import { useMemo } from 'react';
 import { useT } from '@/hooks/useT';
 import type { PracticeResult } from '@/lib/practice-log';
 import { summarizeByCase, summarizeSession } from '@/lib/session-stats';
+import { formatSolveTime } from '@/lib/solve/solve-stats';
 import { Figure } from './Figure';
 import { CARD, LABEL } from './ui';
 
 const seconds2 = (value: number | null) => (value === null ? '-' : value.toFixed(2));
+/**
+ * A time in seconds as the result and the solve records show one: a single
+ * solve cut to the hundredth, as the result shows it, a mean of several
+ * rounded (`over` is how many solves it is over).
+ */
+const time = (value: number | null, over: number) => (value === null ? '-' : formatSolveTime(value * 1000, { average: over > 1 }));
 const moves1 = (value: number | null) => (value === null ? '-' : value.toFixed(1));
 
 // This session as a whole (mean time, moves and TPS), then case by case:
@@ -26,7 +33,7 @@ export function SessionStats({ results, note, heading = true, className = '' }: 
   const withRecognition = rows.some((row) => row.recognition !== null);
   const th = 'px-1 py-1 font-normal';
   const best = (value: number) => (
-    <span className="block text-[10px] text-zinc-400 dark:text-zinc-500">{t('trainer.session.best', { value: value.toFixed(2) })}</span>
+    <span className="block text-[10px] text-zinc-400 dark:text-zinc-500">{t('trainer.session.best', { value: formatSolveTime(value * 1000) })}</span>
   );
   return (
     <section className={`w-full ${CARD} p-4 text-sm ${className}`}>
@@ -39,7 +46,7 @@ export function SessionStats({ results, note, heading = true, className = '' }: 
       ) : (
         <>
           <dl className="mt-3 grid grid-cols-3 gap-2">
-            <Figure label={t('trainer.session.meanTime')} value={seconds2(totals.meanSeconds)} />
+            <Figure label={t('trainer.session.meanTime')} value={time(totals.meanSeconds, totals.count)} />
             <Figure label={t('trainer.session.meanMoves')} value={moves1(totals.meanMoves)} />
             <Figure label={t('trainer.session.meanTps')} value={seconds2(totals.meanTps)} />
           </dl>
@@ -64,10 +71,10 @@ export function SessionStats({ results, note, heading = true, className = '' }: 
                     </td>
                     {withRecognition && (
                       <td className="px-1 py-1 text-sky-700 dark:text-sky-300">
-                        {row.recognition ? <>{seconds2(row.recognition.mean)}{row.count > 1 && best(row.recognition.best)}</> : '-'}
+                        {row.recognition ? <>{time(row.recognition.mean, row.recognition.count)}{row.recognition.count > 1 && best(row.recognition.best)}</> : '-'}
                       </td>
                     )}
-                    <td className="px-1 py-1">{seconds2(row.solve.mean)}{row.count > 1 && best(row.solve.best)}</td>
+                    <td className="px-1 py-1">{time(row.solve.mean, row.solve.count)}{row.solve.count > 1 && best(row.solve.best)}</td>
                     <td className="px-1 py-1">{moves1(row.moves)}</td>
                     <td className="px-1 py-1">{seconds2(row.tps)}</td>
                   </tr>

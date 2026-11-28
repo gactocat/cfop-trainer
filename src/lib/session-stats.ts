@@ -18,6 +18,8 @@ export interface SessionSolve {
 export interface MeanBest {
   mean: number;
   best: number;
+  /** How many solves the mean is over (a mean of one is that solve). */
+  count: number;
 }
 
 export interface SessionTotals {
@@ -46,7 +48,7 @@ const mean = (values: number[]) => (values.length ? values.reduce((a, v) => a + 
 
 function meanBest(values: number[]): MeanBest | null {
   if (values.length === 0) return null;
-  return { mean: mean(values)!, best: Math.min(...values) };
+  return { mean: mean(values)!, best: Math.min(...values), count: values.length };
 }
 
 const kept = (results: readonly SessionSolve[]) => results.filter((r) => !r.undone);
