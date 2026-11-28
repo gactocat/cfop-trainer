@@ -12,22 +12,16 @@ import { SOLVE_MODE, type SolveMode } from '@/lib/solve/solve-modes';
 import { solveRecordPath } from '@/lib/solve/solve-pages';
 import { countedMs, formatRecordTime, formatSolveTime, solveStats } from '@/lib/solve/solve-stats';
 import { Figure } from './Figure';
-import { buttonClass, CARD, ChevronIcon, LINK } from './ui';
+import { buttonClass, CARD, ChevronIcon, CubeIcon, LINK, Note, StopwatchIcon } from './ui';
 
 const PAGE = 50;
 
-/** How the solve was timed: by the smart cube, or with the on-screen timer. */
+/** How the solve was timed, as a note: by the smart cube, or with the on-screen timer. */
 export function TimerBadge({ record }: { record: SolveRecord }) {
   const { t } = useT();
-  return record.timer === 'cube' ? (
-    <span className="rounded-full border border-emerald-300 px-2 py-0.5 text-[10px] font-medium text-emerald-800 dark:border-emerald-800 dark:text-emerald-200">
-      {t('solve.timer.cube')}
-    </span>
-  ) : (
-    <span className="rounded-full border border-zinc-300 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
-      {t('solve.timer.hand')}
-    </span>
-  );
+  return record.timer === 'cube'
+    ? <Note icon={<CubeIcon className="size-3.5" />}>{t('solve.timer.cube')}</Note>
+    : <Note icon={<StopwatchIcon className="size-3.5" />}>{t('solve.timer.hand')}</Note>;
 }
 
 /** Moves and TPS of a cube solve, e.g. "54 moves · 4.38 TPS"; null for a hand-timed one. */

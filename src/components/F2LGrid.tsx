@@ -12,6 +12,7 @@ import type { MessageKey } from '@/i18n/messages';
 import { f2lSelectionPresets } from '@/lib/f2l-selection-presets-store';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import { ListHeaderActions } from './ListHeaderActions';
+import { StopwatchIcon } from './ui';
 import { F2L3DPlayer } from './F2L3DPlayer';
 import { F2L_IDS, type F2LCategory, type F2LId } from '@/types/f2l';
 
@@ -31,13 +32,6 @@ const CATEGORY_KEYS: Record<F2LCategory, MessageKey> = {
   'edge-in-slot': 'f2l.category.edge-in-slot',
   'pieces-in-slot': 'f2l.category.pieces-in-slot',
 };
-
-function timeBadgeClasses(seconds: number): string {
-  if (seconds < 2.5) return 'bg-emerald-500 text-white';
-  if (seconds < 4) return 'bg-emerald-300 text-emerald-950';
-  if (seconds < 6) return 'bg-amber-300 text-amber-950';
-  return 'bg-rose-400 text-rose-950';
-}
 
 function formatLastDate(iso: string | undefined, intl: string): string {
   if (!iso) return '—';
@@ -142,8 +136,11 @@ export function F2LGrid() {
                           {t('common.f2lCase', { number: f2l.number })}
                         </span>
                       </span>
+                      {/* The best time, as text: no fill, so it does not look like a button. */}
                       {best !== null && (
-                        <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${timeBadgeClasses(best)}`}>
+                        <span title={t('common.best')} className="inline-flex items-center gap-1 font-mono text-xs font-semibold tabular-nums text-zinc-700 dark:text-zinc-200">
+                          <StopwatchIcon className="size-3.5 text-zinc-400 dark:text-zinc-500" />
+                          <span className="sr-only">{t('common.best')} </span>
                           {formatSeconds(best)}
                         </span>
                       )}

@@ -9,6 +9,7 @@ import { modeRecordStages, readModeRecord } from '@/lib/solve/mode-record';
 import type { SolveRecord } from '@/lib/solve/solve-record';
 import { formatSolveTime } from '@/lib/solve/solve-stats';
 import { CubeColourMark } from './CubeColourMark';
+import { Note } from './ui';
 
 const STAGE_LABEL: Record<CfopStage, MessageKey> = {
   cross: 'solve.stage.cross',
@@ -59,9 +60,7 @@ export function SolveStages({ record, className = '' }: { record: SolveRecord; c
                 {t(STAGE_LABEL[stage.stage])}
                 {stage.stage === 'cross' && <CubeColourMark colour={crossColour} />}
                 {stage.skipped && (
-                  <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-                    {t('solve.stage.skip')}
-                  </span>
+                  <Note>{t('solve.stage.skip')}</Note>
                 )}
               </span>
             </th>

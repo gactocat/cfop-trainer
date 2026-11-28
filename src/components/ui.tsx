@@ -89,6 +89,28 @@ export function Icon({ children, className = 'size-4' }: { children: ReactNode; 
 }
 
 export const CloseIcon = () => <Icon><path d="M18 6 6 18M6 6l12 12" /></Icon>;
+/** A stopwatch: solves, and a time shown (a case's best on its card, a solve timed by hand). */
+export const StopwatchIcon = ({ className }: { className?: string }) => (
+  <Icon className={className}><circle cx="12" cy="13.5" r="7.5" /><path d="M12 13.5V10M10 2.5h4M18.5 6.5l1.5-1.5" /></Icon>
+);
+/** A cube: the smart cube. */
+export const CubeIcon = ({ className }: { className?: string }) => (
+  <Icon className={className}><path d="M12 2 21 7v10l-9 5-9-5V7z" /><path d="M3 7l9 5 9-5M12 12v10" /></Icon>
+);
+
+/**
+ * A fact shown, not a control: small muted text, its icon before it, with
+ * no fill or frame so it does not read as a button (a case's best on its
+ * card, how a solve was timed, a stage skipped).
+ */
+export function Note({ icon, children, className = '', title }: { icon?: ReactNode; children: ReactNode; className?: string; title?: string }) {
+  return (
+    <span title={title} className={`inline-flex items-center gap-1 whitespace-nowrap text-[11px] text-zinc-500 dark:text-zinc-400 ${className}`}>
+      {icon}
+      {children}
+    </span>
+  );
+}
 
 export function GearIcon() {
   return (

@@ -10,7 +10,7 @@ import { openAccountDialog, openAppDialog } from '@/lib/app-dialog';
 import { WritableArea } from './AccountBoundary';
 import { LocaleToggle } from './LocaleToggle';
 import { ThemeToggle } from './ThemeToggle';
-import { ChevronIcon, GearIcon, Icon, SettingRow, SettingsGroup } from './ui';
+import { ChevronIcon, CubeIcon, GearIcon, Icon, SettingRow, SettingsGroup, StopwatchIcon } from './ui';
 
 // A setting kept in its own dialog: its name, what it is now, and an arrow.
 // As tall as a SettingRow; the second line is there from the start, so the
@@ -59,11 +59,11 @@ export function HomeSection({ id, title, icon, as: Tag = 'section', children }: 
 /** The sections' icons: a list of algorithms, a stopwatch for solves, a gear for settings. */
 export const SECTION_ICON = {
   algorithms: <Icon><path d="M10 6h10M10 12h10M10 18h10" /><path d="M4 5h1.5v3M4 8h3M4.5 14.5a1.2 1.2 0 0 1 2.3.4c0 .9-2.8 2-2.8 3.1h3" /></Icon>,
-  solve: <Icon><circle cx="12" cy="13.5" r="7.5" /><path d="M12 13.5V10M10 2.5h4M18.5 6.5l1.5-1.5" /></Icon>,
+  solve: <StopwatchIcon />,
   settings: <GearIcon />,
 } as const;
 
-export const CUBE_ICON = <Icon><path d="M12 2 21 7v10l-9 5-9-5V7z" /><path d="M3 7l9 5 9-5M12 12v10" /></Icon>;
+export const CUBE_ICON = <CubeIcon />;
 const ACCOUNT_ICON = <Icon><circle cx="12" cy="8" r="4" /><path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2" /></Icon>;
 
 // The app's settings, on the top page below the F2L / OLL / PLL entries:

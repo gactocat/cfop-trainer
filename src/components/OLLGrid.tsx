@@ -12,6 +12,7 @@ import type { MessageKey } from '@/i18n/messages';
 import { ollSelectionPresets } from '@/lib/oll-selection-presets-store';
 import { averageOfN, bestSeconds, formatSeconds } from '@/lib/stats';
 import { ListHeaderActions } from './ListHeaderActions';
+import { StopwatchIcon } from './ui';
 import { OLLLLView } from './OLLLLView';
 import { OLL_IDS, type OLLCategory, type OLLId } from '@/types/oll';
 
@@ -41,13 +42,6 @@ const CATEGORY_KEYS: Record<OLLCategory, MessageKey> = {
 };
 
 const CATEGORY_ORDER: OLLCategory[] = ["dot-case", "square-shapes", "lightning-shapes", "fish-shapes", "knight-move-shapes", "ocll", "all-corners-oriented", "awkward-shapes", "p-shapes", "t-shapes", "c-shapes", "w-shapes", "l-shapes", "line-shapes"];
-
-function timeBadgeClasses(seconds: number): string {
-  if (seconds < 2.5) return 'bg-emerald-500 text-white';
-  if (seconds < 3.5) return 'bg-emerald-300 text-emerald-950';
-  if (seconds < 4.5) return 'bg-amber-300 text-amber-950';
-  return 'bg-rose-400 text-rose-950';
-}
 
 function formatLastDate(iso: string | undefined, intl: string): string {
   if (!iso) return '—';
@@ -151,8 +145,11 @@ export function OLLGrid() {
                         )}
                         <span className="font-medium text-sm">{oll.name}</span>
                       </span>
+                      {/* The best time, as text: no fill, so it does not look like a button. */}
                       {best !== null && (
-                        <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${timeBadgeClasses(best)}`}>
+                        <span title={t('common.best')} className="inline-flex items-center gap-1 font-mono text-xs font-semibold tabular-nums text-zinc-700 dark:text-zinc-200">
+                          <StopwatchIcon className="size-3.5 text-zinc-400 dark:text-zinc-500" />
+                          <span className="sr-only">{t('common.best')} </span>
                           {formatSeconds(best)}
                         </span>
                       )}

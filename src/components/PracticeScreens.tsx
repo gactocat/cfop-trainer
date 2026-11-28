@@ -33,7 +33,6 @@ import { TimerDigits } from './TimerDigits';
 import { buttonClass, Icon, iconButtonClass } from './ui';
 import { VirtualCube } from './VirtualCube';
 
-const CHIP = 'rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium tabular-nums text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200';
 const seconds = (value: number) => formatSolveTime(value * 1000);
 
 /** What a practice runs on, as its (i) says: with or without setup, a smart cube, one case or the selection. */
@@ -351,7 +350,7 @@ export function PracticeScreens(props: PracticeScreensProps) {
         head={(
           <ScrambleHead
             toolbar={toolbar}
-            lead={progress ? <span className={CHIP}>{progress}</span> : undefined}
+            lead={progress ? <span className="pt-1.5 text-sm font-medium tabular-nums text-zinc-600 dark:text-zinc-300">{progress}</span> : undefined}
             scramble={scramble}
             tokens={guided ? guided.plan.tokens : scramble?.split(' ') ?? []}
             done={flavor === 'smart-setup' && guided ? guided.doneTokens : null}

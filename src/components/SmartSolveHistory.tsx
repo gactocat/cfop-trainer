@@ -7,7 +7,7 @@ import { readSolve, turnsPerSecond, type SmartSolveRecord } from '@/lib/smart-cu
 import type { TrainerPractice } from '@/lib/smart-cube/trainer-session';
 import { clearSmartSolves, deleteSmartSolve } from '@/lib/smart-solve-store';
 import { InfoTip } from './InfoTip';
-import { buttonClass, CARD, CloseIcon, iconButtonClass, LINK } from './ui';
+import { buttonClass, CARD, CloseIcon, iconButtonClass, LINK, Note } from './ui';
 
 const SHOWN = 10;
 
@@ -63,9 +63,7 @@ function HistoryRow({ record, date }: { record: SmartSolveRecord; date: Intl.Dat
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="font-mono font-semibold tabular-nums">{(record.executionMs / 1000).toFixed(3)}</span>
         {record.mode === 'no-scramble' && (
-          <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-            {t('smartCube.history.noScramble')}
-          </span>
+          <Note>{t('smartCube.history.noScramble')}</Note>
         )}
         <span className="font-mono text-xs text-zinc-500 dark:text-zinc-400">
           {t('smartCube.solve.summary', { moves: moves.count, tps: moves.tps.toFixed(2) })}
