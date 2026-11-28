@@ -96,7 +96,10 @@ eq(cubeTurns(planSetup('R R', 'white-green')!), 'R2', 'repeated turns merge');
 const kpuzzle = await cube3x3x3.kpuzzle();
 const kSolved = kpuzzle.defaultPattern();
 const ROTATIONS = ['', 'x', 'x2', "x'", 'z', "z'"].flatMap((a) => ['', 'y', 'y2', "y'"].map((b) => `${a} ${b}`.trim()));
-const PREFIX: Record<CubeHolding, string> = { 'yellow-blue': 'x2', 'yellow-green': 'z2', 'white-green': '' };
+const PREFIX: Record<CubeHolding, string> = {
+  'yellow-blue': 'x2', 'yellow-green': 'z2', 'yellow-red': 'x2 y', 'yellow-orange': "x2 y'",
+  'white-green': '', 'white-blue': 'y2', 'white-red': 'y', 'white-orange': "y'",
+};
 // The virtual cube is drawn with the same rotations these checks use.
 for (const h of CUBE_HOLDINGS) eq(displayRotation(h), PREFIX[h], `display rotation for ${h}`);
 function kNormalized(p: KPattern): KPattern {

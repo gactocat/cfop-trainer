@@ -4,19 +4,22 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { HOME_GROUPS, type HomeEntry, type HomeEntryArt, type HomeGroup } from '@/data/home-entries';
 import { useT } from '@/hooks/useT';
-import { HomeSection, HomeSettings } from './HomeSettings';
+import { HomeSection, HomeSettings, SECTION_ICON } from './HomeSettings';
 
 // Equal tiles on three isometric planes echo the app icon without a WebGL player.
-// A stage lights up its stickers; a solve, the whole cube.
+// Each entry lights up the stickers of its stage, the rest grey; a whole
+// solve, the whole cube. The stages split the cube between them: the cross
+// (the centres and the bottom edges), F2L (the four pairs: the corners and
+// edges of the two lower layers around it) and the last layer.
 //
-// Stickers are numbered row by row; a side's row 0 touches the top face.
-// The cross is drawn on top: its edges and centre, and on each side the
-// edge's other sticker and the centre it lines up with.
+// Stickers are numbered row by row; a side's row 0 touches the top face, so
+// on a side 4 is the centre, 7 the bottom edge (the cross, whose white is
+// underneath, out of sight) and 3, 5, 6, 8 the pairs.
 const lit = (stage: HomeEntryArt, face: string, i: number) => {
   switch (stage) {
     case 'solve': return true;
-    case 'cross': return face === 'top' ? [1, 3, 4, 5, 7].includes(i) : i === 1 || i === 4;
-    case 'f2l': return face !== 'top' && i >= 3;
+    case 'cross': return face !== 'top' && (i === 4 || i === 7);
+    case 'f2l': return face !== 'top' && [3, 5, 6, 8].includes(i);
     case 'pll': return face === 'top' || i < 3;
     case 'oll': return face === 'top';
   }
@@ -27,20 +30,15 @@ const FACES = [
   { transform: 'matrix(.866 .5 0 1 49.15 88)', color: 'fill-[#4779e8]', face: 'front' },
   { transform: 'matrix(.866 -.5 0 1 160 152)', color: 'fill-[#ee6262]', face: 'right' },
 ];
-// A solve starts from a scramble: what it does not solve is drawn in mixed,
-// faded colours (the same every time), where an algorithm's stage leaves the
-// rest grey.
-const MIXED = ['fill-[#f5d83b]/35', 'fill-[#4779e8]/35', 'fill-[#ee6262]/35', 'fill-[#4cc38a]/35', 'fill-[#f59f3a]/35', 'fill-zinc-300/60 dark:fill-zinc-500/40'];
-const mixed = (face: number, i: number) => MIXED[(face * 4 + i * 5 + (i % 3) * 2) % MIXED.length];
 
-function Cube({ stage, from }: { stage: HomeEntryArt; from: 'stage' | 'scramble' }) {
+function Cube({ stage }: { stage: HomeEntryArt }) {
   return (
     <svg viewBox="0 0 320 300" fill="none" aria-hidden="true" className="h-full w-full">
-      {FACES.map(({ transform, color, face }, f) => (
+      {FACES.map(({ transform, color, face }) => (
         <g key={face} transform={transform}>
           {Array.from({ length: 9 }, (_, i) => (
             <rect key={i} x={(i % 3) * 44} y={Math.floor(i / 3) * 44} width="40" height="40" rx="4"
-              className={lit(stage, face, i) ? color : from === 'scramble' ? mixed(f, i) : 'fill-zinc-200 dark:fill-zinc-700'} />
+              className={lit(stage, face, i) ? color : 'fill-zinc-200 dark:fill-zinc-700'} />
           ))}
         </g>
       ))}
@@ -58,26 +56,23 @@ const TILE = 'flex h-32 flex-col items-center justify-center gap-2 rounded-xl bo
 const PLAIN = 'border-zinc-200/60 bg-white hover:border-emerald-600 dark:border-zinc-800/80 dark:bg-zinc-900 dark:hover:border-emerald-500';
 const FEATURED = 'col-span-full border-emerald-300 bg-emerald-50/50 hover:border-emerald-600 dark:border-emerald-900 dark:bg-emerald-950/40 dark:hover:border-emerald-500';
 
-function Entry({ entry, from }: { entry: HomeEntry; from: 'stage' | 'scramble' }) {
+function Entry({ entry }: { entry: HomeEntry }) {
   const { href, name, art, featured } = entry;
   return (
     <Link href={href} className={`${TILE} ${featured ? FEATURED : PLAIN}`}>
-      <span className="size-14 sm:size-18"><Cube stage={art} from={from} /></span>
+      <span className="size-14 sm:size-18"><Cube stage={art} /></span>
       <span className="text-lg font-semibold tracking-tight sm:text-2xl">{name}</span>
     </Link>
   );
 }
 
-// A group: its name, then its entries. The algorithms draw a stage on a grey
-// cube; the solves, which start from a scramble, the part they solve on a
-// cube of faded mixed colours, so their F2L does not look like the
-// algorithms' one.
+// A group: its icon and name, then its entries.
 function Group({ group }: { group: HomeGroup }) {
   const { t } = useT();
   return (
-    <HomeSection id={group.id} title={t(group.title)} as="nav">
+    <HomeSection id={group.id} title={t(group.title)} icon={SECTION_ICON[group.id]} as="nav">
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        {group.entries.map((entry) => <Entry key={entry.id} entry={entry} from={group.id === 'solve' ? 'scramble' : 'stage'} />)}
+        {group.entries.map((entry) => <Entry key={entry.id} entry={entry} />)}
       </div>
     </HomeSection>
   );
@@ -94,7 +89,8 @@ export function LandingPage() {
         <h1 className="flex items-center gap-3 sm:gap-4">
           <Image src="/logo.svg" alt="" width={93} height={98} preload className="h-11 w-auto shrink-0 sm:h-14" />
           <span className="whitespace-nowrap text-[1.75rem] leading-none tracking-tight sm:text-4xl">
-            <span className="font-semibold">{t('landing.brandName')}</span>{' '}<span className="font-light">{t('landing.brandDescriptor')}</span>
+            {/* As heavy as the header's name. */}
+            <span className="font-semibold">{t('landing.brandName')} {t('landing.brandDescriptor')}</span>
           </span>
         </h1>
       </div>

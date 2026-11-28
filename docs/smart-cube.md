@@ -276,8 +276,12 @@ unchanged, so older app versions are unaffected.
   so web bundles do not include the plugin.
 - `cube-state.ts`: cubie model in the cube's frame (white U, green F) and the
   goal checks.
-- `holding.ts`: user frames. Yellow top with blue front (the app's 3D views,
-  x2) is the default; yellow top with green front (z2) and white top are options.
+- `holding.ts`: user frames. A practice's holding is a top colour, the last
+  layer (yellow or white), and any side colour in front, chosen in the smart
+  cube dialog with the same colour squares as the solve's scramble
+  orientation. Yellow top with blue front (the app's 3D views, x2) is the
+  default. Versions before kept three holdings (yellow-blue, yellow-green,
+  white-green) and read the others as the default.
 - `setup-guide.ts`: plans a scramble as cube-frame face turns. The cube reports
   turns relative to its centres, so r = L x, M = R L' x' and so on, and
   rotations only change the frame.
@@ -304,7 +308,7 @@ node --import ./scripts/register-src-alias.mjs scripts/verify-gan-gen4.mts [capt
 node --import ./scripts/register-src-alias.mjs scripts/verify-smart-cube-link.mts
 ```
 
-The first compares every F2L, OLL and PLL preset in all three holdings with
+The first compares every F2L, OLL and PLL preset in every holding with
 cubing.js, and checks the 3D guide against it: every next move it shows,
 through every preset and trainer setup, turns the cube shown into the cube
 shown after it. The second replays a recorded session (from `/dev/gan-i4`, which

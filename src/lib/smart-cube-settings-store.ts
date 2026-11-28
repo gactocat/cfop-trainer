@@ -86,6 +86,7 @@ if (typeof window !== 'undefined') {
 }
 
 export function setHolding(holding: CubeHolding) {
+  if (getSnapshot().holding === holding) return;
   write({ ...getSnapshot(), holding });
 }
 

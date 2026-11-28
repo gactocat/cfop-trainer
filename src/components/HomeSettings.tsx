@@ -10,7 +10,7 @@ import { openAccountDialog, openAppDialog } from '@/lib/app-dialog';
 import { WritableArea } from './AccountBoundary';
 import { LocaleToggle } from './LocaleToggle';
 import { ThemeToggle } from './ThemeToggle';
-import { ChevronIcon, Icon, SettingRow, SettingsGroup } from './ui';
+import { ChevronIcon, GearIcon, Icon, SettingRow, SettingsGroup } from './ui';
 
 // A setting kept in its own dialog: its name, what it is now, and an arrow.
 // As tall as a SettingRow; the second line is there from the start, so the
@@ -32,23 +32,36 @@ function DialogRow({ icon, label, detail, onClick }: { icon: ReactNode; label: M
 
 /**
  * One of the top page's sections (the algorithms, the solves, the settings):
- * its name at the top inside a light panel that shows where it begins and
- * ends; what is inside keeps its own cards, on a fainter border.
+ * its icon and name at the top inside a light panel that shows where it
+ * begins and ends; what is inside keeps its own cards, on a fainter border.
+ * The names are English in every language (as the stages' are), so the
+ * heading says so for screen readers.
  */
-export function HomeSection({ id, title, as: Tag = 'section', children }: {
+export function HomeSection({ id, title, icon, as: Tag = 'section', children }: {
   id: string;
   title: ReactNode;
+  icon: ReactNode;
   as?: 'section' | 'nav';
   children: ReactNode;
 }) {
   return (
     <Tag id={id} aria-labelledby={`${id}-heading`}
       className="rounded-2xl border border-zinc-200 bg-zinc-100/70 p-3 sm:p-4 dark:border-zinc-800 dark:bg-zinc-900/25">
-      <h2 id={`${id}-heading`} className="mb-2.5 px-1 text-sm font-semibold text-zinc-700 sm:mb-3 dark:text-zinc-300">{title}</h2>
+      <h2 id={`${id}-heading`} lang="en" className="mb-2.5 flex items-center gap-1.5 px-1 text-sm font-semibold text-zinc-700 sm:mb-3 dark:text-zinc-300">
+        <span className="text-zinc-500 dark:text-zinc-400">{icon}</span>
+        {title}
+      </h2>
       {children}
     </Tag>
   );
 }
+
+/** The sections' icons: a list of algorithms, a stopwatch for solves, a gear for settings. */
+export const SECTION_ICON = {
+  algorithms: <Icon><path d="M10 6h10M10 12h10M10 18h10" /><path d="M4 5h1.5v3M4 8h3M4.5 14.5a1.2 1.2 0 0 1 2.3.4c0 .9-2.8 2-2.8 3.1h3" /></Icon>,
+  solve: <Icon><circle cx="12" cy="13.5" r="7.5" /><path d="M12 13.5V10M10 2.5h4M18.5 6.5l1.5-1.5" /></Icon>,
+  settings: <GearIcon />,
+} as const;
 
 export const CUBE_ICON = <Icon><path d="M12 2 21 7v10l-9 5-9-5V7z" /><path d="M3 7l9 5 9-5M12 12v10" /></Icon>;
 const ACCOUNT_ICON = <Icon><circle cx="12" cy="8" r="4" /><path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2" /></Icon>;
@@ -65,7 +78,7 @@ export function HomeSettings() {
   const account = state.mode === 'account' ? state.email
     : state.mode === 'guest' ? t('home.settings.guest') : null;
   return (
-    <HomeSection id="settings" title={t('settings.title')}>
+    <HomeSection id="settings" title={t('landing.group.settings')} icon={SECTION_ICON.settings}>
       <div className="grid gap-2 sm:grid-cols-2 sm:gap-3">
         <WritableArea>
           <SettingsGroup>

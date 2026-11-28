@@ -6,7 +6,7 @@ import { useSmartCube, useSmartCubeSettings } from '@/hooks/useSmartCube';
 import { useT } from '@/hooks/useT';
 import type { MessageKey } from '@/i18n/messages';
 import { stateEquals, SOLVED } from '@/lib/smart-cube/cube-state';
-import { CUBE_HOLDINGS, type CubeHolding } from '@/lib/smart-cube/holding';
+import { fitsTop, holdingColours, holdingOf, HOLDING_TOPS } from '@/lib/smart-cube/holding';
 import type { SmartCubeUnsupported } from '@/lib/smart-cube/support';
 import { isNativeApp } from '@/lib/native';
 import {
@@ -30,8 +30,9 @@ import { forgetMac, setHolding } from '@/lib/smart-cube-settings-store';
 import { clearSmartSolves, MAX_SMART_SOLVES } from '@/lib/smart-solve-store';
 import { useSmartSolveCount } from '@/hooks/useSmartSolves';
 import { BatteryLevel } from './BatteryLevel';
+import { Swatches } from './SolveSettings';
 import { MarkSolvedButton } from './MarkSolvedButton';
-import { buttonClass, INPUT, LINK, Segmented, SettingRow, SettingsGroup } from './ui';
+import { buttonClass, INPUT, LINK, SettingRow, SettingsGroup } from './ui';
 
 export const UNSUPPORTED: Record<SmartCubeUnsupported, MessageKey> = {
   ios: 'smartCube.unsupported.ios',
@@ -59,11 +60,6 @@ export const PROBLEM: Record<SmartCubeProblem, MessageKey> = {
   'bluetooth-off': 'smartCube.problem.bluetoothOff',
   'bluetooth-denied': 'smartCube.problem.bluetoothDenied',
 };
-const HOLDING_LABELS: Record<CubeHolding, MessageKey> = {
-  'yellow-blue': 'smartCube.holding.yellowBlue',
-  'yellow-green': 'smartCube.holding.yellowGreen',
-  'white-green': 'smartCube.holding.whiteGreen',
-};
 
 /**
  * What the smart cube is doing, in a line: why it cannot connect here, what
@@ -78,6 +74,26 @@ export function cubeStatusKey(cube: Pick<SmartCubeSnapshot, 'status' | 'problem'
 }
 
 const HOLDINGS_HELP: MessageKey = 'smartCube.holding.help';
+
+/**
+ * How the cube is held while practising, as the solve's scramble orientation
+ * is chosen: the top colour (the last layer: yellow or white) and the front
+ * colour beside it. A top that no longer fits the front keeps the front's
+ * side, so changing the top never leaves no holding.
+ */
+function HoldingSwatches() {
+  const { t } = useT();
+  const { holding } = useSmartCubeSettings();
+  const { top, front } = holdingColours(holding);
+  return (
+    <div className="space-y-3">
+      <Swatches label={t('solve.settings.top')} value={top} allowed={(colour) => HOLDING_TOPS.includes(colour)}
+        onPick={(next) => setHolding(holdingOf({ top: next, front: fitsTop(next, front) ? front : 'blue' }) ?? holding)} />
+      <Swatches label={t('solve.settings.front')} value={front} allowed={(colour) => fitsTop(top, colour)}
+        onPick={(next) => setHolding(holdingOf({ top, front: next }) ?? holding)} />
+    </div>
+  );
+}
 
 /** What the dialog says about the smart cube, behind the (i) by its title. */
 export function SmartCubeInfo() {
@@ -99,7 +115,7 @@ export function SmartCubePanel() {
   const mounted = useMounted();
   const solveCount = useSmartSolveCount();
   const cube = useSmartCube();
-  const { holding, macs, lastCube } = useSmartCubeSettings();
+  const { macs, lastCube } = useSmartCubeSettings();
   const [mac, setMac] = useState('');
   const [forgot, setForgot] = useState(false);
   // The app scans while this panel is open; closing it ends the scan.
@@ -226,8 +242,7 @@ export function SmartCubePanel() {
             </SettingRow>
           )}
           <SettingRow label={t('smartCube.holding.title')} info={t(HOLDINGS_HELP)} stacked>
-            <Segmented label={t('smartCube.holding.aria')} value={holding} onChange={setHolding} vertical
-              options={CUBE_HOLDINGS.map((value) => ({ value, label: t(HOLDING_LABELS[value]) }))} />
+            <HoldingSwatches />
           </SettingRow>
         </SettingsGroup>
       )}

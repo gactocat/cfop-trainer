@@ -7,16 +7,21 @@ import { STICKER_COLOURS } from '@/lib/cube-colors';
 import { CUBE_COLOURS, fitsTop, type CubeColour } from '@/lib/smart-cube/holding';
 import { AppModal } from './AppModal';
 import { COLOUR_LABEL } from './CubeColourMark';
-import { Icon, SettingRow, SettingsGroup, Switch } from './ui';
+import { GearIcon, SettingRow, SettingsGroup, Switch } from './ui';
 
 type Settings = ReturnType<typeof useSolveSettings>;
 
-function Swatches({ label, value, allowed, onPick, disabled }: {
+/**
+ * A face's colour, chosen from the cube's six as squares of that colour
+ * (those that do not fit dimmed): the solve's scramble orientation and the
+ * smart cube's holding alike.
+ */
+export function Swatches({ label, value, allowed, onPick, disabled = false }: {
   label: string;
   value: CubeColour;
   allowed: (colour: CubeColour) => boolean;
   onPick: (colour: CubeColour) => void;
-  disabled: boolean;
+  disabled?: boolean;
 }) {
   const { t } = useT();
   return (
@@ -78,14 +83,6 @@ function SolveSettingsForm({ settings }: { settings: Settings }) {
   );
 }
 
-export function GearIcon() {
-  return (
-    <Icon>
-      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-      <circle cx="12" cy="12" r="3" />
-    </Icon>
-  );
-}
 
 // The solve's settings, behind a gear beside the scramble: how the cube is
 // held for the scramble and the inspection. The gear is off while an

@@ -19,7 +19,7 @@ export interface HomeEntry {
 }
 
 export interface HomeGroup {
-  id: string;
+  id: 'algorithms' | 'solve';
   title: MessageKey;
   entries: readonly HomeEntry[];
 }

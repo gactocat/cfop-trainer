@@ -12,11 +12,10 @@ import { setAutoAdvance } from '@/lib/smart-cube-settings-store';
 import { unsupportedReason } from '@/lib/smart-cube-store';
 import { AppModal } from './AppModal';
 import { AufStartHelp, AufStartToggle } from './AufStartToggle';
-import { GearIcon } from './SolveSettings';
 import { cubeStatusKey } from './SmartCubePanel';
 import { CubeConnection } from './SolveToolbar';
 import { PRACTICE_MODE_OPTIONS, TrainerModeToggle } from './TrainerModeToggle';
-import { ChoiceHelp, SettingRow, SettingsGroup, Switch } from './ui';
+import { ChoiceHelp, GearIcon, SettingRow, SettingsGroup, Switch } from './ui';
 
 /** Random practice draws from the selected cases; case practice repeats one case. */
 export type PracticeScope = 'random' | 'case';

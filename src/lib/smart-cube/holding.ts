@@ -4,20 +4,47 @@
 
 import type { Amount, Face, LastLayerFace } from '@/lib/smart-cube/cube-state';
 
-export type CubeHolding = 'yellow-blue' | 'yellow-green' | 'white-green';
-export const CUBE_HOLDINGS: readonly CubeHolding[] = ['yellow-blue', 'yellow-green', 'white-green'];
+/**
+ * How a practice's cube is held, by its top and front colours: the last
+ * layer (yellow or white, the cube's D or U face) on top, any side colour in
+ * front. Versions before kept only yellow-blue, yellow-green and
+ * white-green, and fall back to yellow-blue for the others.
+ */
+export type CubeHolding =
+  | 'yellow-blue' | 'yellow-green' | 'yellow-red' | 'yellow-orange'
+  | 'white-green' | 'white-blue' | 'white-red' | 'white-orange';
+export const CUBE_HOLDINGS: readonly CubeHolding[] = [
+  'yellow-blue', 'yellow-green', 'yellow-red', 'yellow-orange',
+  'white-green', 'white-blue', 'white-red', 'white-orange',
+];
 /** Yellow on top, blue in front: the orientation of the app's 3D views (x2). */
 export const DEFAULT_HOLDING: CubeHolding = 'yellow-blue';
 
 export type Frame = Readonly<Record<Face, Face>>;
 
+// Written out (colourFrame, below, builds them from rotations defined later
+// in this module): each is colourFrame of its top and front colours.
 const HOLDING_FRAMES: Record<CubeHolding, Frame> = {
   'yellow-blue': { U: 'D', R: 'R', F: 'B', D: 'U', L: 'L', B: 'F' },
   'yellow-green': { U: 'D', R: 'L', F: 'F', D: 'U', L: 'R', B: 'B' },
+  'yellow-red': { U: 'D', R: 'F', F: 'R', D: 'U', L: 'B', B: 'L' },
+  'yellow-orange': { U: 'D', R: 'B', F: 'L', D: 'U', L: 'F', B: 'R' },
   'white-green': { U: 'U', R: 'R', F: 'F', D: 'D', L: 'L', B: 'B' },
+  'white-blue': { U: 'U', R: 'L', F: 'B', D: 'D', L: 'R', B: 'F' },
+  'white-red': { U: 'U', R: 'B', F: 'R', D: 'D', L: 'F', B: 'L' },
+  'white-orange': { U: 'U', R: 'F', F: 'L', D: 'D', L: 'B', B: 'R' },
 };
 
 export const holdingFrame = (holding: CubeHolding): Frame => HOLDING_FRAMES[holding];
+
+/** The top colours a practice can be held with: the last layer's. */
+export const HOLDING_TOPS: readonly CubeColour[] = ['yellow', 'white'];
+
+/** The holding with these colours; null when the top is not a last layer or the front does not sit beside it. */
+export function holdingOf({ top, front }: ColourHolding): CubeHolding | null {
+  const name = `${top}-${front}`;
+  return CUBE_HOLDINGS.includes(name as CubeHolding) ? (name as CubeHolding) : null;
+}
 
 /** A named holding's frame, or a frame as it is. */
 export const toFrame = (holding: CubeHolding | Frame): Frame => (typeof holding === 'string' ? HOLDING_FRAMES[holding] : holding);
@@ -27,7 +54,7 @@ export const toFrame = (holding: CubeHolding | Frame): Frame => (typeof holding 
  * holding, for a player's setup: yellow-blue matches the app's 3D views.
  */
 export function displayRotation(holding: CubeHolding): string {
-  return holding === 'yellow-blue' ? 'x2' : holding === 'yellow-green' ? 'z2' : '';
+  return frameRotation(HOLDING_FRAMES[holding]);
 }
 
 /** The cube face that is the last layer (the face on top) when held this way. */
