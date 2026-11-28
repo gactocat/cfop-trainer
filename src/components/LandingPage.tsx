@@ -52,20 +52,18 @@ function Cube({ stage }: { stage: HomeEntryArt }) {
   );
 }
 
-// Every entry is a tile of the same grid, three across at every width, the
-// same height, its cube above its name, both centred; CFOP, the solve,
-// takes the whole row of its group and a tint, so it stands out without
-// another size or layout. Only the cube and the name: no counts, text or arrows.
-const TILE = 'flex h-32 flex-col items-center justify-center gap-2 rounded-xl border px-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 sm:h-40 sm:gap-3';
-// On the section's panel the tile's own border is faint, so the panel's
-// outline is the one that reads.
-const PLAIN = 'border-zinc-200/60 bg-white hover:border-emerald-600 dark:border-zinc-800/80 dark:bg-zinc-900 dark:hover:border-emerald-500';
-const FEATURED = 'col-span-full border-emerald-300 bg-emerald-50/50 hover:border-emerald-600 dark:border-emerald-900 dark:bg-emerald-950/40 dark:hover:border-emerald-500';
+// Every entry is the same tile: one row per group, the group's entries
+// sharing it equally (three algorithms, four solves), the same height, its
+// cube above its name, both centred, CFOP too. Only the cube and the name:
+// no counts, text or arrows. On the section's panel the tile's own border
+// is faint, so the panel's outline is the one that reads.
+const TILE = 'flex h-32 flex-col items-center justify-center gap-2 rounded-xl border border-zinc-200/60 bg-white px-1 transition-colors hover:border-emerald-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 sm:h-40 sm:gap-3 dark:border-zinc-800/80 dark:bg-zinc-900 dark:hover:border-emerald-500';
+const COLUMNS: Record<number, string> = { 3: 'grid-cols-3', 4: 'grid-cols-4' };
 
 function Entry({ entry }: { entry: HomeEntry }) {
-  const { href, name, art, featured } = entry;
+  const { href, name, art } = entry;
   return (
-    <Link data-ui="LandingPage.entry" href={href} className={`${TILE} ${featured ? FEATURED : PLAIN}`}>
+    <Link data-ui="LandingPage.entry" href={href} className={TILE}>
       <span className="size-14 sm:size-18"><Cube stage={art} /></span>
       <span className="text-lg font-semibold tracking-tight sm:text-2xl">{name}</span>
     </Link>
@@ -77,7 +75,7 @@ function Group({ group }: { group: HomeGroup }) {
   const { t } = useT();
   return (
     <HomeSection id={group.id} title={t(group.title)} icon={SECTION_ICON[group.id]} as="nav">
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+      <div className={`grid gap-2 sm:gap-3 ${COLUMNS[group.entries.length]}`}>
         {group.entries.map((entry) => <Entry key={entry.id} entry={entry} />)}
       </div>
     </HomeSection>

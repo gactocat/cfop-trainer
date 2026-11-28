@@ -1,7 +1,7 @@
 // The top page's entries, in groups: the algorithms of each CFOP stage, and
 // solves from a scramble: CFOP, then the cross, F2L and the last layer on
-// their own (SOLVE_MODE_ENTRIES, from lib/solve/solve-modes.ts). CFOP is the
-// solve, so it is featured: it takes the whole row of its group.
+// their own (SOLVE_MODE_ENTRIES, from lib/solve/solve-modes.ts). Every entry
+// looks the same, CFOP too.
 
 import type { MessageKey } from '@/i18n/messages';
 import { SOLVE_MODE, SOLVE_MODES, type SolveMode } from '@/lib/solve/solve-modes';
@@ -14,8 +14,6 @@ export interface HomeEntry {
   href: string;
   name: string;
   art: HomeEntryArt;
-  /** Takes the whole row of its group, tinted (the same tile otherwise). */
-  featured?: boolean;
 }
 
 export interface HomeGroup {
@@ -28,13 +26,12 @@ export interface HomeGroup {
 // row of the sides.
 const MODE_ART: Record<SolveMode, HomeEntryArt> = { cfop: 'solve', cross: 'cross', f2l: 'f2l', ll: 'pll' };
 
-/** An entry for each kind of solve (lib/solve/solve-modes.ts), CFOP first and featured. */
+/** An entry for each kind of solve (lib/solve/solve-modes.ts), CFOP first. */
 export const SOLVE_MODE_ENTRIES: readonly HomeEntry[] = SOLVE_MODES.map((mode) => ({
   id: mode,
   href: SOLVE_MODE[mode].href,
   name: SOLVE_MODE[mode].label,
   art: MODE_ART[mode],
-  ...(mode === 'cfop' ? { featured: true } : {}),
 }));
 
 export const HOME_GROUPS: readonly HomeGroup[] = [
