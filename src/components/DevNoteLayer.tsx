@@ -31,7 +31,7 @@ interface Draft {
   page: string;
   viewport: NewDevNote['viewport'];
   theme: NewDevNote['theme'];
-  shot: Promise<string | null>;
+  shot: ReturnType<typeof captureArea>;
 }
 
 type Lit = { rect: Rect; name: string };
@@ -223,11 +223,11 @@ export default function DevNoteLayer() {
     setSaving(true);
     setFailed(false);
     try {
-      const screenshot = await draft.shot;
+      const { screenshot, info } = await draft.shot;
       await saveDevNote({
         id: draft.id, page: draft.page, viewport: draft.viewport, theme: draft.theme, locale,
         appVersion: process.env.NEXT_PUBLIC_APP_VERSION || 'unknown', platform: isNativeApp() ? 'ios' : 'web',
-        target: draft.target, comment: text, screenshot,
+        target: { ...draft.target, shot: info }, comment: text, screenshot,
       });
       stop();
       setSaved(true);

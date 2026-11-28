@@ -35,6 +35,25 @@ export interface NoteTarget {
   path: string[];
   /** An area's marked parts inside it, in page order (with the element's id, as in `path`). */
   inside?: { ui: string; text: string }[];
+  /** How the screenshot went, for looking into one that is missing or wrong. */
+  shot?: ShotInfo;
+}
+
+export interface ShotInfo {
+  /** `ok`, `blank` (drawn as one colour every time, so left out), `failed` or `timeout`. */
+  result: 'ok' | 'blank' | 'failed' | 'timeout';
+  /** The element copied (its mark or tag) and its size in CSS pixels. */
+  holder?: string;
+  holderSize?: [number, number];
+  /** The part of the window drawn, after fitting it to the element copied. */
+  drawn?: Rect;
+  scale?: number;
+  /** Draws of the copy until it showed more than one colour. */
+  attempts?: number;
+  /** Characters in the copy (the SVG it is drawn from). */
+  svgChars?: number;
+  ms?: number;
+  error?: string;
 }
 
 /** Marks what developer mode draws, so it is never picked or drawn into a screenshot. */
@@ -134,11 +153,31 @@ export function elementTarget(element: Element): NoteTarget {
 const contains = (outer: DOMRect, inner: Rect) => outer.left <= inner.x + 1 && outer.top <= inner.y + 1
   && outer.right >= inner.x + inner.width - 1 && outer.bottom >= inner.y + inner.height - 1;
 
-/** The smallest element (not the page's own) holding the whole of `rect`. */
-export function holderOf(rect: Rect): Element {
+const pinned = (element: Element) => ['fixed', 'sticky'].includes(getComputedStyle(element).position);
+
+/**
+ * The smallest element (not the page's own) holding the whole of `rect`.
+ * With `maxHeight` it stops below an element taller than that, and at a
+ * fixed or sticky one (the header, a dialog), whose place in a copy of the
+ * page is not where it is shown: the element it stops at may then hold only
+ * part of `rect`.
+ */
+export function holderOf(rect: Rect, maxHeight = Infinity): Element {
   let node = document.elementsFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2).find((candidate) => !isLayer(candidate)) ?? null;
-  while (node && node !== document.body && !contains(node.getBoundingClientRect(), rect)) node = node.parentElement;
-  return node ?? document.body;
+  // The last element on the way with a box of its own (not `display: contents`).
+  let boxed: Element | null = null;
+  while (node && node !== document.body) {
+    const box = node.getBoundingClientRect();
+    if (box.width > 0 || box.height > 0) {
+      if (contains(box, rect)) return node;
+      boxed = node;
+    }
+    const parent: Element | null = node.parentElement;
+    if (maxHeight !== Infinity && (pinned(node) || !parent || parent.getBoundingClientRect().height > maxHeight)) break;
+    node = parent;
+  }
+  // Stopped on the way: the last element with a box; else the page.
+  return node && node !== document.body ? boxed ?? node : document.body;
 }
 
 export function areaTarget(rect: Rect): NoteTarget {

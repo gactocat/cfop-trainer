@@ -60,7 +60,12 @@ timers are held back. **Developer notes** (`/dev-notes`) lists the notes,
     "selector": "[data-ui=\"LandingPage.entry\"]",
     "rect": { "x": 792, "y": 254, "width": 279, "height": 160 }
   },
-  "path": ["HomeSection#algorithms", "LandingPage", "AppMain"]
+  "path": ["HomeSection#algorithms", "LandingPage", "AppMain"],
+  "shot": {
+    "result": "ok", "holder": "LandingPage", "holderSize": [370, 1066],
+    "drawn": { "x": 248, "y": 196, "width": 138, "height": 160 },
+    "scale": 2, "attempts": 1, "svgChars": 1640394, "ms": 202
+  }
 }
 ```
 
@@ -72,11 +77,33 @@ holding all of it. `ui` is its `data-ui` mark, `text` the start of its text,
 around it, nearest first, with the element's id when it has one. An area also
 has `inside`: the marked parts it overlaps (`{"ui", "text"}`).
 
+`shot` says how the screenshot went (see below): `result` (`ok`, `blank`,
+`failed` or `timeout`), the element copied (`holder`, `holderSize`), the part
+of the window drawn (`drawn`), `scale`, `attempts`, the copy's size in
+characters (`svgChars`), `ms` and any `error`.
+
 The screenshot shows the part with a margin of 16 px and a blue outline, or
-the area. It is drawn from the DOM (modern-screenshot), not from the screen,
-so nothing asks for permission. cubing.js players draw inside closed shadow
-roots, so they are drawn separately and put in place: a 2D view from its SVG,
-a 3D one through the player's own screenshot.
+the area. It is drawn from the DOM, not from the screen, so nothing asks for
+permission: modern-screenshot copies the smallest element holding it into an
+SVG (`foreignObject`), and only that part of the SVG is drawn, at most
+1200 px a side. The element copied is at most 1.5 windows tall and never above
+a fixed or sticky one (the header, a dialog); the margin is cut where it ends.
+Only standard CSS properties are copied: Tailwind's custom properties, which
+every element inherits, more than doubled the copy. A draw that comes out one
+colour is drawn again after a pause (Safari may draw such an SVG before laying
+it out); if it stays one colour, or drawing fails or takes over 14 seconds, the
+note is saved without a screenshot and `shot` says why. cubing.js players draw
+inside closed shadow roots, so they are drawn separately and put in place: a
+2D view from its SVG, a 3D one through the player's own screenshot.
+
+The first version drew the whole element (on a phone usually the page's main
+column, since the margin reaches the screen's edge) and then cut the area
+from it. On iPhones every screenshot came out one colour: the copy was never
+drawn and only the background filled the canvas. Headless WebKit, Chromium
+and the iOS Simulator drew the same copies, so the cause could not be seen
+locally; the size of what was drawn and Safari's late layout are the known
+causes of this, and both are avoided now. If it happens again, `shot` shows
+which step gave out.
 
 ## Marks
 
