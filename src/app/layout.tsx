@@ -76,7 +76,7 @@ export default function RootLayout({
         <HtmlLang />
         <ColorTheme />
         <header data-ui="AppHeader" className="pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur sticky top-0 z-10">
-          {/* Back and the page's title, then what the page adds: a list page's Select and random practice, and its selection tools below. */}
+          {/* The logo (to the top page), back where the page up is not the top, and the page's title; then what the page adds: a list page's Select and Training, and its selection tools below. */}
           <div className="mx-auto max-w-6xl px-3 sm:px-4 py-3 flex min-h-[3.75rem] items-center gap-2">
             <HeaderTitle />
             <div id={HEADER_ACTIONS_ID} className="flex flex-1 items-center gap-2" />

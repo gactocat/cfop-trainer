@@ -13,7 +13,7 @@ import { solvePageOf, solveRecordsPath } from '@/lib/solve/solve-pages';
 import { F2L_IDS, type F2LId } from '@/types/f2l';
 import { OLL_IDS, type OLLId } from '@/types/oll';
 import type { PllId } from '@/types/pll';
-import { BrandLine } from './BrandName';
+import { BrandStack } from './BrandName';
 import { iconButtonClass } from './ui';
 
 const STAGES = { f2l: 'F2L', oll: 'OLL', pll: 'PLL' } as const;
@@ -117,8 +117,12 @@ function BackIcon() {
   );
 }
 
-// The header's left side: on the top page the app's name, elsewhere a back
-// button to the page one level up and the page's title.
+// The header's left side, on every page: the app's logo (the icon and its
+// name on two lines), which leads to the top page, and the page's title to
+// its right (none on the top page). Where the page one level up is not the
+// top page (a case, a practice, a solve's records), a back button to it
+// comes first; elsewhere the logo is the way back. The title is cut short
+// (…) rather than pushing the page's icons off the row.
 export function HeaderTitle() {
   const { t } = useT();
   const pathname = usePathname() ?? '/';
@@ -128,24 +132,29 @@ export function HeaderTitle() {
   // The query is known in the browser only.
   const upHref = page ? `${page.up.href}${page.up.keepQuery && mounted ? window.location.search : ''}` : '/';
   const back = useUpLink(upHref);
+  const home = useUpLink('/');
+  const upIsHome = !page || page.up.href === '/';
+  const label = page && t('nav.backTo', { page: page.up.label });
 
-  if (!page) {
-    return (
-      <Link href="/" aria-current="page" className="flex shrink-0 items-center gap-2">
-        <Image src="/logo.svg" alt="" width={27} height={28} className="h-6 w-auto sm:h-7" />
-        <BrandLine label={HOME} />
-      </Link>
-    );
-  }
-
-  const label = t('nav.backTo', { page: page.up.label });
   return (
     <div data-ui="HeaderTitle" className="flex min-w-0 shrink items-center gap-1">
-      <Link href={upHref} onClick={back} aria-label={label} title={label}
-        className={`${iconButtonClass()} -ml-1.5`}>
-        <BackIcon />
+      {!upIsHome && label && (
+        <Link href={upHref} onClick={back} aria-label={label} title={label}
+          className={`${iconButtonClass()} -ml-1.5`}>
+          <BackIcon />
+        </Link>
+      )}
+      <Link data-ui="HeaderTitle.logo" href="/" onClick={home} aria-current={page ? undefined : 'page'}
+        className="flex shrink-0 items-center gap-1.5 rounded-md [--h:26px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 sm:gap-2 sm:[--h:30px]">
+        <Image src="/logo.svg" alt="" width={27} height={28} className="h-[var(--h)] w-auto shrink-0" />
+        <BrandStack label={HOME} />
       </Link>
-      <span className="truncate text-base font-semibold tracking-tight sm:text-lg">{page.title}</span>
+      {page && (
+        <>
+          <span aria-hidden className="mx-2 h-6 w-px shrink-0 bg-zinc-200 dark:bg-zinc-700" />
+          <span className="min-w-0 truncate text-base font-semibold tracking-tight sm:text-lg">{page.title}</span>
+        </>
+      )}
     </div>
   );
 }

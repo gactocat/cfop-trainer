@@ -52,9 +52,9 @@ export function CfopWord(): ReactNode {
 const TRIM = '[text-box:trim-both_cap_alphabetic]';
 
 /**
- * The top page's name: CFOP over TRAINER, as tall as the icon beside it
- * (`--h`): CFOP's capitals start at the icon's top, TRAINER (as wide as
- * CFOP) ends on its bottom.
+ * The app's name: CFOP over TRAINER, as tall as the icon beside it (`--h`),
+ * large on the top page and small in every page's header: CFOP's capitals
+ * start at the icon's top, TRAINER (as wide as CFOP) ends on its bottom.
  */
 export function BrandStack({ label }: { label: string }) {
   return (
@@ -63,17 +63,6 @@ export function BrandStack({ label }: { label: string }) {
       <span aria-hidden className={`${TRIM} block text-[calc(var(--h)*0.82)] leading-none font-extrabold tracking-[-0.02em]`}><CfopWord /></span>
       {/* As wide as CFOP: it adds nothing to the column's width, then fills it. */}
       <TrainerMark tracking={0.29} className="block h-auto w-0 min-w-full text-zinc-500 dark:text-zinc-400" />
-    </span>
-  );
-}
-
-/** The header's name, on one line: CFOP and a small TRAINER on its baseline. */
-export function BrandLine({ label }: { label: string }) {
-  return (
-    <span className="flex items-baseline gap-1.5">
-      <span className="sr-only">{label}</span>
-      <span aria-hidden className="text-lg font-extrabold tracking-tight"><CfopWord /></span>
-      <TrainerMark tracking={0.08} className="h-2 w-auto text-zinc-500 dark:text-zinc-400" />
     </span>
   );
 }
