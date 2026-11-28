@@ -31,14 +31,19 @@ const FACES = [
   { transform: 'matrix(.866 -.5 0 1 160 152)', color: 'fill-[#ee6262]', face: 'right' },
 ];
 
+// Drawn as a real cube is: a dark body under the stickers, so the lines
+// between them are dark in either theme rather than the page showing
+// through, and the stickers out of the stage a mid grey that stands apart
+// from both the body and the white sticker.
 function Cube({ stage }: { stage: HomeEntryArt }) {
   return (
     <svg viewBox="0 0 320 300" fill="none" aria-hidden="true" className="h-full w-full">
       {FACES.map(({ transform, color, face }) => (
         <g key={face} transform={transform}>
+          <rect x="-4" y="-4" width="136" height="136" rx="8" className="fill-zinc-800 dark:fill-black" />
           {Array.from({ length: 9 }, (_, i) => (
             <rect key={i} x={(i % 3) * 44} y={Math.floor(i / 3) * 44} width="40" height="40" rx="4"
-              className={lit(stage, face, i) ? color : 'fill-zinc-200 dark:fill-zinc-700'} />
+              className={lit(stage, face, i) ? color : 'fill-zinc-400 dark:fill-zinc-600'} />
           ))}
         </g>
       ))}
