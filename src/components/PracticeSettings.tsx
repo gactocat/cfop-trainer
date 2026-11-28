@@ -31,9 +31,9 @@ function modeHelp(flavor: TrainerFlavor, scope: PracticeScope): MessageKey {
 }
 
 // How to practise, as setting rows like the top page's: the smart cube, the
-// mode (with or without setup), the AUF, whether recognition is timed apart,
-// with a cube whether the next case comes by itself, and for random practice
-// whether to take each selected case once. Kept as chosen (mode, AUF and
+// mode (with or without setup), the AUF, with a cube whether recognition is
+// timed apart and whether the next case comes by itself, and for random
+// practice whether to take each selected case once. Kept as chosen (mode, AUF and
 // recognition in the practice settings, the others on this device); a change
 // takes effect with the next case (at once while a case waits).
 function PracticeSettingsForm({ scope }: { scope: PracticeScope }) {
@@ -68,9 +68,12 @@ function PracticeSettingsForm({ scope }: { scope: PracticeScope }) {
       <SettingRow label={t('practice.auf.title')} info={<AufStartHelp />}>
         <AufStartToggle />
       </SettingRow>
-      <SettingRow label={t('practice.recognition.label')} info={t('practice.recognition.help')}>
-        {(labelId) => <Switch checked={mounted && settings.measureRecognition === true} onChange={setMeasureRecognition} labelledBy={labelId} />}
-      </SettingRow>
+      {/* Only a smart cube times recognition: the switch is there while one is connected, its choice kept meanwhile. */}
+      {isCubeFlavor(flavor) && (
+        <SettingRow label={t('practice.recognition.label')} info={t('practice.recognition.help')}>
+          {(labelId) => <Switch checked={mounted && settings.measureRecognition === true} onChange={setMeasureRecognition} labelledBy={labelId} />}
+        </SettingRow>
+      )}
       {isCubeFlavor(flavor) && (
         <SettingRow label={t('trainer.setup.autoAdvance')} info={t('trainer.setup.autoAdvanceHelp')}>
           {(labelId) => <Switch checked={autoAdvance} onChange={setAutoAdvance} labelledBy={labelId} />}

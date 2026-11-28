@@ -20,6 +20,13 @@ export type TrainerFlavor = 'standard' | 'inverse' | 'no-scramble' | 'smart-setu
 export const isCubeFlavor = (flavor: TrainerFlavor) => flavor === 'no-scramble' || flavor === 'smart-setup';
 
 /**
+ * Whether a practice times recognition apart from the solve: when chosen,
+ * and only on a smart cube, which sees the case ready and the first turn.
+ * Without one the choice is kept and waits for a cube.
+ */
+export const timesRecognition = (flavor: TrainerFlavor, chosen: boolean) => chosen && isCubeFlavor(flavor);
+
+/**
  * Read the mode from what is stored. The synced practice settings keep the
  * values older app versions know ('standard' and 'inverse'); before there
  * were two modes, no-scramble was a separate device-local flag on top of

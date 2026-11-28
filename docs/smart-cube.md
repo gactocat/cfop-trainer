@@ -85,16 +85,17 @@ Undone solves do not count. The recognition column is there only when some
 solve of the session has a recognition time; a solve without one (started
 by hand) shows "-" in it.
 
-Recognition is timed apart from the solve only when "Measure recognition
-time" is on (`measureRecognition` in the synced practice settings, off by
-default and written only when on, so older versions drop it and see it off).
-With a cube it is ready to first turn, as above; without one, with no setup
-the case shows on the case screen as it is drawn and recognition runs until
-letting go starts the timer, and with setup a tap once the case is made
-starts it (as a tap starts a solve's inspection; `useHandRecognition`). The
-solve's time then runs from the start. Off, nothing shows or keeps a
-recognition time, a cube's record of the solve included, and without a cube
-the case appears as the timer starts, as before.
+Recognition is timed apart from the solve only on a smart cube, and only
+when "Measure recognition time" is on (`measureRecognition` in the synced
+practice settings, off by default and written only when on, so older
+versions drop it and see it off; `timesRecognition` in
+`lib/practice-mode.ts`). It is ready to first turn, as above. The switch is
+in the practice's settings while a cube is connected, as "Next case by
+itself" is; without one it is not shown and the choice is kept for when a
+cube connects, and practice without a cube times the case as a whole, as
+before. A cube lost mid-attempt keeps that attempt on the cube, recognition
+included; the next case is timed without it. Off, nothing shows or keeps a
+recognition time, a cube's record of the solve included.
 
 ## iOS app
 
@@ -172,8 +173,8 @@ cube is connected in this mode.
 A practice's settings, behind the gear on its case screen, are the smart
 cube, its mode (setup on or off), the AUF (pre-applied: turned by the
 algorithm's AUF so it can start at once; in algorithm: not turned, so the AUF
-is part of the solve; or random), whether recognition is timed, with a cube
-the automatic next case, and for random practice each selected case once. The page starts on a case at
+is part of the solve; or random), with a cube whether recognition is timed
+and the automatic next case, and for random practice each selected case once. The page starts on a case at
 once; a change takes effect with the next case (at once while a case waits). The AUF choice does not depend on the list's AUF display, which only
 changes how the solution is written (see `lib/auf-start.ts`). It is stored as
 `randomAuf` and `alignAuf`; neither flag, once "as set", reads as in

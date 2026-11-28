@@ -213,7 +213,7 @@ console.log('Verified measuring recognition: default, saving, reload and older v
 
 // Practice mode: no setup or with setup, read from the synced trainer mode
 // and the device-local no-scramble flag of the three-mode version.
-const { choosePracticeMode, practiceModeFrom, storedTrainerMode, trainerFlavor } = await import('@/lib/practice-mode');
+const { choosePracticeMode, practiceModeFrom, storedTrainerMode, timesRecognition, trainerFlavor } = await import('@/lib/practice-mode');
 const modeReads: [PracticeSettings['trainerMode'], boolean, string][] = [
   ['standard', false, 'no-setup'],
   ['standard', true, 'no-setup'],
@@ -232,6 +232,14 @@ assert.equal(trainerFlavor('no-setup', false), 'standard', 'no setup without a c
 assert.equal(trainerFlavor('no-setup', true), 'no-scramble', 'no setup with a cube is the virtual cube');
 assert.equal(trainerFlavor('setup', false), 'inverse', 'with setup without a cube shows the setup');
 assert.equal(trainerFlavor('setup', true), 'smart-setup', 'with setup with a cube is guided and recorded by the cube');
+// Recognition is timed only on a smart cube; without one the choice waits.
+assert.equal(timesRecognition('no-scramble', true), true, 'chosen, no setup on a cube: timed');
+assert.equal(timesRecognition('smart-setup', true), true, 'chosen, with setup on a cube: timed');
+assert.equal(timesRecognition('standard', true), false, 'chosen, no cube and no setup: not timed');
+assert.equal(timesRecognition('inverse', true), false, 'chosen, no cube with setup: not timed');
+for (const flavor of ['standard', 'inverse', 'no-scramble', 'smart-setup'] as const) {
+  assert.equal(timesRecognition(flavor, false), false, `not chosen: never timed (${flavor})`);
+}
 
 // Data saved by the three-mode version, read through both stores; choosing
 // a mode then clears the old flag and keeps the cube's other preferences.
